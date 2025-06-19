@@ -8,13 +8,12 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                            QHBoxLayout, QGridLayout, QLabel, QPushButton,
                            QTableWidget, QTableWidgetItem, QTabWidget,
                            QScrollArea, QFrame, QProgressBar, QComboBox,
-                           QDateEdit, QLineEdit, QTextEdit, QStackedWidget) # Import QStackedWidget
+                           QDateEdit, QLineEdit, QTextEdit, QStackedWidget)
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor, QPalette
 import datetime
 import random
 
-# --- (WarehouseData, ChartWidget, MetricCard classes remain the same) ---
 class WarehouseData:
     """Data generator and manager for warehouse operations"""
 
@@ -152,7 +151,6 @@ class MetricCard(QFrame):
 
         self.setLayout(layout)
 
-# Renamed InventoryWidget to RealtimeInventoryViewWidget
 class RealtimeInventoryViewWidget(QWidget):
     """Widget for real-time inventory view, product details, location details, and stock movements"""
 
@@ -985,7 +983,7 @@ class WarehouseDashboard(QMainWindow):
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget) # Use QVBoxLayout for central_widget
+        main_layout = QVBoxLayout(central_widget)
 
         # Header
         header = self.create_header()
@@ -1042,7 +1040,20 @@ class WarehouseDashboard(QMainWindow):
 
         # Stacked Widget for main content
         self.stacked_widget = QStackedWidget()
-        content_layout.addWidget(self.stacked_widget)
+
+        # Create a QWidget to hold the stacked_widget to set it as scroll area's widget
+        scroll_content_widget = QWidget()
+        scroll_content_layout = QVBoxLayout(scroll_content_widget)
+        scroll_content_layout.addWidget(self.stacked_widget)
+        scroll_content_layout.setContentsMargins(0, 0, 0, 0) # Remove extra margins
+
+        # Create QScrollArea and set the stacked widget as its widget
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidget(scroll_content_widget) # Set the scroll_content_widget as the widget for QScrollArea
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) # Typically, vertical scroll is sufficient for dashboards
+
+        content_layout.addWidget(self.scroll_area)
 
         # Instantiate all main widgets
         self.dashboard_widget = StockManagerDashboardWidget(self.data, self)
