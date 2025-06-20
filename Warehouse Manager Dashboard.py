@@ -72,6 +72,16 @@ class WarehouseData:
 
         self.reception_df = pd.DataFrame(reception_data)
 
+        #reception data 2
+
+        reception2_datas=[]
+        for i in range(20):
+            reception2_datas.append({
+                'identifiant du colis':f'C{i+1:04d}',
+                'date prevue':datetime.date.today() + datetime.timedelta(days=random.randint(-5, 15)),
+                'Statuts': random.choice(statuses)
+            })
+        self.reception2_df = pd.DataFrame(reception2_datas)
         # Expedition orders
         expedition_data = []
         destinations = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']
@@ -87,6 +97,17 @@ class WarehouseData:
             })
 
         self.expedition_df = pd.DataFrame(expedition_data)
+
+        #expedition 2 data
+        expedition2_datas=[]
+        for i in range(25):
+            expedition2_datas.append({
+                'identifiant du colis':f'C{i+1:04d}',
+                'identifiant du lot':f'L{i+1:04d}',
+                'idbonexpedition':f'BE{i+1:03d}',
+                'dateexpedition': datetime.date.today() - datetime.timedelta(days=random.randint(0, 10)),
+            })
+        self.expedition2_df = pd.DataFrame(expedition2_datas)
 
         # Generate time series data for performance metrics
         dates = pd.date_range(start='2024-01-01', end='2024-06-19', freq='D')
@@ -441,6 +462,7 @@ class ReportsWidget(QWidget):
             table.setItem(i, 4, QTableWidgetItem(f"${row['Quantity'] * row['Value']:,.2f}"))
         table.resizeColumnsToContents()
         return table
+
 
 
 class DailyOperationsPlanningWidget(QWidget):
@@ -805,8 +827,151 @@ class PerformanceWidget(QWidget):
 
         chart_widget.figure.tight_layout()
         chart_widget.canvas.draw()
+class ZoneEmballage(QWidget):
+    def __init__(self,data):
+        super().__init__()
+        self.data=data
+        self.init_ui()
+    def init_ui(self):
+        container = QWidget()
+        container.setStyleSheet("background-color:#2c3e50 ;")
+        big_layout=QGridLayout(container)
+        big_layout.setVerticalSpacing(50)  # Espace entre les lignes
+        big_layout.setContentsMargins(10, 10, 10, 10)  # Marges générales
 
+        little_layout1=QFrame()
+        little_layout1.setStyleSheet(f"""
+        QFrame{{
+            background-color:white;
+            border-radius:15px;
+            padding:10px;
+        }}
+        """)
+        reception=QLabel("Emballage",little_layout1)
+        reception.setAlignment(Qt.AlignLeft|Qt.AlignTop)
+        reception.setStyleSheet(f"""
+            QLabel{{
+            font-size: 22x;
+            color: #2c3e50;
+            font-weight: bold;
+            padding: 5px;
+            }}""")
+        big_layout.addWidget(little_layout1, 0, 0)
+        little_layout1.show()
+        little_layout2 = QFrame()
+        little_layout2.setStyleSheet(f"""
+                QFrame{{
+                    background-color:white;
+                    border-radius:15px;
+                    padding:10px;
+                }}
+                """)
+        expedition = QLabel("Desemballage", little_layout2)
+        expedition.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        expedition.setStyleSheet(f"""
+                    QLabel{{
+                    font-size: 25px;
+                    color: #2c3e50;
+                    font-weight: bold;
+                    padding: 5px;
+                    }}""")
+        big_layout.addWidget(little_layout2, 1, 0)
+        little_layout2.show()
+        self.setLayout(big_layout)
+class MenuExpedition(QWidget):
+    def __init__(self,data):
+        super().__init__()
+        self.data=data
+        self.init_ui()
+    def init_ui(self):
+        layout = QGridLayout()
+        expedition_summary_table = self.create_expedition_summary_table()
+        bouton = QPushButton("chatte")
+        bouton.setFixedWidth(1000)
+        bouton.setStyleSheet("""
+                       QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; 
+                       width:10px;}
+                       QPushButton:hover { background-color: #1976D2; }
+                   """)
+        layout.addWidget(expedition_summary_table,0,0)
+        layout.addWidget(bouton,0,1)
+        self.setLayout(layout)
 
+    def create_expedition_summary_table(self):
+        table = QTableWidget()
+        table.setFixedWidth(1000)
+        table.setRowCount(len(self.data.expedition2_df))
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
+
+        for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
+            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
+            table.setItem(i, 1, QTableWidgetItem(row['identifiant du lot']))
+            table.setItem(i, 2, QTableWidgetItem(row['idbonexpedition']))
+            table.setItem(i, 4, QTableWidgetItem(str(row['dateexpedition'])))
+        table.setStyleSheet("""
+                    QTableWidget { background-color: white; alternate-background-color: #f5f5f5; selection-background-color: #e3f2fd; gridline-color: #e0e0e0; }
+                    QHeaderView::section { background-color: #f5f5f5; padding: 8px; border: 1px solid #e0e0e0; font-weight: bold; }
+                """)
+        table.resizeColumnsToContents()
+        return table
+class MenuReception(QWidget):
+    def __init__(self,data):
+        super().__init__()
+        self.data=data
+        self.init_ui()
+    def init_ui(self):
+        layout = QGridLayout()
+        reception_summary_table = self.create_reception_summary_table()
+        bouton = QPushButton("informer magasinier")
+        bouton.setFixedWidth(1000)
+        bouton.setStyleSheet("""
+               QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; 
+               width:10px;}
+               QPushButton:hover { background-color: #1976D2; }
+           """)
+        layout.addWidget(bouton,0,1)
+        layout.addWidget(reception_summary_table,0,0)
+        self.setLayout(layout)
+    def create_reception_summary_table(self):
+        table = QTableWidget()
+        table.setFixedWidth(1000)
+        table.setRowCount(len(self.data.reception2_df))
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(['identifiant du colis','date prevue', 'Statut'])
+
+        for i, (_, row) in enumerate(self.data.reception2_df.iterrows()):
+            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
+            table.setItem(i, 1, QTableWidgetItem(str(row['date prevue'])))
+            table.setItem(i, 2, QTableWidgetItem(row['Statuts']))
+        table.setStyleSheet("""
+            QTableWidget { background-color: white; alternate-background-color: #f5f5f5; selection-background-color: #e3f2fd; gridline-color: #e0e0e0; }
+            QHeaderView::section { background-color: #f5f5f5; padding: 8px; border: 1px solid #e0e0e0; font-weight: bold; }
+        """)
+        table.resizeColumnsToContents()
+        return table
+class WarehouseMenuInteractionWidget(QWidget):
+    """Widget principal de 'Menu interaction' qui regroupe les vues du module warehouse."""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        # Titre
+        title = QLabel("Warehouse Operations Menu")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        layout.addWidget(title)
+
+        # Onglets
+        tabs = QTabWidget()
+        tabs.addTab(MenuReception(self.data), "menu reception")
+        tabs.addTab(MenuExpedition(self.data), "menu expedition")
+        tabs.addTab(ZoneEmballage(self.data),"zone d'emballage")
+        layout.addWidget(tabs)
+        self.setLayout(layout)
 class StockManagerDashboardWidget(QWidget):
     """The central dashboard widget as per the image."""
     def __init__(self, data, main_app_window):
@@ -861,6 +1026,15 @@ class StockManagerDashboardWidget(QWidget):
             "Optimize cell usage and manage warehouse layout.",
             storage_btn
         ), 0, 1)
+        #Menu interaction
+        menu_interaction_btn = QPushButton("Menu interaction")
+        menu_interaction_btn.setObjectName("nav_button")
+        menu_interaction_btn.clicked.connect(lambda: self.main_app_window.show_widget("Menu interaction"))
+        function_grid.addWidget(self.create_function_card(
+            "Menu interaction",
+            "Optimize cell usage and manage warehouse layout.",
+            menu_interaction_btn
+        ), 0, 2)
 
         # Generate Reports
         reports_btn = QPushButton("Generate Reports")
@@ -948,7 +1122,7 @@ class WarehouseDashboard(QMainWindow):
             }
             QTabWidget::pane {
                 border: 1px solid #e0e0e0;
-                background-color: white;
+                background-color: #f0f0f0;
             }
             QTabBar::tab {
                 background-color: #f0f0f0;
@@ -1022,6 +1196,13 @@ class WarehouseDashboard(QMainWindow):
         self.storage_btn.clicked.connect(lambda: self.show_widget("Storage Space Management"))
         sidebar_layout.addWidget(self.storage_btn)
 
+
+        self.menu_interaction_btn = QPushButton("Menu interaction")
+        self.menu_interaction_btn.setObjectName("sidebar_button")
+        self.menu_interaction_btn.setCheckable(True)
+        self.menu_interaction_btn.clicked.connect(lambda: self.show_widget("Menu interaction"))
+        sidebar_layout.addWidget(self.menu_interaction_btn)
+
         self.reports_btn = QPushButton("Generate Reports")
         self.reports_btn.setObjectName("sidebar_button")
         self.reports_btn.setCheckable(True)
@@ -1058,6 +1239,7 @@ class WarehouseDashboard(QMainWindow):
         # Instantiate all main widgets
         self.dashboard_widget = StockManagerDashboardWidget(self.data, self)
         self.realtime_inventory_widget = RealtimeInventoryViewWidget(self.data)
+        self.menu_interaction_widget = WarehouseMenuInteractionWidget(self.data)
         self.storage_management_widget = StorageSpaceManagementWidget(self.data)
         self.reports_widget = ReportsWidget(self.data)
         self.daily_planning_widget = DailyOperationsPlanningWidget(self.data)
@@ -1065,6 +1247,7 @@ class WarehouseDashboard(QMainWindow):
         # Add widgets to the stacked widget
         self.stacked_widget.addWidget(self.dashboard_widget) # Index 0
         self.stacked_widget.addWidget(self.realtime_inventory_widget) # Index 1
+        self.stacked_widget.addWidget(self.menu_interaction_widget)  # Index 2
         self.stacked_widget.addWidget(self.storage_management_widget) # Index 2
         self.stacked_widget.addWidget(self.reports_widget) # Index 3
         self.stacked_widget.addWidget(self.daily_planning_widget) # Index 4
@@ -1073,12 +1256,13 @@ class WarehouseDashboard(QMainWindow):
         self.widget_map = {
             "Stock Manager Dashboard": 0,
             "Real-time Inventory View": 1,
-            "Storage Space Management": 2,
-            "Generate Reports": 3,
-            "Daily Operations Planning": 4
+            "Menu interaction":2,
+            "Storage Space Management": 3,
+            "Generate Reports": 4,
+            "Daily Operations Planning": 5
         }
         self.button_group = [
-            self.dashboard_btn, self.inventory_btn, self.storage_btn,
+            self.dashboard_btn, self.inventory_btn, self.storage_btn, self.menu_interaction_btn,
             self.reports_btn, self.planning_btn
         ]
 
@@ -1133,6 +1317,8 @@ class WarehouseDashboard(QMainWindow):
                 self.dashboard_btn.setChecked(True)
             elif widget_name == "Real-time Inventory View":
                 self.inventory_btn.setChecked(True)
+            elif widget_name =="Menu interaction":
+                self.menu_interaction_btn.setChecked(True)
             elif widget_name == "Storage Space Management":
                 self.storage_btn.setChecked(True)
             elif widget_name == "Generate Reports":
