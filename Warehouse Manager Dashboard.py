@@ -827,57 +827,255 @@ class PerformanceWidget(QWidget):
 
         chart_widget.figure.tight_layout()
         chart_widget.canvas.draw()
+
+
 class ZoneEmballage(QWidget):
-    def __init__(self,data):
+    def __init__(self, data):
         super().__init__()
-        self.data=data
+        self.data = data
         self.init_ui()
+
     def init_ui(self):
         container = QWidget()
-        container.setStyleSheet("background-color:#2c3e50 ;")
-        big_layout=QGridLayout(container)
-        big_layout.setVerticalSpacing(50)  # Espace entre les lignes
-        big_layout.setContentsMargins(10, 10, 10, 10)  # Marges générales
+        container.setStyleSheet("background-color: #f5f5f5;")
+        big_layout = QGridLayout(container)
+        big_layout.setVerticalSpacing(20)
+        big_layout.setHorizontalSpacing(20)
+        big_layout.setContentsMargins(20, 20, 20, 20)
 
-        little_layout1=QFrame()
-        little_layout1.setStyleSheet(f"""
-        QFrame{{
-            background-color:white;
-            border-radius:15px;
-            padding:10px;
-        }}
+        # Frame pour l'emballage
+        emballage_frame = QFrame()
+        emballage_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 15px;
+                padding: 15px;
+            }
         """)
-        reception=QLabel("Emballage",little_layout1)
-        reception.setAlignment(Qt.AlignLeft|Qt.AlignTop)
-        reception.setStyleSheet(f"""
-            QLabel{{
-            font-size: 22x;
-            color: #2c3e50;
-            font-weight: bold;
-            padding: 5px;
-            }}""")
-        big_layout.addWidget(little_layout1, 0, 0)
-        little_layout1.show()
-        little_layout2 = QFrame()
-        little_layout2.setStyleSheet(f"""
-                QFrame{{
-                    background-color:white;
-                    border-radius:15px;
-                    padding:10px;
-                }}
-                """)
-        expedition = QLabel("Desemballage", little_layout2)
-        expedition.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        expedition.setStyleSheet(f"""
-                    QLabel{{
-                    font-size: 25px;
-                    color: #2c3e50;
-                    font-weight: bold;
-                    padding: 5px;
-                    }}""")
-        big_layout.addWidget(little_layout2, 1, 0)
-        little_layout2.show()
+        emballage_layout = QVBoxLayout(emballage_frame)
+        emballage_layout.setSpacing(20)
+
+        # Titre Emballage
+        emballage_title = QLabel("Emballage")
+        emballage_title.setStyleSheet("""
+            QLabel {
+                font-size: 22px;
+                color: #2c3e50;
+                font-weight: bold;
+                padding-bottom: 10px;
+            }
+        """)
+        emballage_layout.addWidget(emballage_title)
+
+        # Cartes de métriques pour Emballage
+        metrics_emballage_layout = QGridLayout()
+        metrics_emballage_layout.setVerticalSpacing(15)
+        metrics_emballage_layout.setHorizontalSpacing(15)
+
+
+        # Carte 1 - Colis à emballer
+        card1 = self.create_metric_card(
+            title="42",
+            value="En attente",
+            subtitle="Dernière mise à jour: 05/03/2025",
+            color="#2196F3",
+            title_label="Colis à emballer",
+            value_label="Statut",
+            subtitle_label="Information"
+        )
+        metrics_emballage_layout.addWidget(card1, 0, 0)
+
+        # Carte 2 - Colis emballés
+        card2 = self.create_metric_card(
+            title="128",
+            value="Aujourd'hui",
+            subtitle="Objectif: 150 colis/jour",
+            color="#4CAF50",
+            title_label="Colis emballés",
+            value_label="Période",
+            subtitle_label="Performance"
+        )
+        metrics_emballage_layout.addWidget(card2, 0, 1)
+
+        # Carte 3 - Progression
+        card3 = self.create_metric_card(
+            title="70%",
+            value="05/03/2025",
+            subtitle="Avancement global",
+            color="#FF9800",
+            title_label="Progression",
+            value_label="Date",
+            subtitle_label="Détails",
+            label_color="#FFFFFF",
+            label_bg="#607D8B"
+        )
+        card3.setFixedWidth(900)
+        metrics_emballage_layout.addWidget(card3, 1, 0, 1, 2, Qt.AlignCenter)
+
+        emballage_layout.addLayout(metrics_emballage_layout)
+        emballage_layout.addStretch()
+
+        # Frame pour le désemballage
+        desemballage_frame = QFrame()
+        desemballage_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 15px;
+                padding: 15px;
+            }
+        """)
+        desemballage_layout = QVBoxLayout(desemballage_frame)
+        desemballage_layout.setSpacing(20)
+
+        # Titre Désemballage
+        desemballage_title = QLabel("Désemballage")
+        desemballage_title.setStyleSheet("""
+            QLabel {
+                font-size: 22px;
+                color: #2c3e50;
+                font-weight: bold;
+                padding-bottom: 10px;
+            }
+        """)
+        desemballage_layout.addWidget(desemballage_title)
+
+        # Cartes de métriques pour Désemballage
+        metrics_desemballage_layout = QGridLayout()
+        metrics_desemballage_layout.setVerticalSpacing(15)
+        metrics_desemballage_layout.setHorizontalSpacing(15)
+
+        # Carte 4 - Colis à désemballer
+        card4 = self.create_metric_card(
+            title="24",
+            value="En attente",
+            subtitle="Priorité: Moyenne",
+            color="#2196F3",
+            title_label="Colis à désemballer",
+            value_label="Statut",
+            subtitle_label="Information"
+        )
+        metrics_desemballage_layout.addWidget(card4, 0, 0)
+
+        # Carte 5 - Colis désemballés
+        card5 = self.create_metric_card(
+            title="76",
+            value="Aujourd'hui",
+            subtitle="Efficacité: 85%",
+            color="#4CAF50",
+            title_label="Colis désemballés",
+            value_label="Période",
+            subtitle_label="Performance"
+        )
+        metrics_desemballage_layout.addWidget(card5, 0, 1)
+        # Carte 6 - Progression désemballage
+        card6 = self.create_metric_card(
+            title="65%",
+            value="05/03/2025",
+            subtitle="Taux de complétion",
+            color="#FF9800",
+            title_label="Progression",
+            value_label="Date",
+            subtitle_label="Détails",
+            label_color="#FFFFFF",
+            label_bg="#607D8B"
+        )
+        card6.setFixedWidth(900)
+        metrics_desemballage_layout.addWidget(card6, 1, 0, 1, 2, Qt.AlignCenter)
+
+        desemballage_layout.addLayout(metrics_desemballage_layout)
+        desemballage_layout.addStretch()
+
+        # Ajout des frames à la disposition principale
+        big_layout.addWidget(emballage_frame, 0, 0)
+        big_layout.addWidget(desemballage_frame, 1, 0)
+
         self.setLayout(big_layout)
+
+    def create_metric_card(self, title, value, subtitle, color,
+                           title_label=None, value_label=None, subtitle_label=None,
+                           label_color="#555", label_bg="#f8f9fa"):
+        """Crée une carte de métrique avec des labels optionnels pour chaque élément"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: white;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                padding: 15px;
+            }}
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setSpacing(8)
+        layout.setContentsMargins(10, 10, 10, 10)
+
+        # Style pour les labels descriptifs
+        label_style = f"""
+            QLabel {{
+                font-size: 14px;
+                color: {label_color};
+                font-weight: 500;
+                padding: 4px 8px;
+                background-color: {label_bg};
+                border-radius: 4px;
+                border: 1px solid #e0e0e0;
+                margin-bottom: 2px;
+            }}
+        """
+
+        # Titre avec label optionnel
+        if title_label:
+            title_desc = QLabel(title_label)
+            title_desc.setStyleSheet(label_style)
+            layout.addWidget(title_desc)
+
+        title_widget = QLabel(title)
+        title_widget.setStyleSheet("""
+            QLabel {
+                font-size: 24px;
+                color: #666;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+        """)
+        layout.addWidget(title_widget)
+
+        # Valeur avec label optionnel
+        if value_label:
+            value_desc = QLabel(value_label)
+            value_desc.setStyleSheet(label_style)
+            layout.addWidget(value_desc)
+
+        value_widget = QLabel(value)
+        value_widget.setStyleSheet(f"""
+            QLabel {{
+                font-size: 28px;
+                font-weight: bold;
+                color: {color};
+                margin: 5px 0;
+            }}
+        """)
+        layout.addWidget(value_widget)
+
+        # Sous-titre avec label optionnel
+        if subtitle_label:
+            subtitle_desc = QLabel(subtitle_label)
+            subtitle_desc.setStyleSheet(label_style)
+            layout.addWidget(subtitle_desc)
+
+        subtitle_widget = QLabel(subtitle)
+        subtitle_widget.setStyleSheet("""
+            QLabel {
+                font-size: 20px;
+                color: #999;
+                margin-top: 5px;
+            }
+        """)
+        layout.addWidget(subtitle_widget)
+
+        layout.addStretch()
+        return card
+
 class MenuExpedition(QWidget):
     def __init__(self,data):
         super().__init__()
