@@ -4,11 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                           QHBoxLayout, QGridLayout, QLabel, QPushButton,
-                           QTableWidget, QTableWidgetItem, QTabWidget,
-                           QScrollArea, QFrame, QProgressBar, QComboBox,
-                           QDateEdit, QLineEdit, QTextEdit, QStackedWidget)
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor, QPalette
 import datetime
@@ -388,9 +384,30 @@ class ReportsWidget(QWidget):
         stock_reports_layout = QVBoxLayout()
         stock_reports_layout.addWidget(QLabel("<h4>Stock Reports</h4>"))
         stock_reports_layout.addWidget(QLabel("Generate reports on current stock levels, low stock items, and inventory value."))
-        # Add a simple table or summary from inventory_df here
-        stock_summary_table = self.create_stock_summary_table()
-        stock_reports_layout.addWidget(stock_summary_table)
+
+        self.stock_summary_table = self.create_stock_summary_table() # Make it an instance variable
+        stock_reports_layout.addWidget(self.stock_summary_table)
+
+        # Add Save button for Stock Reports
+        save_stock_btn = QPushButton("Save Stock Report to CSV")
+        save_stock_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #43A047;
+            }
+        """)
+        save_stock_btn.clicked.connect(self.save_stock_report_to_csv)
+        stock_reports_layout.addWidget(save_stock_btn)
+
+
         stock_reports_widget.setLayout(stock_reports_layout)
         tabs.addTab(stock_reports_widget, "Stock Reports")
 
@@ -404,18 +421,38 @@ class ReportsWidget(QWidget):
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
         # Example: Low Stock Exception
-        low_stock_exceptions = self.data.inventory_df[self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']]
-        if not low_stock_exceptions.empty:
+        self.low_stock_exceptions = self.data.inventory_df[self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']] # Make it an instance variable
+        if not self.low_stock_exceptions.empty:
             exception_reports_layout.addWidget(QLabel("<p style='color: red; font-weight: bold;'>Critical Low Stock Items:</p>"))
-            low_stock_table = QTableWidget()
-            low_stock_table.setRowCount(len(low_stock_exceptions))
-            low_stock_table.setColumnCount(3)
-            low_stock_table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Min Stock'])
-            for i, (_, row) in enumerate(low_stock_exceptions.iterrows()):
-                low_stock_table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
-                low_stock_table.setItem(i, 1, QTableWidgetItem(str(row['Quantity'])))
-                low_stock_table.setItem(i, 2, QTableWidgetItem(str(row['Min_Stock'])))
-            exception_reports_layout.addWidget(low_stock_table)
+            self.low_stock_table = QTableWidget() # Make it an instance variable
+            self.low_stock_table.setRowCount(len(self.low_stock_exceptions))
+            self.low_stock_table.setColumnCount(3)
+            self.low_stock_table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Min Stock'])
+            for i, (_, row) in enumerate(self.low_stock_exceptions.iterrows()):
+                self.low_stock_table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
+                self.low_stock_table.setItem(i, 1, QTableWidgetItem(str(row['Quantity'])))
+                self.low_stock_table.setItem(i, 2, QTableWidgetItem(str(row['Min_Stock'])))
+            exception_reports_layout.addWidget(self.low_stock_table)
+
+            # Add Save button for Low Stock Exceptions
+            save_low_stock_btn = QPushButton("Save Low Stock Report to CSV")
+            save_low_stock_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #FF9800;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    margin-top: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #FB8C00;
+                }
+            """)
+            save_low_stock_btn.clicked.connect(self.save_low_stock_report_to_csv)
+            exception_reports_layout.addWidget(save_low_stock_btn)
+
         else:
             exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
 
@@ -432,15 +469,54 @@ class ReportsWidget(QWidget):
         table.setColumnCount(5)
         table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Min Stock', 'Current Value'])
 
+        # Prepare data for easy CSV export
+        self.stock_summary_data = []
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             product_info = self.data.products_df[self.data.products_df['ID'] == row['Product_ID']].iloc[0]
+            current_value = row['Quantity'] * row['Value']
             table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
             table.setItem(i, 1, QTableWidgetItem(product_info['Category']))
             table.setItem(i, 2, QTableWidgetItem(str(row['Quantity'])))
             table.setItem(i, 3, QTableWidgetItem(str(row['Min_Stock'])))
-            table.setItem(i, 4, QTableWidgetItem(f"${row['Quantity'] * row['Value']:,.2f}"))
+            table.setItem(i, 4, QTableWidgetItem(f"${current_value:,.2f}"))
+            self.stock_summary_data.append({
+                'Product': row['Product_Name'],
+                'Category': product_info['Category'],
+                'Quantity': row['Quantity'],
+                'Min Stock': row['Min_Stock'],
+                'Current Value': current_value
+            })
+        self.stock_summary_df = pd.DataFrame(self.stock_summary_data) # Store as DataFrame for easy export
         table.resizeColumnsToContents()
         return table
+
+    def save_stock_report_to_csv(self):
+        if not self.stock_summary_df.empty:
+            options = QFileDialog.Options()
+            file_name, _ = QFileDialog.getSaveFileName(self, "Save Stock Report", "stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
+            if file_name:
+                try:
+                    self.stock_summary_df.to_csv(file_name, index=False)
+                    QMessageBox.information(self, "Success", f"Stock report saved to:\n{file_name}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to save stock report: {e}")
+        else:
+            QMessageBox.warning(self, "No Data", "No stock data to save.")
+
+    def save_low_stock_report_to_csv(self):
+        if not self.low_stock_exceptions.empty:
+            options = QFileDialog.Options()
+            file_name, _ = QFileDialog.getSaveFileName(self, "Save Low Stock Report", "low_stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
+            if file_name:
+                try:
+                    # Select relevant columns for the low stock report
+                    report_df = self.low_stock_exceptions[['Product_Name', 'Quantity', 'Min_Stock']]
+                    report_df.to_csv(file_name, index=False)
+                    QMessageBox.information(self, "Success", f"Low stock report saved to:\n{file_name}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to save low stock report: {e}")
+        else:
+            QMessageBox.warning(self, "No Data", "No low stock exceptions to save.")
 
 
 class DailyOperationsPlanningWidget(QWidget):
