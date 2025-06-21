@@ -9,27 +9,49 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QSize, QTimer # Import QTimer for simulating delay
 from PyQt5.QtGui import QFont, QColor, QPalette
 
+    
+host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"  # Replace with your database host
+database = "test_bpdd"  # Replace with your database name
+user = "test"  # Replace with your database username
+password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"  # Replace with your database password
+port = 5432  # Default PostgreSQL port, change if necessary
 
-def connect_to_db(host, database, user, password, port=5432):
+db_connection = None
+try:
+    db_connection = psycopg2.connect(
+        host=host,
+        database=database,
+        user=user,
+        password=password,
+        port=port
+    )
+    print(f"Successfully connected to PostgreSQL database: {database}")
+
+except Error as e:
+    print(f"Error connecting to PostgreSQL database: {e}")
+    
+def extract_employee_data(connection):
     """
-    Connects to a PostgreSQL database and returns the connection object.
+    Extracts employee data from the database.
     """
-    connection = None
     try:
-        connection = psycopg2.connect(
-            host=host,
-            database=database,
-            user=user,
-            password=password,
-            port=port
-        )
-        print(f"Successfully connected to PostgreSQL database: {database}")
-        return connection
+        cursor = connection.cursor()
+        query = f"SELECT * FROM Users"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        employee_data = []
+        for row in rows:
+            employee = {
+                "first_name": row[0],
+                "last_name": row[1],
+                "username": row[2],
+                "access_level": row[3],
+            }
+            employee_data.append(employee)
+        return employee_data
     except Error as e:
-        print(f"Error connecting to PostgreSQL database: {e}")
-        return None
-
-
+        print(f"Error extracting user data: {e}")
+        return []
 # --- Start of AccountSettingsPage Class ---
 class AccountSettingsPage(QWidget):
     """
@@ -153,17 +175,7 @@ class AccountSettingsPage(QWidget):
         Populates the employee list section with data (after simulated delay).
         """
         # Example employee data - in a real app, this would be the actual data from your database
-        employees = [
-            {"first": "John", "last": "Smith", "username": "john.smit", "access": "Employee"},
-            {"first": "Mary", "last": "Jane", "username": "mary.jane", "access": "Employee"},
-            {"first": "Jack", "last": "Bulls", "username": "jack.bull", "access": "Employee"},
-            {"first": "Noel", "last": "King", "username": "noel.king", "access": "Admin"},
-            {"first": "Alice", "last": "Wonder", "username": "a.wonder", "access": "Employee"},
-            {"first": "Bob", "last": "Builder", "username": "b.builder", "access": "Employee"},
-            {"first": "Charlie", "last": "Chaplin", "username": "c.chaplin", "access": "Admin"},
-            {"first": "Diana", "last": "Prince", "username": "d.prince", "access": "Employee"},
-            {"first": "Eve", "last": "Adams", "username": "e.adams", "access": "Employee"},
-        ]
+        employees = extract_employee_data(db_connection)
 
         if not employees:
             self.initial_message_label.setText("No employees found.")
@@ -194,7 +206,65 @@ class AccountSettingsPage(QWidget):
                 widget.setParent(None) # Remove it from the layout and delete
         self.employee_cards.clear()
 
-
+    def is_employee_present(self, username):
+        """
+        Checks if an employee with the given username already exists in the list.
+        Returns True if present, False otherwise.
+        """  
+        try:
+            cursor = db_connection.cursor()
+            query = f"SELECT * FROM Users WHERE username = %s"
+            cursor.execute(query, (username,))
+            result = cursor.fetchone()
+            cursor.close()
+            
+            if result:
+                return True # Employee exists
+        except Error as e:
+            print(f"Error checking for existing employee: {e}")
+            QMessageBox.critical(self, "Database Error", "Failed to check for existing employee in the database.")
+            # Optionally log the error or handle it as needed
+        
+        return False
+    
+    def add_employee_to_db(self, first_name, last_name, username, access_level):
+        """
+        Adds a new employee to the database.
+        This is a placeholder function; in a real application, it would execute an INSERT query.
+        """
+        try:
+            cursor = db_connection.cursor()
+            insert_query = f"""
+                INSERT INTO Users (first_name, last_name, username, access_level)
+                VALUES (%s, %s, %s, %s);
+            """
+            cursor.execute(insert_query, (first_name, last_name, username, access_level))
+            db_connection.commit()
+            print(f"Employee {username} added successfully.")
+            # QMessageBox.information(f"Employee {username} added successfully.")
+            cursor.close()
+        except Error as e:
+            print(f"Error adding employee: {e}")
+            
+    def update_employee_in_db(self, original_username, first_name, last_name, username, access_level):
+        """
+        Updates an existing employee's details in the database.
+        This is a placeholder function; in a real application, it would execute an UPDATE query.
+        """
+        try:
+            cursor = db_connection.cursor()
+            update_query = f"""
+                UPDATE Users
+                SET first_name = %s, last_name = %s, username = %s, access_level = %s
+                WHERE username = %s;
+            """
+            cursor.execute(update_query, (first_name, last_name, username, access_level, original_username))
+            db_connection.commit()
+            print(f"Employee {username} updated successfully.")
+            cursor.close()
+        except Error as e:
+            print(f"Error updating employee: {e}")
+    
     def _create_employee_card_widget(self, employee_data):
         """
         Creates a QFrame widget representing a single employee card.
@@ -205,10 +275,10 @@ class AccountSettingsPage(QWidget):
         card_layout = QVBoxLayout(card_frame)
         card_layout.setContentsMargins(15, 10, 15, 10)
         card_layout.setSpacing(5)
-        card_layout.addWidget(QLabel(f"<b>First Name:</b> {employee_data['first']}"))
-        card_layout.addWidget(QLabel(f"<b>Last Name:</b> {employee_data['last']}"))
+        card_layout.addWidget(QLabel(f"<b>First Name:</b> {employee_data['first_name']}"))
+        card_layout.addWidget(QLabel(f"<b>Last Name:</b> {employee_data['last_name']}"))
         card_layout.addWidget(QLabel(f"<b>Username:</b> {employee_data['username']}"))
-        card_layout.addWidget(QLabel(f"<b>Access Level:</b> {employee_data['access']}"))
+        card_layout.addWidget(QLabel(f"<b>Access Level:</b> {employee_data['access_level']}"))
         return card_frame
 
     def _create_create_account_section(self):
@@ -329,11 +399,11 @@ class AccountSettingsPage(QWidget):
         clicked_card.style().polish(clicked_card) # Re-apply stylesheet
 
         # Populate the "Edit Employee Account" section's fields
-        self.edit_first_name_input.setText(employee_data['first'])
-        self.edit_last_name_input.setText(employee_data['last'])
+        self.edit_first_name_input.setText(employee_data['first_name'])
+        self.edit_last_name_input.setText(employee_data['last_name'])
         self.edit_username_input.setText(employee_data['username'])
         # Set the current access level in the combobox
-        index = self.edit_access_level_combobox.findText(employee_data['access'])
+        index = self.edit_access_level_combobox.findText(employee_data['access_level'])
         if index != -1:
             self.edit_access_level_combobox.setCurrentIndex(index)
 
@@ -352,6 +422,10 @@ class AccountSettingsPage(QWidget):
         confirm_password = self.create_confirm_password_input.text()
         is_admin = self.create_admin_checkbox.isChecked()
 
+        if self.is_employee_present(username):
+            QMessageBox.warning(self, "Duplicate Username", f"An employee with username '{username}' already exists.")
+            return
+        
         if not (first_name and last_name and username and password and confirm_password):
             QMessageBox.warning(self, "Input Error", "All fields must be filled to create an account.")
             return
@@ -363,15 +437,9 @@ class AccountSettingsPage(QWidget):
         if len(password) < 6: # Example validation
             QMessageBox.warning(self, "Input Error", "Password must be at least 6 characters long.")
             return
+        
+        self.add_employee_to_db(first_name, last_name, username, "Admin" if is_admin else "Employee")
 
-        print(f"Creating New Account:")
-        print(f"  First Name: {first_name}")
-        print(f"  Last Name: {last_name}")
-        print(f"  Username: {username}")
-        # NEVER print actual password in logs in a real app
-        print(f"  Is Admin: {is_admin}")
-
-        # Simulate success
         QMessageBox.information(self, "Account Created", f"Account for {username} created successfully!")
 
         # Clear form fields after successful creation
@@ -400,17 +468,12 @@ class AccountSettingsPage(QWidget):
         new_username = self.edit_username_input.text().strip()
         new_access_level = self.edit_access_level_combobox.currentText()
 
+        self.update_employee_in_db(original_username, new_first_name, new_last_name, new_username, new_access_level)
+        
         if not (new_first_name and new_last_name and new_username):
             QMessageBox.warning(self, "Input Error", "First Name, Last Name, and Username cannot be empty.")
             return
 
-        print(f"Saving changes for {original_username}:")
-        print(f"  New First Name: {new_first_name}")
-        print(f"  New Last Name: {new_last_name}")
-        print(f"  New Username: {new_username}")
-        print(f"  New Access Level: {new_access_level}")
-
-        # Simulate success
         QMessageBox.information(self, "Changes Saved", f"Changes for {new_username} saved successfully!")
 
         # In a real app:
@@ -729,14 +792,6 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    
-    host = "dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com"  # Replace with your database host
-    database = "projet_integrateur"  # Replace with your database name
-    user = "group13"  # Replace with your database username
-    password = "nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3"  # Replace with your database password
-    port = 5432  # Default PostgreSQL port, change if necessary
-
-    db_connection = connect_to_db(host, database, user, password, port)
     
     app = QApplication(sys.argv)
 
