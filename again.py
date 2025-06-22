@@ -1,4 +1,6 @@
 import sys
+import psycopg2
+import hashlib
 from PyQt5.QtCore import Qt, QPropertyAnimation, QRect, QEasingCurve
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLineEdit, QLabel, QPushButton,
@@ -6,6 +8,14 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 
+<<<<<<< Updated upstream
+=======
+host = "localhost"
+port = "5432"
+database = "cred"
+user = "postgres"
+_password = "steevy"
+>>>>>>> Stashed changes
 
 class FlipCard(QWidget):
     def __init__(self):
@@ -195,6 +205,25 @@ class FlipCard(QWidget):
         self.signup_status = QLabel()
         self.signup_status.setStyleSheet("color: red;")
 
+        self.vsignup_password = QLineEdit()
+        self.vsignup_password.setPlaceholderText("Confirm")
+        self.vsignup_password.setEchoMode(QLineEdit.Password)
+        self.vsignup_password.setFixedHeight(35)
+        self.vsignup_password.setStyleSheet("""
+            QLineEdit {
+                background-color: #f9f9f9;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding-left: 10px;
+                font-size: 13px;
+                color: black;
+            }
+            QLineEdit:focus {
+                border: 1px solid #2ecc71;
+                background-color: #ffffff;
+            }
+        """)
+
         btn_signup = QPushButton("Create Account")
 >>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
         btn_signup.clicked.connect(self.handle_signup)
@@ -213,6 +242,7 @@ class FlipCard(QWidget):
         layout.addWidget(self.signup_name)
         layout.addWidget(self.signup_email)
         layout.addWidget(self.signup_password)
+        layout.addWidget(self.vsignup_password)
         layout.addWidget(btn_signup)
         layout.addWidget(switch)
         layout.addWidget(self.signup_status)
@@ -276,6 +306,7 @@ class FlipCard(QWidget):
         self.setEnabled(True)
 
     def handle_login(self):
+<<<<<<< Updated upstream
         email = self.login_email.text().strip()
         password = self.login_password.text().strip()
 
@@ -298,6 +329,33 @@ class FlipCard(QWidget):
             print(f"SIGNUP: Name={name}, Email={email}, Password={password}")
             QMessageBox.information(self, "Sign Up", f"Account created for {name}!")
 
+=======
+        email = self.login_email.text()
+        password = self.login_password.text()
+
+    def handle_signup(self):
+
+        conn = psycopg2.connect(
+            host=host,
+            user=user,
+            password=_password,
+            database=database
+        )
+        cursor = conn.cursor()
+        name = self.signup_name.text()
+        email = self.signup_email.text()
+        if self.signup_password.text() == self.vsignup_password.text():
+            password = self.signup_password.text()
+            hash_object = hashlib.sha256(password.encode())
+            hex_dig = hash_object.hexdigest()
+            cursor.execute(""" INSERT INTO cred (email, password) VALUES (%s, %s)""", (email, hex_dig))
+            print("stored!!!!!!")
+
+        else:
+            print("SIGNUP: Passwords do not match")
+        conn.commit()
+        conn.close()
+>>>>>>> Stashed changes
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
