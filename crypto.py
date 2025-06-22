@@ -32,4 +32,4 @@ def hide_data(image_path, output_path, secret_key):
     print("[-] Image not big enough to hold the key.")
 
 # Usage:
-hide_data("image.png", "output.png", "Steevy 15 the MFKN GOAT")
+hide_data("image.png", "output.png", "Gloria fait chier")

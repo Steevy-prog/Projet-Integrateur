@@ -4,22 +4,18 @@ from psycopg2 import Error
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QCheckBox, QFrame, QScrollArea,
-    QSizePolicy, QSpacerItem, QGridLayout, QMessageBox, QComboBox, QStackedWidget,
-    QTableWidgetItem,  # <-- Added import for QTableWidgetItem
-    QTableWidget,
-    QHeaderView,
-    QTextEdit,
-    QSplitter
+    QSizePolicy, QSpacerItem, QGridLayout, QMessageBox, QComboBox, QStackedWidget
 )
-from PyQt5.QtCore import Qt, QSize, QTimer # Import QTimer for simulating delay
+from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QFont, QColor, QPalette
 
-    
-host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"  # Replace with your database host
-database = "test_bpdd"  # Replace with your database name
-user = "test"  # Replace with your database username
-password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"  # Replace with your database password
-port = 5432  # Default PostgreSQL port, change if necessary
+# --- Database Connection Details ---
+# IMPORTANT: In a real application, fetch these from environment variables or a secure config.
+host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
+database = "test_bpdd"
+user = "test"
+password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"
+port = 5432
 
 db_connection = None
 try:
@@ -30,11 +26,42 @@ try:
         password=password,
         port=port
     )
+    # Ensure autocommit is off for transaction control
+    db_connection.autocommit = False
     print(f"Successfully connected to PostgreSQL database: {database}")
-
 except Error as e:
     print(f"Error connecting to PostgreSQL database: {e}")
-    
+    # Exit if connection fails
+    # In a real app, you might want to handle this more gracefully (e.g., disable DB-dependent features)
+    sys.exit(1) # Exit if database connection fails at startup
+
+def extract_employee_data(connection):
+    """
+    Extracts employee data from the database.
+    Handles potential 'User' reserved keyword issue by quoting "Users".
+    """
+    try:
+        cursor = connection.cursor()
+        # Changed to "Users" to avoid PostgreSQL reserved keyword conflict
+        query = 'SELECT first_name, last_name, username, access_level FROM "Users"'
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        employee_data = []
+        for row in rows:
+            employee = {
+                "first_name": row[0],
+                "last_name": row[1],
+                "username": row[2],
+                "access_level": row[3],
+            }
+            employee_data.append(employee)
+        return employee_data
+    except Error as e:
+        print(f"Error extracting user data: {e}")
+        return []
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
 
 # --- Start of AccountSettingsPage Class ---
 class AccountSettingsPage(QWidget):
@@ -64,8 +91,7 @@ class AccountSettingsPage(QWidget):
         self.content_grid_layout.setContentsMargins(0, 0, 0, 0) # No extra margins within the grid
         self.content_grid_layout.setSpacing(30) # Spacing between the three main columns
 
-        # 1. Employee Account List Section
-        # This section will now include a button to trigger loading
+        # 1. Employee Account List Section (Left Column)
         employee_list_container = QWidget()
         employee_list_container_layout = QVBoxLayout(employee_list_container)
         employee_list_container_layout.setContentsMargins(0, 0, 0, 0) # No extra margins
@@ -80,10 +106,9 @@ class AccountSettingsPage(QWidget):
         self.employee_list_frame = self._create_employee_list_section()
         employee_list_container_layout.addWidget(self.employee_list_frame)
 
-
         # Span 2 rows (for list, and aligning with create/edit sections)
         self.content_grid_layout.addWidget(employee_list_container, 0, 0, 2, 1)
-        
+
         # 2. Right Column Container with Scroll Area
         right_column_container = QWidget()
         right_column_layout = QVBoxLayout(right_column_container)
@@ -114,43 +139,9 @@ class AccountSettingsPage(QWidget):
         # Add the scroll area to the grid layout, spanning 2 rows (like the list)
         self.content_grid_layout.addWidget(right_scroll_area, 0, 1, 2, 1) # Row 0, Col 1, Span 2 rows
 
-        # # 2. Create New Account Section
-        # self.create_account_frame = self._create_create_account_section()
-        # self.content_grid_layout.addWidget(self.create_account_frame, 0, 1, 1, 1) # Row 0, Col 1
-
-        # # 3. Edit Employee Account Section
-        # self.edit_account_frame = self._create_edit_account_section()
-        # self.content_grid_layout.addWidget(self.edit_account_frame, 1, 1, 1, 1) # Row 1, Col 1
-
         self.main_layout.addLayout(self.content_grid_layout)
-        # self.main_layout.addStretch() # Push content to top
+        self.main_layout.addStretch() # Push content to top
 
-    def extract_employee_data(self, connection):
-        """
-        Extracts employee data from the database.
-        """
-        try:
-            cursor = connection.cursor()
-            query = f"SELECT * FROM Users"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            employee_data = []
-            for row in rows:
-                employee = {
-                    "first_name": row[0],
-                    "last_name": row[1],
-                    "username": row[2],
-                    "access_level": row[3],
-                }
-                employee_data.append(employee)
-            return employee_data
-        except Error as e:
-            print(f"Error extracting user data: {e}")
-            return []
-        finally:
-            if cursor:
-                cursor.close()
-        
     def _create_employee_list_section(self):
         """
         Creates and returns the QFrame for the Employee Account List.
@@ -185,7 +176,6 @@ class AccountSettingsPage(QWidget):
         self.initial_message_label.setStyleSheet("color: #7f8c8d; font-style: italic; padding: 20px;")
         self.employee_cards_layout.addWidget(self.initial_message_label)
 
-
         self.employee_cards_layout.addStretch() # Pushes content to top as they are added
         scroll_area.setWidget(scroll_content)
         layout.addWidget(scroll_area)
@@ -194,7 +184,7 @@ class AccountSettingsPage(QWidget):
 
     def _load_employee_data_from_db(self):
         """
-        Simulates loading employee data from a database with a delay.
+        Loads employee data from the database.
         This method is connected to the "Load Employee List" button.
         """
         self.load_employees_button.setEnabled(False) # Disable button during loading
@@ -207,32 +197,24 @@ class AccountSettingsPage(QWidget):
         # Clear existing cards before loading new data
         self._clear_employee_cards()
 
-        # Simulate a network request/database query delay
-        QTimer.singleShot(1500, self._populate_employee_list) # Call _populate_employee_list after 1.5 seconds
-
-    def _populate_employee_list(self):
-        """
-        Populates the employee list section with data (after simulated delay).
-        """
-        # Example employee data - in a real app, this would be the actual data from your database
-        employees = self.extract_employee_data(db_connection)
+        # Perform the actual database query
+        employees = extract_employee_data(db_connection)
 
         if not employees:
             self.initial_message_label.setText("No employees found.")
             self.initial_message_label.show()
             QMessageBox.information(self, "Load Status", "No employee data found in the database.")
-            self.load_employees_button.setEnabled(True) # Re-enable button
-            self.load_employees_button.setText("Reload Employee List") # Change text for subsequent loads
-            return
+        else:
+            for emp in employees:
+                card = self._create_employee_card_widget(emp)
+                # Store the raw employee data directly on the card widget using setProperty
+                card.setProperty("employeeData", emp)
+                card.mousePressEvent = lambda event, c=card: self._on_employee_card_clicked(event, c)
+                # Insert before the stretch to keep content at the top
+                self.employee_cards_layout.insertWidget(self.employee_cards_layout.count() - 1, card)
+                self.employee_cards.append(card)
+            QMessageBox.information(self, "Load Status", f"Successfully loaded {len(employees)} employees.")
 
-        for emp in employees:
-            card = self._create_employee_card_widget(emp)
-            card.mousePressEvent = lambda event, e=emp, c=card: self._on_employee_card_clicked(e, c)
-            # Insert before the stretch to keep content at the top
-            self.employee_cards_layout.insertWidget(self.employee_cards_layout.count() - 1, card)
-            self.employee_cards.append(card)
-
-        QMessageBox.information(self, "Load Status", f"Successfully loaded {len(employees)} employees.")
         self.load_employees_button.setEnabled(True) # Re-enable button
         self.load_employees_button.setText("Reload Employee List") # Change text for subsequent loads
 
@@ -246,140 +228,104 @@ class AccountSettingsPage(QWidget):
             widget = item.widget()
             if widget:
                 widget.setParent(None) # Remove it from the layout and delete
+                widget.deleteLater() # Schedule for deletion
         self.employee_cards.clear()
+        # Ensure initial message is hidden if we're clearing to load new data
+        if self.initial_message_label:
+            self.initial_message_label.hide()
+
 
     def is_employee_present(self, username):
         """
-        Checks if an employee with the given username already exists in the list.
+        Checks if an employee with the given username already exists in the database.
         Returns True if present, False otherwise.
-        """  
+        """
         try:
             cursor = db_connection.cursor()
-            query = f"SELECT * FROM Users WHERE username = %s"
+            # Quoting "Users" table name
+            query = 'SELECT username FROM "Users" WHERE username = %s'
             cursor.execute(query, (username,))
             result = cursor.fetchone()
+            cursor.close()
+
             if result:
                 return True # Employee exists
         except Error as e:
             print(f"Error checking for existing employee: {e}")
             QMessageBox.critical(self, "Database Error", "Failed to check for existing employee in the database.")
-            # Optionally log the error or handle it as needed
-        finally:
-            if cursor:
-                cursor.close()
-                
         return False
-    
+
     def add_employee_to_db(self, first_name, last_name, username, access_level):
         """
         Adds a new employee to the database.
-        This is a placeholder function; in a real application, it would execute an INSERT query.
         """
         try:
             cursor = db_connection.cursor()
-            insert_query = f"""
-                INSERT INTO Users (first_name, last_name, username, access_level)
+            # Quoting "Users" table name
+            insert_query = """
+                INSERT INTO "Users" (first_name, last_name, username, access_level)
                 VALUES (%s, %s, %s, %s);
             """
             cursor.execute(insert_query, (first_name, last_name, username, access_level))
             db_connection.commit()
             print(f"Employee {username} added successfully.")
-
+            return True # Indicate success
         except Error as e:
             print(f"Error adding employee: {e}")
+            QMessageBox.critical(self, "Database Error", f"Failed to add employee: {e}")
+            db_connection.rollback() # Rollback on error
+            return False # Indicate failure
         finally:
-            if cursor:  
+            if 'cursor' in locals() and cursor:
                 cursor.close()
-            
+
     def update_employee_in_db(self, original_username, first_name, last_name, username, access_level):
         """
         Updates an existing employee's details in the database.
-        This is a placeholder function; in a real application, it would execute an UPDATE query.
         """
         try:
             cursor = db_connection.cursor()
-            update_query = f"""
-                UPDATE Users
+            # Quoting "Users" table name
+            update_query = """
+                UPDATE "Users"
                 SET first_name = %s, last_name = %s, username = %s, access_level = %s
                 WHERE username = %s;
             """
             cursor.execute(update_query, (first_name, last_name, username, access_level, original_username))
             db_connection.commit()
             print(f"Employee {username} updated successfully.")
+            return True # Indicate success
         except Error as e:
             print(f"Error updating employee: {e}")
+            QMessageBox.critical(self, "Database Error", f"Failed to update employee: {e}")
+            db_connection.rollback() # Rollback on error
+            return False # Indicate failure
         finally:
-            if cursor:
+            if 'cursor' in locals() and cursor:
                 cursor.close()
-                
-    def _delete_account(self):
-        """Deletes an employee account from the database."""
-        if not self.current_selected_employee:
-            QMessageBox.warning(self, "Selection Error", "No employee selected for deletion.")
-            return
-
-        username_to_delete = self.current_selected_employee['username']
-
-        reply = QMessageBox.question(self, 'Confirm Deletion',
-                                     f"Are you sure you want to delete the account for <b>{username_to_delete}</b>?\n\n"
-                                     "This action cannot be undone.",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
-            if self.delete_employee_from_db(username_to_delete):
-                QMessageBox.information(self, "Account Deleted", f"Account for {username_to_delete} deleted successfully!")
-
-                # Refresh the employee list to reflect deletion
-                self._load_employee_data_from_db()
-
-                # Clear selection and reset edit & delete forms
-                self._clear_selection_and_forms()
-        else:
-            QMessageBox.information(self, "Deletion Canceled", "Employee account deletion was canceled.")
 
     def delete_employee_from_db(self, username):
         """
-        Deletes an employee from the database based on their username.
-        Returns True if deletion was successful, False otherwise.
+        Deletes an employee from the database.
         """
         try:
             cursor = db_connection.cursor()
-            delete_query = f"DELETE FROM Users WHERE username = %s;"
+            # Quoting "Users" table name
+            delete_query = 'DELETE FROM "Users" WHERE username = %s;'
             cursor.execute(delete_query, (username,))
             db_connection.commit()
             print(f"Employee {username} deleted successfully.")
-            return True
+            return True # Indicate success
         except Error as e:
             print(f"Error deleting employee: {e}")
-            QMessageBox.critical(self, "Database Error", "Failed to delete employee from the database.")
-            return False
+            QMessageBox.critical(self, "Database Error", f"Failed to delete employee: {e}")
+            db_connection.rollback() # Rollback on error
+            return False # Indicate failure
         finally:
-            if cursor:
+            if 'cursor' in locals() and cursor:
                 cursor.close()
-        
-    def _clear_selection_and_forms(self):
-        """
-        Clears the current selection and resets the edit/delete forms.
-        """
-        self.current_selected_employee = None
-        for card in self.employee_cards:
-            card.setProperty("selected", False)
-            card.style().polish(card)
-        
-        # Clear Edit form
-        self.edit_first_name_input.clear()
-        self.edit_last_name_input.clear()
-        self.edit_username_input.clear()
-        self.edit_access_level_combobox.setCurrentIndex(0) # Reset to default
-        self.save_changes_button.setEnabled(False)
-        
-        # Clear Delete form
-        self.delete_first_name.clear()
-        self.delete_last_name.clear()
-        self.delete_username.clear()
-        self.delete_access_level.clear()
-        self.delete_account_button.setEnabled(False)
-    
+
+
     def _create_employee_card_widget(self, employee_data):
         """
         Creates a QFrame widget representing a single employee card.
@@ -392,7 +338,11 @@ class AccountSettingsPage(QWidget):
         card_layout.setSpacing(5)
         card_layout.addWidget(QLabel(f"<b>First Name:</b> {employee_data['first_name']}"))
         card_layout.addWidget(QLabel(f"<b>Last Name:</b> {employee_data['last_name']}"))
-        card_layout.addWidget(QLabel(f"<b>Username:</b> {employee_data['username']}"))
+        # Using setProperty for raw username data
+        username_label = QLabel(f"<b>Username:</b> {employee_data['username']}")
+        username_label.setObjectName("username") # For findChild in other places if needed
+        username_label.setProperty("rawUsername", employee_data['username']) # Store raw username
+        card_layout.addWidget(username_label)
         card_layout.addWidget(QLabel(f"<b>Access Level:</b> {employee_data['access_level']}"))
         return card_frame
 
@@ -479,11 +429,6 @@ class AccountSettingsPage(QWidget):
         form_layout.addWidget(QLabel("Access Level :"), 3, 0)
         form_layout.addWidget(self.edit_access_level_combobox, 3, 1)
 
-        # self.change_password_button = QPushButton("Change Password")
-        # self.change_password_button.setObjectName("secondaryButton")
-        # self.change_password_button.clicked.connect(self._change_password)
-        # form_layout.addWidget(self.change_password_button, 4, 1) # Aligned right
-
         layout.addLayout(form_layout)
 
         self.save_changes_button = QPushButton("Save Changes")
@@ -509,50 +454,37 @@ class AccountSettingsPage(QWidget):
         title = QLabel("Delete Employee Account")
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
-        layout.addWidget(QLabel("Click on an employee card on the left to select an employee account."))
+        self.delete_info_label = QLabel("Select an employee from the list to delete.")
+        layout.addWidget(self.delete_info_label)
 
-        form_layout = QGridLayout()
-        form_layout.setSpacing(10)
+        self.delete_username_display = QLineEdit()
+        self.delete_username_display.setPlaceholderText("Selected Username for Deletion")
+        self.delete_username_display.setReadOnly(True) # Make it read-only
+        layout.addWidget(self.delete_username_display)
 
-        self.delete_first_name = QLabel()
-        self.delete_last_name = QLabel()
-        self.delete_username = QLabel()
-        # Changed to QComboBox for access level for better control
-        # self.edit_access_level_combobox = QComboBox()
-        self.delete_access_level = QLabel()
-
-        form_layout.addWidget(QLabel("First Name :"), 0, 0)
-        form_layout.addWidget(self.delete_first_name, 0, 1)
-        form_layout.addWidget(QLabel("Last Name :"), 1, 0)
-        form_layout.addWidget(self.delete_last_name, 1, 1)
-        form_layout.addWidget(QLabel("Username :"), 2, 0)
-        form_layout.addWidget(self.delete_username, 2, 1)
-        form_layout.addWidget(QLabel("Access Level :"), 3, 0)
-        form_layout.addWidget(self.delete_access_level, 3, 1)
-
-        # self.change_password_button = QPushButton("Change Password")
-        # self.change_password_button.setObjectName("secondaryButton")
-        # self.change_password_button.clicked.connect(self._change_password)
-        # form_layout.addWidget(self.change_password_button, 4, 1) # Aligned right
-
-        layout.addLayout(form_layout)
-
-        self.delete_account_button = QPushButton("Delete Account")
-        self.delete_account_button.setObjectName("deleteButton")
+        self.delete_account_button = QPushButton("Delete Employee")
+        self.delete_account_button.setObjectName("warningButton") # Custom style for delete button
         self.delete_account_button.clicked.connect(self._delete_account)
         self.delete_account_button.setEnabled(False) # Disable until an employee is selected
         layout.addWidget(self.delete_account_button)
 
-        layout.addStretch() # Push content to top
-
+        layout.addStretch()
         return frame
-    
+
+
     # --- Event Handlers and Logic for AccountSettingsPage ---
-    def _on_employee_card_clicked(self, employee_data, clicked_card):
+    def _on_employee_card_clicked(self, event, clicked_card):
         """
         Handles the click event on an employee card.
-        Populates the 'Edit Employee Account' section with the selected employee's data.
+        Populates the 'Edit Employee Account' and 'Delete Employee Account' sections
+        with the selected employee's data.
         """
+        # Retrieve the raw employee data stored on the card
+        employee_data = clicked_card.property("employeeData")
+        if not employee_data:
+            print("Error: No employee data found on clicked card.")
+            return
+
         print(f"Employee card clicked: {employee_data['username']}")
 
         # Clear previous selection style from all cards
@@ -574,36 +506,25 @@ class AccountSettingsPage(QWidget):
             self.edit_access_level_combobox.setCurrentIndex(index)
 
         self.save_changes_button.setEnabled(True) # Enable save button
-        
-        # Populate the "Delete Employee Account" section's fields
-        self.delete_first_name.setText(employee_data['first_name'])
-        self.delete_last_name.setText(employee_data['last_name'])
-        self.delete_username.setText(employee_data['username'])
-        self.delete_access_level.setText(employee_data['access_level'])
-        # index = self.edit_access_level_combobox.findText(employee_data['access_level'])
-        # if index != -1:
-        #     self.edit_access_level_combobox.setCurrentIndex(index)
-
-        self.delete_account_button.setEnabled(True) # Enable delete button
-        
         self.current_selected_employee = employee_data # Store for saving changes
+
+        # Populate the "Delete Employee Account" section's fields
+        self.delete_username_display.setText(employee_data['username'])
+        self.delete_account_button.setEnabled(True) # Enable delete button
+        self.delete_info_label.setText(f"You have selected <b>{employee_data['username']}</b> for deletion.")
+
 
     def _create_new_account(self):
         """
         Handles the logic for creating a new account.
-        In a real application, this would involve sending data to a backend.
         """
         first_name = self.create_first_name_input.text().strip()
         last_name = self.create_last_name_input.text().strip()
         username = self.create_username_input.text().strip()
-        password = self.create_password_input.text()
+        password = self.create_password_input.text() # Passwords should be hashed!
         confirm_password = self.create_confirm_password_input.text()
         is_admin = self.create_admin_checkbox.isChecked()
 
-        if self.is_employee_present(username):
-            QMessageBox.warning(self, "Duplicate Username", f"An employee with username '{username}' already exists.")
-            return
-        
         if not (first_name and last_name and username and password and confirm_password):
             QMessageBox.warning(self, "Input Error", "All fields must be filled to create an account.")
             return
@@ -615,21 +536,26 @@ class AccountSettingsPage(QWidget):
         if len(password) < 6: # Example validation
             QMessageBox.warning(self, "Input Error", "Password must be at least 6 characters long.")
             return
-        
-        self.add_employee_to_db(first_name, last_name, username, "Admin" if is_admin else "Employee")
 
-        QMessageBox.information(self, "Account Created", f"Account for {username} created successfully!")
+        # Check if employee exists in DB
+        if self.is_employee_present(username):
+            QMessageBox.warning(self, "Duplicate Username", f"An employee with username '{username}' already exists in the database.")
+            return
 
-        # Clear form fields after successful creation
-        self.create_first_name_input.clear()
-        self.create_last_name_input.clear()
-        self.create_username_input.clear()
-        self.create_password_input.clear()
-        self.create_confirm_password_input.clear()
-        self.create_admin_checkbox.setChecked(False)
+        access_level = "Admin" if is_admin else "Employee"
+        if self.add_employee_to_db(first_name, last_name, username, access_level):
+            QMessageBox.information(self, "Account Created", f"Account for {username} created successfully!")
 
-        # In a real app, you would refresh your employee list here after adding the new account to your data source
-        self._load_employee_data_from_db() # Refresh list after creating new account
+            # Clear form fields after successful creation
+            self.create_first_name_input.clear()
+            self.create_last_name_input.clear()
+            self.create_username_input.clear()
+            self.create_password_input.clear()
+            self.create_confirm_password_input.clear()
+            self.create_admin_checkbox.setChecked(False)
+
+            # Refresh employee list to show the newly added account
+            self._load_employee_data_from_db()
 
 
     def _save_changes(self):
@@ -649,31 +575,69 @@ class AccountSettingsPage(QWidget):
         if not (new_first_name and new_last_name and new_username):
             QMessageBox.warning(self, "Input Error", "First Name, Last Name, and Username cannot be empty.")
             return
-        
-        self.update_employee_in_db(original_username, new_first_name, new_last_name, new_username, new_access_level)
-        
-        QMessageBox.information(self, "Changes Saved", f"Changes for {new_username} saved successfully!")
 
-        # In a real app:
-        # 1. Update the data in your backend/database
-        # 2. Refresh the employee list to reflect changes
-        self._load_employee_data_from_db() # Reload all data to update list
+        # Check for username change and if new username already exists
+        if new_username != original_username and self.is_employee_present(new_username):
+            QMessageBox.warning(self, "Duplicate Username", f"The new username '{new_username}' already exists for another employee.")
+            return
 
-        # After saving, clear selection and reset edit form
-        self._clear_selection_and_forms(self)
+        if self.update_employee_in_db(original_username, new_first_name, new_last_name, new_username, new_access_level):
+            QMessageBox.information(self, "Changes Saved", f"Changes for {new_username} saved successfully!")
 
+            # Refresh the employee list to reflect changes
+            self._load_employee_data_from_db()
 
-    # def _change_password(self):
-    #     """
-    #     Placeholder for initiating a password change process.
-    #     """
-    #     if not self.current_selected_employee:
-    #         QMessageBox.warning(self, "Selection Error", "No employee selected to change password.")
-    #         return
-        
-    #     QMessageBox.information(self, "Change Password", 
-    #                             f"Initiating password change for {self.current_selected_employee['username']}. "
-    #                             "This would typically open a new dialog.")
+            # After saving, clear selection and reset edit & delete forms
+            self._clear_selection_and_forms()
+
+    def _delete_account(self):
+        """
+        Handles the logic for deleting an employee account.
+        """
+        if not self.current_selected_employee:
+            QMessageBox.warning(self, "Selection Error", "No employee selected for deletion.")
+            return
+
+        username_to_delete = self.current_selected_employee['username']
+
+        reply = QMessageBox.question(self, 'Confirm Deletion',
+                                     f"Are you sure you want to delete the account for <b>{username_to_delete}</b>?\n\n"
+                                     "This action cannot be undone.",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            if self.delete_employee_from_db(username_to_delete):
+                QMessageBox.information(self, "Account Deleted", f"Account for {username_to_delete} deleted successfully!")
+
+                # Refresh the employee list to reflect deletion
+                self._load_employee_data_from_db()
+
+                # Clear selection and reset edit & delete forms
+                self._clear_selection_and_forms()
+        else:
+            QMessageBox.information(self, "Deletion Canceled", "Employee account deletion was canceled.")
+
+    def _clear_selection_and_forms(self):
+        """
+        Resets the UI state after an edit or delete operation.
+        """
+        self.current_selected_employee = None
+        for card in self.employee_cards:
+            card.setProperty("selected", False)
+            card.style().polish(card)
+
+        # Clear Edit form
+        self.edit_first_name_input.clear()
+        self.edit_last_name_input.clear()
+        self.edit_username_input.clear()
+        self.edit_access_level_combobox.setCurrentIndex(0) # Reset to default
+        self.save_changes_button.setEnabled(False)
+
+        # Clear Delete form
+        self.delete_username_display.clear()
+        self.delete_account_button.setEnabled(False)
+        self.delete_info_label.setText("Select an employee from the list to delete.")
+
 
 # --- End of AccountSettingsPage Class ---
 
@@ -691,152 +655,11 @@ class SystemConfigurationPage(QWidget):
 class DatabaseMaintenancePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("databaseMaintenancePage") # For QSS targeting
-        self._setup_ui()
-
-    def _setup_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0) # No extra margins for the page itself
-        main_layout.setSpacing(20)
-
-        # Title for the page
-        title = QLabel("Database Maintenance: Query Execution")
-        title.setObjectName("sectionTitle") # Re-use existing style
-        main_layout.addWidget(title)
-
-        # Security Warning Message
-        security_warning = QLabel(
-            "<b style='color: red;'>SECURITY WARNING:</b> This feature allows direct execution of SQL queries "
-            "and should only be used by highly authorized administrators. Incorrect queries can lead to "
-            "data loss or corruption. Use with extreme caution."
-        )
-        security_warning.setWordWrap(True)
-        security_warning.setStyleSheet("font-size: 14px; padding: 10px; background-color: #ffe6e6; border: 1px solid red; border-radius: 5px;")
-        main_layout.addWidget(security_warning)
-        main_layout.addSpacing(15)
-
-        # --- Query Input and Results Area (within a scrollable container) ---
-        query_results_container = QWidget()
-        # For debugging: query_results_container.setStyleSheet("background-color: #e0f2f7;")
-        query_results_layout = QVBoxLayout(query_results_container)
-        query_results_layout.setContentsMargins(0,0,0,0)
-        query_results_layout.setSpacing(15)
-
-        # Query Input Section
-        query_input_frame = QFrame()
-        query_input_frame.setObjectName("sectionFrame") # Use existing styling
-        query_input_layout = QVBoxLayout(query_input_frame)
-        query_input_layout.setContentsMargins(20,20,20,20)
-        query_input_layout.setSpacing(10)
-
-        query_input_layout.addWidget(QLabel("<b>Enter SQL Query:</b>"))
-        self.query_text_edit = QTextEdit()
-        self.query_text_edit.setPlaceholderText("e.g., SELECT * FROM \"Users\";")
-        self.query_text_edit.setMinimumHeight(120)
-        self.query_text_edit.setFont(QFont("Monospace", 10)) # Monospace font for code
-        query_input_layout.addWidget(self.query_text_edit)
-
-        self.execute_query_button = QPushButton("Execute Query")
-        self.execute_query_button.setObjectName("primaryButton")
-        self.execute_query_button.clicked.connect(self._execute_sql_query)
-        query_input_layout.addWidget(self.execute_query_button)
-
-        # Results Display Section
-        results_display_frame = QFrame()
-        results_display_frame.setObjectName("sectionFrame") # Use existing styling
-        results_display_layout = QVBoxLayout(results_display_frame)
-        results_display_layout.setContentsMargins(20,20,20,20)
-        results_display_layout.setSpacing(10)
-
-        results_display_layout.addWidget(QLabel("<b>Query Results:</b>"))
-        self.results_table = QTableWidget()
-        self.results_table.setEditTriggers(QTableWidget.NoEditTriggers) # Make table read-only
-        self.results_table.setSelectionBehavior(QTableWidget.SelectRows) # Select entire rows
-        self.results_table.setAlternatingRowColors(True) # For better readability
-        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) # Stretch columns
-
-        # Fallback text area for non-tabular results or error messages
-        self.results_message_text = QTextEdit()
-        self.results_message_text.setReadOnly(True)
-        self.results_message_text.setPlaceholderText("Results or status messages will appear here.")
-        self.results_message_text.setMinimumHeight(100)
-        self.results_message_text.setFont(QFont("Monospace", 9))
-
-
-        # Use a QSplitter to allow resizing of input and results panels
-        # The splitter contains the two frames (query input and results display)
-        self.splitter = QSplitter(Qt.Vertical)
-        self.splitter.addWidget(query_input_frame)
-        self.splitter.addWidget(results_display_frame) # Initially hide table, show message_text
-        self.splitter.setSizes([300, 400]) # Initial sizes for input/results panels
-
-        # Add the results table to the results_display_layout, along with the message text area
-        results_display_layout.addWidget(self.results_table)
-        results_display_layout.addWidget(self.results_message_text)
-
-        query_results_layout.addWidget(self.splitter)
-
-        # Wrap the whole query/results interaction area in a QScrollArea
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) # No horizontal scroll for the main content
-        scroll_area.setWidget(query_results_container) # Set our container as the widget for the scroll area
-        scroll_area.setObjectName("queryResultScrollArea") # For QSS
-
-        main_layout.addWidget(scroll_area)
-        # main_layout.addStretch() # Pushes content to the top
-
-    def _execute_sql_query(self):
-        query = self.query_text_edit.toPlainText().strip()
-        if not query:
-            QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
-            return
-
-        # Clear previous results
-        self.results_table.clearContents()
-        self.results_table.setRowCount(0)
-        self.results_table.setColumnCount(0)
-        self.results_message_text.clear()
-
-        try:
-            cursor = db_connection.cursor()
-            cursor.execute(query)
-
-            # Check if it's a SELECT query (has results to fetch)
-            if cursor.description:
-                # Fetch column names
-                column_names = [desc[0] for desc in cursor.description]
-                self.results_table.setColumnCount(len(column_names))
-                self.results_table.setHorizontalHeaderLabels(column_names)
-
-                # Fetch all rows
-                rows = cursor.fetchall()
-                self.results_table.setRowCount(len(rows))
-
-                for row_idx, row_data in enumerate(rows):
-                    for col_idx, item in enumerate(row_data):
-                        self.results_table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
-                db_connection.commit() # Commit explicitly for SELECT in case of internal changes by DB
-                self.results_message_text.setText(f"Query executed successfully. Fetched {len(rows)} rows.")
-            else:
-                # For INSERT, UPDATE, DELETE, etc., get the row count
-                row_count = cursor.rowcount
-                db_connection.commit() # Commit changes for DML operations
-                self.results_message_text.setText(f"Query executed successfully. Affected {row_count} rows.")
-
-        except Error as e:
-            db_connection.rollback() # Rollback any changes on error
-            error_message = f"Database Error: {e}"
-            QMessageBox.critical(self, "Query Error", error_message)
-            self.results_message_text.setText(error_message)
-        except Exception as e:
-            # Catch other potential Python errors
-            error_message = f"An unexpected error occurred: {e}"
-            QMessageBox.critical(self, "Application Error", error_message)
-            self.results_message_text.setText(error_message)
-        finally:
-            if 'cursor' in locals() and cursor:
-                cursor.close()
+        self.setObjectName("placeholderPage")
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(QLabel("<h1>Inventory Overview</h1>"))
+        layout.addWidget(QLabel("Displays summaries and reports of inventory."))
 
 class SecuritySettingPage(QWidget):
     def __init__(self, parent=None):
@@ -923,7 +746,7 @@ class MainWindow(QMainWindow):
 
         # Add the QStackedWidget to the main content area
         self.content_area_layout.addWidget(self.stacked_content_widget)
-        # self.content_area_layout.addStretch()
+        self.content_area_layout.addStretch()
 
         # Set initial page and active button
         self.stacked_content_widget.setCurrentIndex(0)
@@ -1003,14 +826,15 @@ class MainWindow(QMainWindow):
             }
 
             /* Generic styling for all main content sections (frames) */
-            #sectionFrame, #accountSettingsPage, #placeholderPage {
+            #sectionFrame {
                 background-color: white;
                 border-radius: 8px;
                 box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             }
-            #accountSettingsPage, #placeholderPage, #databaseMaintenancePage {
+            #accountSettingsPage, #placeholderPage {
                  background-color: transparent; /* Main page background from QMainWindow */
             }
+
             #mainTitleLabel {
                 font-size: 28px;
                 font-weight: bold;
@@ -1025,14 +849,14 @@ class MainWindow(QMainWindow):
                 margin-bottom: 15px;
             }
 
-            QLineEdit, QComboBox, QTextEdit {
+            QLineEdit, QComboBox {
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 padding: 8px;
                 font-size: 14px;
             }
 
-            QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
+            QLineEdit:focus, QComboBox:focus {
                 border: 1px solid #3498db;
             }
 
@@ -1074,12 +898,8 @@ class MainWindow(QMainWindow):
             #primaryButton:hover {
                 background-color: #27ae60;
             }
-            #primaryButton:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
-            
-            #deleteButton { /* New style for delete button */
+
+            #warningButton { /* New style for delete button */
                 background-color: #e74c3c; /* Red */
                 color: white;
                 border: none;
@@ -1092,29 +912,9 @@ class MainWindow(QMainWindow):
             #warningButton:hover {
                 background-color: #c0392b;
             }
-            
-            #secondaryButton {
-                background-color: #95a5a6; /* Gray */
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                font-size: 14px;
-                border-radius: 5px;
-                margin-top: 10px;
-                text-align: center;
-            }
-            #secondaryButton:hover {
-                background-color: #7f8c8d;
-            }
 
             QScrollArea {
-                border: none; /* Remove default scroll area border */
-            }
-            QScrollArea > QWidget > QWidget { /* The actual content widget inside scroll area */
-                background-color: transparent;
-            }
-            #placeholderPage h1 {
-                color: #34495e;
+                border: none; /* No border for the scroll area itself */
             }
             QScrollBar:vertical {
                 border: 1px solid #999;
@@ -1141,49 +941,10 @@ class MainWindow(QMainWindow):
             #employeeListScrollArea {
                 border: none;
             }
-            
-              QTableWidget {
-                background-color: #ffffff;
-                border: 1px solid #ccc;
-                gridline-color: #eee;
-                font-size: 13px;
-                selection-background-color: #d1eaff;
-                selection-color: #333;
-            }
-            QTableWidget::item {
-                padding: 5px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cceeff;
-                color: black;
-            }
-            QHeaderView::section {
-                background-color: #e6e6e6;
-                padding: 5px;
-                border: 1px solid #ccc;
-                font-weight: bold;
-                color: #333;
-            }
-            QHeaderView::section:hover {
-                background-color: #d9d9d9;
-            }
-            QHeaderView::section:horizontal {
-                border-bottom: 2px solid #aaa;
-            }
-            QHeaderView::section:vertical {
-                border-right: 2px solid #aaa;
-            }
         """)
 
-
-if __name__ == "__main__":
-    
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-
-    # Set default font for consistency (optional)
-    font = QFont("Arial", 10)
-    app.setFont(font)
-
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())

@@ -16,6 +16,14 @@ class BackgroundWidget(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(self.rect(), self.bg)
 
+<<<<<<< HEAD
+=======
+host = "localhost"
+port = "5432"
+database = "cred"
+user = "postgres"
+_password = "steevy"
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
 
 class FlipCard(QWidget):
     def __init__(self):
@@ -70,6 +78,7 @@ class FlipCard(QWidget):
 
         self.login_email = QLineEdit()
         self.login_email.setPlaceholderText("Email")
+<<<<<<< HEAD
 
         self.login_email.setFixedHeight(40)
         self.login_email.setStyleSheet("""
@@ -87,10 +96,13 @@ class FlipCard(QWidget):
             }
         """)
 
+=======
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
 
         self.login_password = QLineEdit()
         self.login_password.setPlaceholderText("Password")
         self.login_password.setEchoMode(QLineEdit.Password)
+<<<<<<< HEAD
 
         self.login_password.setFixedHeight(40)
         self.login_password.setStyleSheet("""
@@ -112,12 +124,17 @@ class FlipCard(QWidget):
         btn_login.setStyleSheet("rgba(255,255,255,0.2); color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
         btn_login.setFixedHeight(40)
 
+=======
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
 
         self.login_status = QLabel()
         self.login_status.setStyleSheet("color: red;")
 
         btn_login = QPushButton("Login")
+<<<<<<< HEAD
 
+=======
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
         btn_login.clicked.connect(self.handle_login)
 
         switch = QPushButton("No account? Sign up")
@@ -152,6 +169,7 @@ class FlipCard(QWidget):
 
         self.signup_name = QLineEdit()
         self.signup_name.setPlaceholderText("Full Name")
+<<<<<<< HEAD
 
         self.signup_name.setFixedHeight(40)
         self.signup_name.setStyleSheet("""
@@ -189,10 +207,16 @@ class FlipCard(QWidget):
         self.signup_email = QLineEdit()
         self.signup_email.setPlaceholderText("Email")
 
+=======
+
+        self.signup_email = QLineEdit()
+        self.signup_email.setPlaceholderText("Email")
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
 
         self.signup_password = QLineEdit()
         self.signup_password.setPlaceholderText("Password")
         self.signup_password.setEchoMode(QLineEdit.Password)
+<<<<<<< HEAD
 
         self.signup_password.setFixedHeight(40)
         self.signup_password.setStyleSheet("""
@@ -214,12 +238,17 @@ class FlipCard(QWidget):
         btn_signup.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
         btn_signup.setFixedHeight(40)
 
+=======
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
 
         self.signup_status = QLabel()
         self.signup_status.setStyleSheet("color: red;")
 
         btn_signup = QPushButton("Create Account")
+<<<<<<< HEAD
 
+=======
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
         btn_signup.clicked.connect(self.handle_signup)
 
         switch = QPushButton("Already have an account? Log in")
@@ -299,6 +328,7 @@ class FlipCard(QWidget):
         self.setEnabled(True)
 
     def handle_login(self):
+<<<<<<< HEAD
         email = self.login_email.text().strip()
         password = self.login_password.text().strip()
 
@@ -321,6 +351,33 @@ class FlipCard(QWidget):
             print(f"SIGNUP: Name={name}, Email={email}, Password={password}")
             QMessageBox.information(self, "Sign Up", f"Account created for {name}!")
 
+=======
+        email = self.login_email.text()
+        password = self.login_password.text()
+
+    def handle_signup(self):
+
+        conn = psycopg2.connect(
+            host=host,
+            user=user,
+            password=_password,
+            database=database
+        )
+        cursor = conn.cursor()
+        name = self.signup_name.text()
+        email = self.signup_email.text()
+        if self.signup_password.text() == self.vsignup_password.text():
+            password = self.signup_password.text()
+            hash_object = hashlib.sha256(password.encode())
+            hex_dig = hash_object.hexdigest()
+            cursor.execute(""" INSERT INTO cred (email, password) VALUES (%s, %s)""", (email, hex_dig))
+            print("stored!!!!!!")
+
+        else:
+            print("SIGNUP: Passwords do not match")
+        conn.commit()
+        conn.close()
+>>>>>>> fd3bba3113f4a164a2d5a23942aaeb2d625c7e84
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
