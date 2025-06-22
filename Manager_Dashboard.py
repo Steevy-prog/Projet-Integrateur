@@ -929,7 +929,7 @@ class ZoneEmballage(QWidget):
             }
         """)
         emballage_layout = QVBoxLayout(emballage_frame)
-        emballage_layout.setSpacing(20)
+       
 
         # Titre Emballage
         emballage_title = QLabel("Emballage")

@@ -1,28 +1,32 @@
 import sys
-import psycopg2
-import hashlib
 from PyQt5.QtCore import Qt, QPropertyAnimation, QRect, QEasingCurve
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLineEdit, QLabel, QPushButton,
-    QVBoxLayout, QStackedLayout, QFrame, QMessageBox
+    QVBoxLayout, QStackedLayout, QFrame, QMessageBox, QWidget, QGraphicsDropShadowEffect
 )
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPainter, QPixmap, QColor
 
-<<<<<<< Updated upstream
-=======
-host = "localhost"
-port = "5432"
-database = "cred"
-user = "postgres"
-_password = "steevy"
->>>>>>> Stashed changes
+
+class BackgroundWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.bg = QPixmap("v.jpg")  # Use your image path
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.drawPixmap(self.rect(), self.bg)
+
 
 class FlipCard(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Warehouse Hub - Auth")
-        self.setFixedSize(1200, 900)  # Increased window size
-        self.setStyleSheet("background-color: #f0f2f5;")
+        self.setFixedSize(1200, 900)
+
+        # Add a background widget
+        self.bg_widget = BackgroundWidget(self)
+        self.bg_widget.setGeometry(0, 0, 1200, 900)
+        self.bg_widget.lower()  # Make sure it's behind other widgets
 
         # Center the card in the window
         card_width, card_height = 500, 500  # Increased card size
@@ -31,7 +35,19 @@ class FlipCard(QWidget):
 
         self.container = QFrame(self)
         self.container.setGeometry(x, y, card_width, card_height)
-        self.container.setStyleSheet("background-color: white; border-radius: 15px;")
+        self.container.setStyleSheet("""
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            border: 1.5px solid rgba(0,0,0,0.08);
+        """)
+
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(40)
+        shadow.setXOffset(0)
+        shadow.setYOffset(20)
+        shadow.setColor(QColor(0, 0, 0, 120))  # semi-transparent black
+        self.container.setGraphicsEffect(shadow)
 
         self.stack = QStackedLayout()
         self.front = self.create_login_card()
@@ -54,7 +70,7 @@ class FlipCard(QWidget):
 
         self.login_email = QLineEdit()
         self.login_email.setPlaceholderText("Email")
-<<<<<<< HEAD
+
         self.login_email.setFixedHeight(40)
         self.login_email.setStyleSheet("""
             QLineEdit {
@@ -70,13 +86,12 @@ class FlipCard(QWidget):
                 background-color: #ffffff;
             }
         """)
-=======
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
+
 
         self.login_password = QLineEdit()
         self.login_password.setPlaceholderText("Password")
         self.login_password.setEchoMode(QLineEdit.Password)
-<<<<<<< HEAD
+
         self.login_password.setFixedHeight(40)
         self.login_password.setStyleSheet("""
             QLineEdit {
@@ -94,19 +109,19 @@ class FlipCard(QWidget):
         """)
 
         btn_login = QPushButton("Login")
-        btn_login.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
+        btn_login.setStyleSheet("rgba(255,255,255,0.2); color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
         btn_login.setFixedHeight(40)
-=======
+
 
         self.login_status = QLabel()
         self.login_status.setStyleSheet("color: red;")
 
         btn_login = QPushButton("Login")
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
+
         btn_login.clicked.connect(self.handle_login)
 
         switch = QPushButton("No account? Sign up")
-        switch.setStyleSheet("background: none; color: #3498db; font-size: 13px;")
+        switch.setStyleSheet("background: none; color: rgba(200,200,200); font-size: 13px;")
         switch.clicked.connect(self.flip)
 
         for widget in [self.login_email, self.login_password]:
@@ -137,7 +152,7 @@ class FlipCard(QWidget):
 
         self.signup_name = QLineEdit()
         self.signup_name.setPlaceholderText("Full Name")
-<<<<<<< HEAD
+
         self.signup_name.setFixedHeight(40)
         self.signup_name.setStyleSheet("""
             QLineEdit {
@@ -171,16 +186,14 @@ class FlipCard(QWidget):
                 background-color: #ffffff;
             }
         """)
-=======
-
         self.signup_email = QLineEdit()
         self.signup_email.setPlaceholderText("Email")
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
+
 
         self.signup_password = QLineEdit()
         self.signup_password.setPlaceholderText("Password")
         self.signup_password.setEchoMode(QLineEdit.Password)
-<<<<<<< HEAD
+
         self.signup_password.setFixedHeight(40)
         self.signup_password.setStyleSheet("""
             QLineEdit {
@@ -200,36 +213,17 @@ class FlipCard(QWidget):
         btn_signup = QPushButton("Create Account")
         btn_signup.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
         btn_signup.setFixedHeight(40)
-=======
+
 
         self.signup_status = QLabel()
         self.signup_status.setStyleSheet("color: red;")
 
-        self.vsignup_password = QLineEdit()
-        self.vsignup_password.setPlaceholderText("Confirm")
-        self.vsignup_password.setEchoMode(QLineEdit.Password)
-        self.vsignup_password.setFixedHeight(35)
-        self.vsignup_password.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding-left: 10px;
-                font-size: 13px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2ecc71;
-                background-color: #ffffff;
-            }
-        """)
-
         btn_signup = QPushButton("Create Account")
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
+
         btn_signup.clicked.connect(self.handle_signup)
 
         switch = QPushButton("Already have an account? Log in")
-        switch.setStyleSheet("background: none; color: #3498db; font-size: 13px;")
+        switch.setStyleSheet("background: none; color: rgba(200,200,200); font-size: 13px;")
         switch.clicked.connect(self.flip)
 
         for widget in [self.signup_name, self.signup_email, self.signup_password]:
@@ -242,7 +236,6 @@ class FlipCard(QWidget):
         layout.addWidget(self.signup_name)
         layout.addWidget(self.signup_email)
         layout.addWidget(self.signup_password)
-        layout.addWidget(self.vsignup_password)
         layout.addWidget(btn_signup)
         layout.addWidget(switch)
         layout.addWidget(self.signup_status)
@@ -306,7 +299,6 @@ class FlipCard(QWidget):
         self.setEnabled(True)
 
     def handle_login(self):
-<<<<<<< Updated upstream
         email = self.login_email.text().strip()
         password = self.login_password.text().strip()
 
@@ -329,33 +321,6 @@ class FlipCard(QWidget):
             print(f"SIGNUP: Name={name}, Email={email}, Password={password}")
             QMessageBox.information(self, "Sign Up", f"Account created for {name}!")
 
-=======
-        email = self.login_email.text()
-        password = self.login_password.text()
-
-    def handle_signup(self):
-
-        conn = psycopg2.connect(
-            host=host,
-            user=user,
-            password=_password,
-            database=database
-        )
-        cursor = conn.cursor()
-        name = self.signup_name.text()
-        email = self.signup_email.text()
-        if self.signup_password.text() == self.vsignup_password.text():
-            password = self.signup_password.text()
-            hash_object = hashlib.sha256(password.encode())
-            hex_dig = hash_object.hexdigest()
-            cursor.execute(""" INSERT INTO cred (email, password) VALUES (%s, %s)""", (email, hex_dig))
-            print("stored!!!!!!")
-
-        else:
-            print("SIGNUP: Passwords do not match")
-        conn.commit()
-        conn.close()
->>>>>>> Stashed changes
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
