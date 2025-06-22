@@ -8,14 +8,11 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 
-<<<<<<< Updated upstream
-=======
 host = "localhost"
 port = "5432"
 database = "cred"
 user = "postgres"
 _password = "steevy"
->>>>>>> Stashed changes
 
 class FlipCard(QWidget):
     def __init__(self):
@@ -54,55 +51,15 @@ class FlipCard(QWidget):
 
         self.login_email = QLineEdit()
         self.login_email.setPlaceholderText("Email")
-<<<<<<< HEAD
-        self.login_email.setFixedHeight(40)
-        self.login_email.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding-left: 10px;
-                font-size: 15px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2ecc71;
-                background-color: #ffffff;
-            }
-        """)
-=======
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
 
         self.login_password = QLineEdit()
         self.login_password.setPlaceholderText("Password")
         self.login_password.setEchoMode(QLineEdit.Password)
-<<<<<<< HEAD
-        self.login_password.setFixedHeight(40)
-        self.login_password.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding-left: 10px;
-                font-size: 15px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2ecc71;
-                background-color: #ffffff;
-            }
-        """)
-
-        btn_login = QPushButton("Login")
-        btn_login.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
-        btn_login.setFixedHeight(40)
-=======
 
         self.login_status = QLabel()
         self.login_status.setStyleSheet("color: red;")
 
         btn_login = QPushButton("Login")
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
         btn_login.clicked.connect(self.handle_login)
 
         switch = QPushButton("No account? Sign up")
@@ -137,70 +94,13 @@ class FlipCard(QWidget):
 
         self.signup_name = QLineEdit()
         self.signup_name.setPlaceholderText("Full Name")
-<<<<<<< HEAD
-        self.signup_name.setFixedHeight(40)
-        self.signup_name.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding-left: 10px;
-                font-size: 15px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2ecc71;
-                background-color: #ffffff;
-            }
-        """)
 
         self.signup_email = QLineEdit()
         self.signup_email.setPlaceholderText("Email")
-        self.signup_email.setFixedHeight(40)
-        self.signup_email.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding-left: 10px;
-                font-size: 15px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2ecc71;
-                background-color: #ffffff;
-            }
-        """)
-=======
-
-        self.signup_email = QLineEdit()
-        self.signup_email.setPlaceholderText("Email")
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
 
         self.signup_password = QLineEdit()
         self.signup_password.setPlaceholderText("Password")
         self.signup_password.setEchoMode(QLineEdit.Password)
-<<<<<<< HEAD
-        self.signup_password.setFixedHeight(40)
-        self.signup_password.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding-left: 10px;
-                font-size: 15px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2ecc71;
-                background-color: #ffffff;
-            }
-        """)
-
-        btn_signup = QPushButton("Create Account")
-        btn_signup.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
-        btn_signup.setFixedHeight(40)
-=======
 
         self.signup_status = QLabel()
         self.signup_status.setStyleSheet("color: red;")
@@ -225,7 +125,6 @@ class FlipCard(QWidget):
         """)
 
         btn_signup = QPushButton("Create Account")
->>>>>>> 14d04f58a8e9eac18c372dedd0d8fb32816c4e7a
         btn_signup.clicked.connect(self.handle_signup)
 
         switch = QPushButton("Already have an account? Log in")
@@ -306,30 +205,6 @@ class FlipCard(QWidget):
         self.setEnabled(True)
 
     def handle_login(self):
-<<<<<<< Updated upstream
-        email = self.login_email.text().strip()
-        password = self.login_password.text().strip()
-
-        if not email or not password:
-            self.login_status.setText("Please enter both email and password.")
-        else:
-            self.login_status.setText("")
-            print(f"LOGIN: Email={email}, Password={password}")
-            QMessageBox.information(self, "Login", f"Welcome back, {email}!")
-
-    def handle_signup(self):
-        name = self.signup_name.text().strip()
-        email = self.signup_email.text().strip()
-        password = self.signup_password.text().strip()
-
-        if not name or not email or not password:
-            self.signup_status.setText("Please fill in all fields.")
-        else:
-            self.signup_status.setText("")
-            print(f"SIGNUP: Name={name}, Email={email}, Password={password}")
-            QMessageBox.information(self, "Sign Up", f"Account created for {name}!")
-
-=======
         email = self.login_email.text()
         password = self.login_password.text()
 
@@ -355,7 +230,6 @@ class FlipCard(QWidget):
             print("SIGNUP: Passwords do not match")
         conn.commit()
         conn.close()
->>>>>>> Stashed changes
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
