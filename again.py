@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QLineEdit, QLabel, QPushButton,
     QVBoxLayout, QStackedLayout, QFrame, QMessageBox, QWidget, QGraphicsDropShadowEffect
 )
+from yo import interface as dashboard
 from PyQt5.QtGui import QFont, QPainter, QPixmap, QColor
 import psycopg2
 import hashlib
@@ -278,20 +279,24 @@ class FlipCard(QWidget):
             self.close()  # Close the login window
             self.login_status.setText("Login successful! Redirecting...")
             # Here you would typically redirect to the main application window
-            return window1().show()  # Corresponds to Worker_Dashboard (window1) in yo.py
+            mainwindow = dashboard.create_interface(1)
+            mainwindow.showMaximized()
         
         elif email == "client@example.com" and password == "clientpass":
             self.close()  # Close the login window
             self.login_status.setText("Login successful! Redirecting...")
-            return window2().show()  # Corresponds to Client_Dashboard (window2) in yo.py
+            mainwindow = dashboard.create_interface(2)
+            mainwindow.showMaximized()
         
         elif email == "it@example.com" and password == "itpass":
             self.close()  # Close the login window
             self.login_status.setText("Login successful! Redirecting...")
-            return window3().show()  # Corresponds to IT_Technician (window3) in yo.py
+            mainwindow = dashboard.create_interface(3)
+            mainwindow.showMaximized()
         else:
             self.login_status.setText("Invalid email or password.")
             return
+
 
     def handle_signup(self):
 
