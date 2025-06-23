@@ -9,6 +9,18 @@ from PyQt5.QtCore import Qt, QDate, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
+import psycopg2
+
+idorg = 'OABCDE'
+conn = psycopg2.connect(
+    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
+    database="steevy1",
+    user="steevy",
+    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
+    port=5432
+)
+cur = conn.cursor()
+
 
 class WorkerData:
     """Data generator and manager for warehouse worker operations"""
@@ -18,21 +30,12 @@ class WorkerData:
 
     def generate_sample_data(self):
         # Products data
-        products = [
-            ("P001", "Laptop Dell XPS", "Electronics", "Dell", 1500, "A1-15", 45),
-            ("P002", "Office Chair", "Furniture", "Herman Miller", 350, "B2-08", 12),
-            ("P003", "Smartphone iPhone", "Electronics", "Apple", 800, "A2-22", 78),
-            ("P004", "Desk Lamp", "Furniture", "IKEA", 45, "C1-05", 156),
-            ("P005", "Wireless Mouse", "Electronics", "Logitech", 25, "A1-33", 234),
-            ("P006", "Monitor 24\"", "Electronics", "Samsung", 250, "A2-18", 67),
-            ("P007", "Standing Desk", "Furniture", "Varidesk", 400, "B1-12", 23),
-            ("P008", "Keyboard Mechanical", "Electronics", "Corsair", 120, "A1-27", 89),
-            ("P009", "Bookshelf", "Furniture", "IKEA", 80, "C2-09", 45),
-            ("P010", "Tablet iPad", "Electronics", "Apple", 600, "A2-31", 56)
-        ]
+        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+        products = cur.fetchall()
+        if len(products) == 0:
+            raise ValueError("No products loaded from the database. Check 'Produit_EVA()' function.")
 
-        self.products_df = pd.DataFrame(products,
-                                      columns=['ID', 'Name', 'Category', 'Brand', 'Value', 'Location', 'Stock'])
+        self.products_df = pd.DataFrame(products,columns=['ID', 'Fourniseur', 'Name', 'Description','Prix Unitaire','Brand', 'Model','Category'])
 
         # Expedition tasks (orders to be picked and packed)
         self.expedition_tasks = []
@@ -40,7 +43,7 @@ class WorkerData:
         statuses = ['Pending', 'In Progress', 'Completed']
         
         for i in range(15):
-            task_items = random.sample(products, random.randint(1, 4))
+            task_items = random.sample(products, random.randint(1, min(4, len(products))))
             total_items = sum([random.randint(1, 5) for _ in task_items])
             
             self.expedition_tasks.append({
@@ -463,6 +466,12 @@ class ProductMovementTrackingWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        cur.execute("SELECT (p).* FROM \"EMIR\".Organisation_EVA() AS p;")
+        self.org = cur.fetchall()
+        cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
+        self.colis = cur.fetchall()
+        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+        self.produits = cur.fetchall()
         self.products = [
             {"id": 100, "name": "None"},
             {"id": 101, "name": "Widget Alpha"},
@@ -681,10 +690,11 @@ class ProductMovementTrackingWidget(QWidget):
         self.product_combo = QComboBox()
         self.product_combo1 = QComboBox()
         self.product_combo2 = QComboBox()
-        for product in self.products:
-            self.product_combo.addItem(product['name'], product['id'])
-            self.product_combo1.addItem(product['name'], product['id'])
-            self.product_combo2.addItem(product['name'], product['id'])
+        for product in self.colis:
+            self.product_combo2.addItem(product[0], product[1])
+        for product in self.org:
+            self.product_combo.addItem(product[1], product[4])
+            self.product_combo1.addItem(product[1], product[4])
         form.addWidget(QLabel("Transporting Organisation:"), 0, 0)
         form.addWidget(self.product_combo, 0, 1)
         form.addWidget(QLabel("Receiving Organisation:"),1,0)
@@ -826,12 +836,22 @@ class ProductMovementTrackingWidget(QWidget):
                         background-color: #512DA8;
                     }
                 """)
-                print("Adding new row")
                 row = QHBoxLayout()
                 combo = QComboBox()
-                for p in self.products:
-                    combo.addItem(p['name'], p['id'])
+                for p in self.produits:
+                    combo.addItem(p[2], p[0])
                 qty = QSpinBox()
+                combo.setStyleSheet(
+                    """
+                    QComboBox {
+                        background-color: black;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        font-weight: bold;
+                    }
+                """
+                )
                 qty.setRange(1, 1000)
     
                 remove_btn = QPushButton("X")
