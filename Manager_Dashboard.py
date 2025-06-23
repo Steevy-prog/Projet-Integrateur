@@ -985,7 +985,7 @@ class ZoneEmballage(QWidget):
             label_color="#FFFFFF",
             label_bg="#607D8B"
         )
-        card3.setFixedWidth(900)
+        
         metrics_emballage_layout.addWidget(card3, 1, 0, 1, 2, Qt.AlignCenter)
 
         emballage_layout.addLayout(metrics_emballage_layout)
@@ -1055,7 +1055,7 @@ class ZoneEmballage(QWidget):
             label_color="#FFFFFF",
             label_bg="#607D8B"
         )
-        card6.setFixedWidth(900)
+        
         metrics_desemballage_layout.addWidget(card6, 1, 0, 1, 2, Qt.AlignCenter)
 
         desemballage_layout.addLayout(metrics_desemballage_layout)
@@ -1173,7 +1173,7 @@ class MenuExpedition(QWidget):
 
     def create_expedition_summary_table(self):
         table = QTableWidget()
-        table.setFixedWidth(1000)
+        
         table.setRowCount(len(self.data.expedition2_df))
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
@@ -1209,7 +1209,6 @@ class MenuReception(QWidget):
         self.setLayout(layout)
     def create_reception_summary_table(self):
         table = QTableWidget()
-        table.setFixedWidth(1000)
         table.setRowCount(len(self.data.reception2_df))
         table.setColumnCount(3)
         table.setHorizontalHeaderLabels(['identifiant du colis','date prevue', 'Statut'])

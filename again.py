@@ -5,6 +5,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QStackedLayout, QFrame, QMessageBox, QWidget, QGraphicsDropShadowEffect
 )
 from PyQt5.QtGui import QFont, QPainter, QPixmap, QColor
+import psycopg2
+import hashlib
+from Worker_Dashboard import MainWindow as window1
+from Client_Dashboard import MainWindow as window2
+from IT_Technician import MainWindow as window3
 
 
 class BackgroundWidget(QWidget):
@@ -269,6 +274,24 @@ class FlipCard(QWidget):
     def handle_login(self):
         email = self.login_email.text()
         password = self.login_password.text()
+        if email == "worker@example.com" and password == "workerpass":
+            self.close()  # Close the login window
+            self.login_status.setText("Login successful! Redirecting...")
+            # Here you would typically redirect to the main application window
+            return window1().show()  # Corresponds to Worker_Dashboard (window1) in yo.py
+        
+        elif email == "client@example.com" and password == "clientpass":
+            self.close()  # Close the login window
+            self.login_status.setText("Login successful! Redirecting...")
+            return window2().show()  # Corresponds to Client_Dashboard (window2) in yo.py
+        
+        elif email == "it@example.com" and password == "itpass":
+            self.close()  # Close the login window
+            self.login_status.setText("Login successful! Redirecting...")
+            return window3().show()  # Corresponds to IT_Technician (window3) in yo.py
+        else:
+            self.login_status.setText("Invalid email or password.")
+            return
 
     def handle_signup(self):
 
