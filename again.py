@@ -41,7 +41,7 @@ class FlipCard(QWidget):
         self.container = QFrame(self)
         self.container.setGeometry(x, y, card_width, card_height)
         self.container.setStyleSheet("""
-            background-color: rgba(255,255,255,0.2);
+            background-color: rgba(255,255,255,0.7);
             border-radius: 15px;
             border: 1.5px solid rgba(0,0,0,0.08);
         """)
@@ -79,6 +79,27 @@ class FlipCard(QWidget):
         self.login_password = QLineEdit()
         self.login_password.setPlaceholderText("Password")
         self.login_password.setEchoMode(QLineEdit.Password)
+
+        self.login_password.setFixedHeight(40)
+        self.login_password.setStyleSheet("""
+            QLineEdit {
+                background-color: #f9f9f9;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding-left: 10px;
+                font-size: 15px;
+                color: black;
+            }
+            QLineEdit:focus {
+                border: 1px solid #2ecc71;
+                background-color: #ffffff;
+            }
+        """)
+
+        btn_login = QPushButton("Login")
+        btn_login.setStyleSheet("rgba(255,255,255,0.2); color: white; font-weight: bold; border-radius: 5px; font-size: 15px;")
+        btn_login.setFixedHeight(40)
+
 
         self.login_status = QLabel()
         self.login_status.setStyleSheet("color: red;")
@@ -118,6 +139,43 @@ class FlipCard(QWidget):
 
         self.signup_name = QLineEdit()
         self.signup_name.setPlaceholderText("Full Name")
+
+        self.signup_name.setFixedHeight(40)
+        self.signup_name.setStyleSheet("""
+            QLineEdit {
+                background-color: #f9f9f9;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding-left: 10px;
+                font-size: 15px;
+                color: black;
+            }
+            QLineEdit:focus {
+                border: 1px solid #2ecc71;
+                background-color: #ffffff;
+            }
+        """)
+
+        self.signup_email = QLineEdit()
+        self.signup_email.setPlaceholderText("Email")
+        self.signup_email.setFixedHeight(40)
+        self.signup_email.setStyleSheet("""
+            QLineEdit {
+                background-color: #f9f9f9;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                padding-left: 10px;
+                font-size: 15px;
+                color: black;
+            }
+            QLineEdit:focus {
+                border: 1px solid #2ecc71;
+                background-color: #ffffff;
+            }
+        """)
+        self.signup_email = QLineEdit()
+        self.signup_email.setPlaceholderText("Email")
+
 
         self.signup_email = QLineEdit()
         self.signup_email.setPlaceholderText("Email")
