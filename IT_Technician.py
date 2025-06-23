@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import (
     QTableWidget,
     QHeaderView,
     QTextEdit,
-    QSplitter
+    QSplitter,
+    QSpinBox
 )
 from PyQt5.QtCore import Qt, QSize, QTimer # Import QTimer for simulating delay
 from PyQt5.QtGui import QFont, QColor, QPalette
@@ -124,6 +125,9 @@ class AccountSettingsPage(QWidget):
 
         self.main_layout.addLayout(self.content_grid_layout)
         # self.main_layout.addStretch() # Push content to top
+        
+        self._load_password_policy()
+        
 
     def extract_employee_data(self, connection):
         """
@@ -612,10 +616,16 @@ class AccountSettingsPage(QWidget):
             QMessageBox.warning(self, "Input Error", "Passwords do not match.")
             return
 
-        if len(password) < 6: # Example validation
-            QMessageBox.warning(self, "Input Error", "Password must be at least 6 characters long.")
-            return
+        # if len(password) < 6: # Example validation
+        #     QMessageBox.warning(self, "Input Error", "Password must be at least 6 characters long.")
+        #     return
         
+        error_list = self._validate_password(password)
+        error_message = ''
+        if error_list:
+            for error in error_list:
+                error_message += error + f"\n"
+            QMessageBox.warning(self, "Invalid Password", error_message)
         self.add_employee_to_db(first_name, last_name, username, "Admin" if is_admin else "Employee")
 
         QMessageBox.information(self, "Account Created", f"Account for {username} created successfully!")
@@ -631,7 +641,60 @@ class AccountSettingsPage(QWidget):
         # In a real app, you would refresh your employee list here after adding the new account to your data source
         self._load_employee_data_from_db() # Refresh list after creating new account
 
+    def _load_password_policy(self):
+        """
+        Loads the current password policy from the application_settings table.
+        This is a copy/paste from SecuritySettingPage, ensuring AccountSettingsPage
+        has access to the same policy rules.
+        """
+        cursor = None
+        try:
+            if self.db_connection is None or self.db_connection.closed:
+                raise Exception("Database connection is not open.")
 
+            cursor = self.db_connection.cursor()
+            query = "SELECT setting_name, setting_value FROM application_settings WHERE setting_group = 'password_policy';"
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            loaded_settings = {row[0]: row[1] for row in rows}
+
+            self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
+            self.password_policy["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+            self.password_policy["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+            self.password_policy["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+            self.password_policy["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+            self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+            self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+
+        except Error as e:
+            print(f"Error loading password policy in AccountSettingsPage: {e}")
+            QMessageBox.warning(self, "Policy Load Error",
+                                f"Could not load password policy. Using default settings. Error: {e}")
+        except Exception as e:
+            print(f"Unexpected error loading password policy in AccountSettingsPage: {e}")
+            QMessageBox.warning(self, "Policy Load Error",
+                                f"An unexpected error occurred while loading password policy. Error: {e}")
+        finally:
+            if cursor:
+                cursor.close()
+
+    def _validate_password(self, password):
+        policy = self.password_policy
+        errors = []
+
+        if len(password) < policy["min_length"]:
+            errors.append(f"- Must be at least {policy['min_length']} characters long.")
+        if policy["require_uppercase"] and not any(c.isupper() for c in password):
+            errors.append("- Must contain at least one uppercase letter.")
+        if policy["require_lowercase"] and not any(c.islower() for c in password):
+            errors.append("- Must contain at least one lowercase letter.")
+        if policy["require_number"] and not any(c.isdigit() for c in password):
+            errors.append("- Must contain at least one number.")
+        if policy["require_special"] and not any(not c.isalnum() for c in password):
+            errors.append("- Must contain at least one special character (e.g., !, @, #, $).")
+
+        return errors
+    
     def _save_changes(self):
         """
         Handles the logic for saving changes to an existing employee account.
@@ -759,7 +822,8 @@ class DatabaseMaintenancePage(QWidget):
         self.results_message_text = QTextEdit()
         self.results_message_text.setReadOnly(True)
         self.results_message_text.setPlaceholderText("Results or status messages will appear here.")
-        self.results_message_text.setMinimumHeight(100)
+        # self.results_message_text.setMinimumHeight(100)
+        self.results_message_text.setMaximumHeight(120)
         self.results_message_text.setFont(QFont("Monospace", 9))
 
 
@@ -841,11 +905,194 @@ class DatabaseMaintenancePage(QWidget):
 class SecuritySettingPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("placeholderPage")
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignCenter)
-        layout.addWidget(QLabel("<h1>View Reports</h1>"))
-        layout.addWidget(QLabel("Generate and view various reports here."))
+        self.setObjectName("securitySettingPage") # For QSS targeting
+        self._setup_ui()
+        # Initialize password policy settings (load from DB later)
+        self.password_policy_settings = {
+            "min_length": 8,
+            "require_uppercase": True,
+            "require_lowercase": True,
+            "require_number": True,
+            "require_special": True,
+            "password_expiration_days": 0, # 0 means no expiration
+            "enforce_expiration": False
+        }
+        self._load_password_policy_from_db() # Call this to load saved settings
+
+    def _setup_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(20)
+
+        # Title for the page
+        title = QLabel("Security Settings")
+        title.setObjectName("sectionTitle")
+        main_layout.addWidget(title)
+
+        # --- Password Policy Section ---
+        password_policy_frame = QFrame()
+        password_policy_frame.setObjectName("sectionFrame")
+        password_policy_layout = QVBoxLayout(password_policy_frame)
+        password_policy_layout.setContentsMargins(20, 20, 20, 20)
+        password_policy_layout.setSpacing(15)
+
+        policy_title = QLabel("Password Policy Configuration")
+        policy_title.setObjectName("sectionSubTitle") # A new style, or reuse sectionTitle
+        password_policy_layout.addWidget(policy_title)
+
+        form_layout = QGridLayout()
+        form_layout.setSpacing(10)
+
+        # Minimum Length
+        form_layout.addWidget(QLabel("Minimum Length:"), 0, 0)
+        self.min_length_spinbox = QSpinBox()
+        self.min_length_spinbox.setMinimum(6) # Sensible minimum
+        self.min_length_spinbox.setMaximum(64) # Sensible maximum
+        self.min_length_spinbox.setValue(8) # Default value
+        form_layout.addWidget(self.min_length_spinbox, 0, 1)
+
+        # Character Requirements
+        self.require_uppercase_checkbox = QCheckBox("Require Uppercase Letter")
+        self.require_uppercase_checkbox.setChecked(True)
+        form_layout.addWidget(self.require_uppercase_checkbox, 1, 0, 1, 2) # Span two columns
+
+        self.require_lowercase_checkbox = QCheckBox("Require Lowercase Letter")
+        self.require_lowercase_checkbox.setChecked(True)
+        form_layout.addWidget(self.require_lowercase_checkbox, 2, 0, 1, 2)
+
+        self.require_number_checkbox = QCheckBox("Require Number")
+        self.require_number_checkbox.setChecked(True)
+        form_layout.addWidget(self.require_number_checkbox, 3, 0, 1, 2)
+
+        self.require_special_checkbox = QCheckBox("Require Special Character")
+        self.require_special_checkbox.setChecked(True)
+        form_layout.addWidget(self.require_special_checkbox, 4, 0, 1, 2)
+
+        # Password Expiration
+        self.enforce_expiration_checkbox = QCheckBox("Enforce Password Expiration")
+        self.enforce_expiration_checkbox.setChecked(False)
+        form_layout.addWidget(self.enforce_expiration_checkbox, 5, 0, 1, 2)
+
+        form_layout.addWidget(QLabel("Expire after (days):"), 6, 0)
+        self.expiration_days_spinbox = QSpinBox()
+        self.expiration_days_spinbox.setMinimum(0) # 0 for never, or set a higher min
+        self.expiration_days_spinbox.setMaximum(365) # Max 1 year
+        self.expiration_days_spinbox.setValue(90) # Default 90 days if enabled
+        self.expiration_days_spinbox.setEnabled(False) # Disabled by default
+        form_layout.addWidget(self.expiration_days_spinbox, 6, 1)
+
+        # Connect checkbox to spinbox enable state
+        self.enforce_expiration_checkbox.toggled.connect(self.expiration_days_spinbox.setEnabled)
+
+
+        password_policy_layout.addLayout(form_layout)
+
+        self.save_policy_button = QPushButton("Save Password Policy")
+        self.save_policy_button.setObjectName("primaryButton")
+        self.save_policy_button.clicked.connect(self._save_password_policy)
+        password_policy_layout.addWidget(self.save_policy_button)
+
+        password_policy_layout.addStretch() # Pushes content to top of this frame
+
+        # Add the password policy frame to the main layout
+        main_layout.addWidget(password_policy_frame)
+        main_layout.addStretch() # Pushes all content to the top of the page
+
+    def _load_password_policy_from_db(self):
+        """
+        Loads the password policy settings from the database and updates the UI.
+        """
+        print("Loading password policy from database...")
+        cursor = None # Initialize cursor to None
+        try:
+            if db_connection is None or db_connection.closed:
+                raise Exception("Database connection is not open.")
+
+            cursor = db_connection.cursor()
+            query = "SELECT setting_name, setting_value FROM application_settings WHERE setting_group = 'password_policy';"
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            # Create a dictionary from fetched settings for easy lookup
+            loaded_settings = {row[0]: row[1] for row in rows}
+
+            # Update internal dictionary and UI with loaded values
+            # Use .get() with defaults in case a setting isn't found in DB yet
+            self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
+            self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+            self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+            self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+            self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+            self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+            self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+
+            # Update UI elements
+            self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
+            self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
+            self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
+            self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
+            self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
+            self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
+            self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
+
+        except Error as e:
+            QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
+            print(f"Error loading password policy: {e}")
+        except Exception as e:
+            QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while loading password policy: {e}")
+            print(f"Unexpected error: {e}")
+        finally:
+            if cursor:
+                cursor.close() # Ensure cursor is closed
+
+
+    def _save_password_policy(self):
+        """
+        Saves the current password policy settings to the database.
+        Uses INSERT ... ON CONFLICT DO UPDATE for upsert functionality.
+        """
+        self.password_policy_settings["min_length"] = self.min_length_spinbox.value()
+        self.password_policy_settings["require_uppercase"] = self.require_uppercase_checkbox.isChecked()
+        self.password_policy_settings["require_lowercase"] = self.require_lowercase_checkbox.isChecked()
+        self.password_policy_settings["require_number"] = self.require_number_checkbox.isChecked()
+        self.password_policy_settings["require_special"] = self.require_special_checkbox.isChecked()
+        self.password_policy_settings["enforce_expiration"] = self.enforce_expiration_checkbox.isChecked()
+        self.password_policy_settings["password_expiration_days"] = self.expiration_days_spinbox.value() if self.enforce_expiration_checkbox.isChecked() else 0
+
+        print("Attempting to save password policy to database...")
+        try:
+            if db_connection is None or db_connection.closed:
+                raise Exception("Database connection is not open. Cannot save settings.")
+
+            cursor = db_connection.cursor()
+            for setting_name, value in self.password_policy_settings.items():
+                # Convert Python bools and ints to string for storage in TEXT column
+                setting_value_str = str(value)
+                query = """
+                    INSERT INTO application_settings (setting_name, setting_value, setting_group)
+                    VALUES (%s, %s, 'password_policy')
+                    ON CONFLICT (setting_name) DO UPDATE
+                    SET setting_value = EXCLUDED.setting_value;
+                """
+                cursor.execute(query, (setting_name, setting_value_str))
+
+            db_connection.commit()
+            QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
+            print("Password policy saved to database.")
+
+        except Error as e:
+            db_connection.rollback() # Rollback on error
+            QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")
+            print(f"Error saving password policy: {e}")
+        except Exception as e:
+            QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while saving password policy: {e}")
+            print(f"Unexpected error: {e}")
+        finally:
+            if cursor:
+                cursor.close()
+
+
+# --- End of SecuritySettingPage Class ---
 
 # --- End of Placeholder Page Classes ---
 
@@ -1006,9 +1253,9 @@ class MainWindow(QMainWindow):
             #sectionFrame, #accountSettingsPage, #placeholderPage {
                 background-color: white;
                 border-radius: 8px;
-                box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+             /*   box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); */
             }
-            #accountSettingsPage, #placeholderPage, #databaseMaintenancePage {
+            #accountSettingsPage, #placeholderPage, #databaseMaintenancePage, #securitySettingPage {
                  background-color: transparent; /* Main page background from QMainWindow */
             }
             #mainTitleLabel {
@@ -1172,6 +1419,12 @@ class MainWindow(QMainWindow):
             }
             QHeaderView::section:vertical {
                 border-right: 2px solid #aaa;
+            }
+            #sectionSubTitle {
+                font-size: 18px;
+                font-weight: bold;
+                color: #555;
+                margin-bottom: 10px;
             }
         """)
 
