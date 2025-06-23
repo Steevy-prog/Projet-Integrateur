@@ -175,3 +175,72 @@ if __name__ == "__main__":
     # Simulate a user (e.g., stock manager) choosing a menu
     manager = DashboardManager(dashboard_stockmanager())
     manager.run(2)  # Should print: Inventory Menu...
+
+class Product:
+    def __init__(self, name):
+        self.name = name 
+
+class MaterialProduct(Product):
+    def __init__(self, name, length, width, height, mass):
+        super().__init__(name)
+        self.length = length
+        self.width = width
+        self.height = height
+        self.mass = mass
+class SoftwareProduct(Product):
+    def __init__(self, name, version, license_key):
+        super().__init__(name)  
+        self.version = version
+        self.license_key = license_key
+
+class Lot:
+    def __init__(self, product, quantity):
+        self.product = product
+        self.quantity = quantity
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name}"
+
+class Package:
+    def __init__(self, lots, creation_date,status):
+        self.lots = lots
+        self.creation_date = creation_date
+        self.status = status
+
+    def __str__(self):
+        return "Package contains: " + ", ".join(str(p) for p in self.lots) + f" | Created on: {self.creation_date} | Status: {self.status}"
+
+class bon_reception:
+    def __init__(self,colis,transporteur,fournisseur,date_creation,statut,remarques):
+        self.colis = colis
+        self.transporteur = transporteur
+        self.fournisseur = fournisseur
+        self.date_creation = date_creation
+        self.statut = statut
+        self.remarques = remarques
+    
+    def _str_(self):
+        return f"Bon de réception: {self.colis} | Transporteur: {self.transporteur} | Fournisseur: {self.fournisseur} | Date: {self.date_creation} | Statut: {self.statut} | Remarques: {self.remarques}"
+
+class bon_expedition:
+    def _init_(self,colis,transporteur,destinataire,date_creation,statut,remarques):
+        self.colis = colis
+        self.transporteur = transporteur
+        self.destinataire = destinataire
+        self.date_creation = date_creation
+        self.statut = statut
+        self.remarques = remarques
+
+    def __str__(self):
+        return f"Bon d'expédition: {self.colis} | Transporteur: {self.transporteur} | Destinataire: {self.destinataire} | Date: {self.date_creation} | Statut: {self.statut} | Remarques: {self.remarques}"
+    
+class Rapport:
+    def __init__(self,colis, type,date_creation,statut,description):
+        self.colis = colis
+        self.type = type
+        self.date_creation = date_creation
+        self.statut = statut
+        self.description = description
+
+    def __str__(self):
+        return f"Rapport: {self.type} | Contenu: {self.description} | Date: {self.date_creation} | Statut: {self.statut} | Colis: {self.colis}"
