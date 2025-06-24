@@ -9,6 +9,17 @@ from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor, QPalette
 import datetime
 import random
+import psycopg2
+
+idorg = 'OABCDE'
+conn = psycopg2.connect(
+    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
+    database="steevy1",
+    user="steevy",
+    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
+    port=5432
+)
+cur = conn.cursor()
 
 class WarehouseData:
     """Data generator and manager for warehouse operations"""
@@ -18,35 +29,31 @@ class WarehouseData:
 
     def generate_sample_data(self):
         # Products data
-        products = [
-            ("P001", "Laptop Dell XPS", "Electronics", "Dell", 1500),
-            ("P002", "Office Chair", "Furniture", "Herman Miller", 350),
-            ("P003", "Smartphone iPhone", "Electronics", "Apple", 800),
-            ("P004", "Desk Lamp", "Furniture", "IKEA", 45),
-            ("P005", "Wireless Mouse", "Electronics", "Logitech", 25),
-            ("P006", "Monitor 24\"", "Electronics", "Samsung", 250),
-            ("P007", "Standing Desk", "Furniture", "Varidesk", 400),
-            ("P008", "Keyboard Mechanical", "Electronics", "Corsair", 120),
-            ("P009", "Bookshelf", "Furniture", "IKEA", 80),
-            ("P010", "Tablet iPad", "Electronics", "Apple", 600)
-        ]
+        
 
-        self.products_df = pd.DataFrame(products,
-                                      columns=['ID', 'Name', 'Category', 'Brand', 'Value'])
+
+        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+        products = cur.fetchall()
+        if len(products) == 0:
+            raise ValueError("No products loaded from the database. Check 'Produit_EVA()' function.")
+
+        self.products_df = pd.DataFrame(products,columns=['ID', 'Fourniseur', 'Name', 'Description','Prix Unitaire','Brand', 'Model','Category'])
 
         # Inventory data
         inventory_data = []
         storage_zones = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2']
-
         for _, product in self.products_df.iterrows():
+            cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
+            quantity = cur.fetchone()[0]
+            cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
+            zone = cur.fetchone()[0]
             inventory_data.append({
                 'Product_ID': product['ID'],
                 'Product_Name': product['Name'],
-                'Quantity': random.randint(10, 500),
-                'Zone': random.choice(storage_zones),
+                'Quantity': quantity,
+                'Zone': zone,
                 'Last_Updated': datetime.datetime.now() - datetime.timedelta(days=random.randint(0, 30)),
-                'Min_Stock': random.randint(5, 50),
-                'Value': product['Value']
+                'Value': product['Prix Unitaire'] 
             })
 
         self.inventory_df = pd.DataFrame(inventory_data)
@@ -206,17 +213,18 @@ class RealtimeInventoryViewWidget(QWidget):
 
         # Metrics cards
         metrics_layout = QHBoxLayout()
-
-        total_items = self.data.inventory_df['Quantity'].sum()
-        total_value = (self.data.inventory_df['Quantity'] * self.data.inventory_df['Value']).sum()
-        low_stock_items = len(self.data.inventory_df[
-            self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']
-        ])
-        zones_used = self.data.inventory_df['Zone'].nunique()
+        cur.execute("SELECT \"EMIR\".total();")
+        total_items = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".valeur();")
+        total_value = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".available_cells();")
+        available_cells = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".numzones();")
+        zones_used = cur.fetchone()[0]
 
         metrics_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "In Stock"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Inventory Worth"))
-        metrics_layout.addWidget(MetricCard("Low Stock", str(low_stock_items), "Items Below Min", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "Cells Not In Use", "#FF9800"))
         metrics_layout.addWidget(MetricCard("Storage Zones", str(zones_used), "Active Zones"))
 
         # Charts section
@@ -292,15 +300,6 @@ class RealtimeInventoryViewWidget(QWidget):
 
         bars = ax.bar(range(len(top_products)), top_products['Quantity'])
 
-        # Color bars based on stock level
-        for i, (_, row) in enumerate(top_products.iterrows()):
-            if row['Quantity'] <= row['Min_Stock']:
-                bars[i].set_color('#F44336')  # Red for low stock
-            elif row['Quantity'] <= row['Min_Stock'] * 2:
-                bars[i].set_color('#FF9800')  # Orange for medium stock
-            else:
-                bars[i].set_color('#4CAF50')  # Green for good stock
-
         ax.set_title('Stock Levels - Top Products', fontsize=14, fontweight='bold')
         ax.set_xlabel('Products')
         ax.set_ylabel('Quantity')
@@ -316,24 +315,17 @@ class RealtimeInventoryViewWidget(QWidget):
         table = QTableWidget()
         table.setRowCount(len(self.data.inventory_df))
         table.setColumnCount(6)
-        table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Zone', 'Min Stock', 'Status', 'Value'])
+        table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Zone', 'Status', 'Value'])
 
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
             table.setItem(i, 1, QTableWidgetItem(str(row['Quantity'])))
             table.setItem(i, 2, QTableWidgetItem(row['Zone']))
-            table.setItem(i, 3, QTableWidgetItem(str(row['Min_Stock'])))
 
             # Status based on stock level
-            if row['Quantity'] <= row['Min_Stock']:
-                status = "Low Stock"
-                status_item = QTableWidgetItem(status)
-                status_item.setBackground(QColor('#FFEBEE'))
-            else:
-                status = "In Stock"
-                status_item = QTableWidgetItem(status)
-                status_item.setBackground(QColor('#E8F5E8'))
-
+            status = "In Stock"
+            status_item = QTableWidgetItem(status)
+            status_item.setBackground(QColor('#E8F5E8'))
             table.setItem(i, 4, status_item)
             table.setItem(i, 5, QTableWidgetItem(f"${row['Value']:,.2f}"))
 
@@ -441,41 +433,9 @@ class ReportsWidget(QWidget):
         exception_reports_layout = QVBoxLayout()
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
-        # Example: Low Stock Exception
-        self.low_stock_exceptions = self.data.inventory_df[self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']] # Make it an instance variable
-        if not self.low_stock_exceptions.empty:
-            exception_reports_layout.addWidget(QLabel("<p style='color: red; font-weight: bold;'>Critical Low Stock Items:</p>"))
-            self.low_stock_table = QTableWidget() # Make it an instance variable
-            self.low_stock_table.setRowCount(len(self.low_stock_exceptions))
-            self.low_stock_table.setColumnCount(3)
-            self.low_stock_table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Min Stock'])
-            for i, (_, row) in enumerate(self.low_stock_exceptions.iterrows()):
-                self.low_stock_table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
-                self.low_stock_table.setItem(i, 1, QTableWidgetItem(str(row['Quantity'])))
-                self.low_stock_table.setItem(i, 2, QTableWidgetItem(str(row['Min_Stock'])))
-            exception_reports_layout.addWidget(self.low_stock_table)
+        # Example: Low Stock Exception # Make it an instance variable
 
-            # Add Save button for Low Stock Exceptions
-            save_low_stock_btn = QPushButton("Save Low Stock Report to CSV")
-            save_low_stock_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #FF9800;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    font-weight: bold;
-                    margin-top: 10px;
-                }
-                QPushButton:hover {
-                    background-color: #FB8C00;
-                }
-            """)
-            save_low_stock_btn.clicked.connect(self.save_low_stock_report_to_csv)
-            exception_reports_layout.addWidget(save_low_stock_btn)
-
-        else:
-            exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
+        exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
 
         exception_reports_widget.setLayout(exception_reports_layout)
         tabs.addTab(exception_reports_widget, "Exception Reports")
@@ -488,7 +448,7 @@ class ReportsWidget(QWidget):
         table = QTableWidget()
         table.setRowCount(len(self.data.inventory_df))
         table.setColumnCount(5)
-        table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Min Stock', 'Current Value'])
+        table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
 
         # Prepare data for easy CSV export
         self.stock_summary_data = []
@@ -498,13 +458,11 @@ class ReportsWidget(QWidget):
             table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
             table.setItem(i, 1, QTableWidgetItem(product_info['Category']))
             table.setItem(i, 2, QTableWidgetItem(str(row['Quantity'])))
-            table.setItem(i, 3, QTableWidgetItem(str(row['Min_Stock'])))
-            table.setItem(i, 4, QTableWidgetItem(f"${current_value:,.2f}"))
+            table.setItem(i, 3, QTableWidgetItem(f"${current_value:,.2f}"))
             self.stock_summary_data.append({
                 'Product': row['Product_Name'],
                 'Category': product_info['Category'],
                 'Quantity': row['Quantity'],
-                'Min Stock': row['Min_Stock'],
                 'Current Value': current_value
             })
         self.stock_summary_df = pd.DataFrame(self.stock_summary_data) # Store as DataFrame for easy export
@@ -531,7 +489,7 @@ class ReportsWidget(QWidget):
             if file_name:
                 try:
                     # Select relevant columns for the low stock report
-                    report_df = self.low_stock_exceptions[['Product_Name', 'Quantity', 'Min_Stock']]
+                    report_df = self.low_stock_exceptions[['Product_Name', 'Quantity']]
                     report_df.to_csv(file_name, index=False)
                     QMessageBox.information(self, "Success", f"Low stock report saved to:\n{file_name}")
                 except Exception as e:
@@ -905,346 +863,7 @@ class PerformanceWidget(QWidget):
         chart_widget.canvas.draw()
 
 
-class ZoneEmballage(QWidget):
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
-        self.init_ui()
 
-    def init_ui(self):
-        container = QWidget()
-        container.setStyleSheet("background-color: #f5f5f5;")
-        big_layout = QGridLayout(container)
-        big_layout.setVerticalSpacing(20)
-        big_layout.setHorizontalSpacing(20)
-        big_layout.setContentsMargins(20, 20, 20, 20)
-
-        # Frame pour l'emballage
-        emballage_frame = QFrame()
-        emballage_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 15px;
-                padding: 15px;
-            }
-        """)
-        emballage_layout = QVBoxLayout(emballage_frame)
-        emballage_layout.setSpacing(20)
-
-        # Titre Emballage
-        emballage_title = QLabel("Emballage")
-        emballage_title.setStyleSheet("""
-            QLabel {
-                font-size: 22px;
-                color: #2c3e50;
-                font-weight: bold;
-                padding-bottom: 10px;
-            }
-        """)
-        emballage_layout.addWidget(emballage_title)
-
-        # Cartes de métriques pour Emballage
-        metrics_emballage_layout = QGridLayout()
-        metrics_emballage_layout.setVerticalSpacing(15)
-        metrics_emballage_layout.setHorizontalSpacing(15)
-
-
-        # Carte 1 - Colis à emballer
-        card1 = self.create_metric_card(
-            title="42",
-            value="En attente",
-            subtitle="Dernière mise à jour: 05/03/2025",
-            color="#2196F3",
-            title_label="Colis à emballer",
-            value_label="Statut",
-            subtitle_label="Information"
-        )
-        metrics_emballage_layout.addWidget(card1, 0, 0)
-
-        # Carte 2 - Colis emballés
-        card2 = self.create_metric_card(
-            title="128",
-            value="Aujourd'hui",
-            subtitle="Objectif: 150 colis/jour",
-            color="#4CAF50",
-            title_label="Colis emballés",
-            value_label="Période",
-            subtitle_label="Performance"
-        )
-        metrics_emballage_layout.addWidget(card2, 0, 1)
-
-        # Carte 3 - Progression
-        card3 = self.create_metric_card(
-            title="70%",
-            value="05/03/2025",
-            subtitle="Avancement global",
-            color="#FF9800",
-            title_label="Progression",
-            value_label="Date",
-            subtitle_label="Détails",
-            label_color="#FFFFFF",
-            label_bg="#607D8B"
-        )
-        
-        metrics_emballage_layout.addWidget(card3, 1, 0, 1, 2, Qt.AlignCenter)
-
-        emballage_layout.addLayout(metrics_emballage_layout)
-        emballage_layout.addStretch()
-
-        # Frame pour le désemballage
-        desemballage_frame = QFrame()
-        desemballage_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 15px;
-                padding: 15px;
-            }
-        """)
-        desemballage_layout = QVBoxLayout(desemballage_frame)
-        desemballage_layout.setSpacing(20)
-
-        # Titre Désemballage
-        desemballage_title = QLabel("Désemballage")
-        desemballage_title.setStyleSheet("""
-            QLabel {
-                font-size: 22px;
-                color: #2c3e50;
-                font-weight: bold;
-                padding-bottom: 10px;
-            }
-        """)
-        desemballage_layout.addWidget(desemballage_title)
-
-        # Cartes de métriques pour Désemballage
-        metrics_desemballage_layout = QGridLayout()
-        metrics_desemballage_layout.setVerticalSpacing(15)
-        metrics_desemballage_layout.setHorizontalSpacing(15)
-
-        # Carte 4 - Colis à désemballer
-        card4 = self.create_metric_card(
-            title="24",
-            value="En attente",
-            subtitle="Priorité: Moyenne",
-            color="#2196F3",
-            title_label="Colis à désemballer",
-            value_label="Statut",
-            subtitle_label="Information"
-        )
-        metrics_desemballage_layout.addWidget(card4, 0, 0)
-
-        # Carte 5 - Colis désemballés
-        card5 = self.create_metric_card(
-            title="76",
-            value="Aujourd'hui",
-            subtitle="Efficacité: 85%",
-            color="#4CAF50",
-            title_label="Colis désemballés",
-            value_label="Période",
-            subtitle_label="Performance"
-        )
-        metrics_desemballage_layout.addWidget(card5, 0, 1)
-        # Carte 6 - Progression désemballage
-        card6 = self.create_metric_card(
-            title="65%",
-            value="05/03/2025",
-            subtitle="Taux de complétion",
-            color="#FF9800",
-            title_label="Progression",
-            value_label="Date",
-            subtitle_label="Détails",
-            label_color="#FFFFFF",
-            label_bg="#607D8B"
-        )
-        
-        metrics_desemballage_layout.addWidget(card6, 1, 0, 1, 2, Qt.AlignCenter)
-
-        desemballage_layout.addLayout(metrics_desemballage_layout)
-        desemballage_layout.addStretch()
-
-        # Ajout des frames à la disposition principale
-        big_layout.addWidget(emballage_frame, 0, 0)
-        big_layout.addWidget(desemballage_frame, 1, 0)
-
-        self.setLayout(big_layout)
-
-    def create_metric_card(self, title, value, subtitle, color,
-                           title_label=None, value_label=None, subtitle_label=None,
-                           label_color="#555", label_bg="#f8f9fa"):
-        """Crée une carte de métrique avec des labels optionnels pour chaque élément"""
-        card = QFrame()
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: white;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-                padding: 15px;
-            }}
-        """)
-
-        layout = QVBoxLayout(card)
-        layout.setSpacing(8)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        # Style pour les labels descriptifs
-        label_style = f"""
-            QLabel {{
-                font-size: 14px;
-                color: {label_color};
-                font-weight: 500;
-                padding: 4px 8px;
-                background-color: {label_bg};
-                border-radius: 4px;
-                border: 1px solid #e0e0e0;
-                margin-bottom: 2px;
-            }}
-        """
-
-        # Titre avec label optionnel
-        if title_label:
-            title_desc = QLabel(title_label)
-            title_desc.setStyleSheet(label_style)
-            layout.addWidget(title_desc)
-
-        title_widget = QLabel(title)
-        title_widget.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                color: #666;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
-        """)
-        layout.addWidget(title_widget)
-
-        # Valeur avec label optionnel
-        if value_label:
-            value_desc = QLabel(value_label)
-            value_desc.setStyleSheet(label_style)
-            layout.addWidget(value_desc)
-
-        value_widget = QLabel(value)
-        value_widget.setStyleSheet(f"""
-            QLabel {{
-                font-size: 28px;
-                font-weight: bold;
-                color: {color};
-                margin: 5px 0;
-            }}
-        """)
-        layout.addWidget(value_widget)
-
-        # Sous-titre avec label optionnel
-        if subtitle_label:
-            subtitle_desc = QLabel(subtitle_label)
-            subtitle_desc.setStyleSheet(label_style)
-            layout.addWidget(subtitle_desc)
-
-        subtitle_widget = QLabel(subtitle)
-        subtitle_widget.setStyleSheet("""
-            QLabel {
-                font-size: 20px;
-                color: #999;
-                margin-top: 5px;
-            }
-        """)
-        layout.addWidget(subtitle_widget)
-
-        layout.addStretch()
-        return card
-
-class MenuExpedition(QWidget):
-    def __init__(self,data):
-        super().__init__()
-        self.data=data
-        self.init_ui()
-    def init_ui(self):
-        layout = QGridLayout()
-        expedition_summary_table = self.create_expedition_summary_table()
-        bouton = QPushButton("chatte")
-        bouton.setFixedWidth(1000)
-        bouton.setStyleSheet("""
-                       QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; 
-                       width:10px;}
-                       QPushButton:hover { background-color: #1976D2; }
-                   """)
-        layout.addWidget(expedition_summary_table,0,0)
-        layout.addWidget(bouton,0,1)
-        self.setLayout(layout)
-
-    def create_expedition_summary_table(self):
-        table = QTableWidget()
-        
-        table.setRowCount(len(self.data.expedition2_df))
-        table.setColumnCount(4)
-        table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
-
-        for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
-            table.setItem(i, 1, QTableWidgetItem(row['identifiant du lot']))
-            table.setItem(i, 2, QTableWidgetItem(row['idbonexpedition']))
-            table.setItem(i, 4, QTableWidgetItem(str(row['dateexpedition'])))
-        table.setStyleSheet("""
-                    QTableWidget { background-color: white; alternate-background-color: #f5f5f5; selection-background-color: #e3f2fd; gridline-color: #e0e0e0; }
-                    QHeaderView::section { background-color: #f5f5f5; padding: 8px; border: 1px solid #e0e0e0; font-weight: bold; }
-                """)
-        table.resizeColumnsToContents()
-        return table
-class MenuReception(QWidget):
-    def __init__(self,data):
-        super().__init__()
-        self.data=data
-        self.init_ui()
-    def init_ui(self):
-        layout = QGridLayout()
-        reception_summary_table = self.create_reception_summary_table()
-        bouton = QPushButton("informer magasinier")
-        bouton.setFixedWidth(1000)
-        bouton.setStyleSheet("""
-               QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; 
-               width:10px;}
-               QPushButton:hover { background-color: #1976D2; }
-           """)
-        layout.addWidget(bouton,0,1)
-        layout.addWidget(reception_summary_table,0,0)
-        self.setLayout(layout)
-    def create_reception_summary_table(self):
-        table = QTableWidget()
-        table.setRowCount(len(self.data.reception2_df))
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels(['identifiant du colis','date prevue', 'Statut'])
-
-        for i, (_, row) in enumerate(self.data.reception2_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
-            table.setItem(i, 1, QTableWidgetItem(str(row['date prevue'])))
-            table.setItem(i, 2, QTableWidgetItem(row['Statuts']))
-        table.setStyleSheet("""
-            QTableWidget { background-color: white; alternate-background-color: #f5f5f5; selection-background-color: #e3f2fd; gridline-color: #e0e0e0; }
-            QHeaderView::section { background-color: #f5f5f5; padding: 8px; border: 1px solid #e0e0e0; font-weight: bold; }
-        """)
-        table.resizeColumnsToContents()
-        return table
-class WarehouseMenuInteractionWidget(QWidget):
-    """Widget principal de 'Menu interaction' qui regroupe les vues du module warehouse."""
-
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout()
-        # Titre
-        title = QLabel("Warehouse Operations Menu")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
-        layout.addWidget(title)
-
-        # Onglets
-        tabs = QTabWidget()
-        tabs.addTab(MenuReception(self.data), "menu reception")
-        tabs.addTab(MenuExpedition(self.data), "menu expedition")
-        tabs.addTab(ZoneEmballage(self.data),"zone d'emballage")
-        layout.addWidget(tabs)
-        self.setLayout(layout)
 class StockManagerDashboardWidget(QWidget):
     """The central dashboard widget as per the image."""
     def __init__(self, data, main_app_window):
@@ -1261,17 +880,19 @@ class StockManagerDashboardWidget(QWidget):
 
         # Quick Metrics/KPIs (Summarized from underlying widgets)
         metrics_layout = QHBoxLayout()
-        total_items = self.data.inventory_df['Quantity'].sum()
-        low_stock_items = len(self.data.inventory_df[
-            self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']
-        ])
-        pending_receptions = len(self.data.reception_df[self.data.reception_df['Status'] == 'Pending'])
-        pending_expeditions = len(self.data.expedition_df[self.data.expedition_df['Status'] == 'Pending'])
-
-        metrics_layout.addWidget(MetricCard("Total Stock", f"{total_items:,}", "Current Inventory"))
-        metrics_layout.addWidget(MetricCard("Low Stock Alerts", str(low_stock_items), "Items needing reorder", "#FF9800"))
-        metrics_layout.addWidget(MetricCard("Pending Receptions", str(pending_receptions), "Incoming Orders"))
-        metrics_layout.addWidget(MetricCard("Pending Expeditions", str(pending_expeditions), "Outgoing Orders"))
+        
+        cur.execute("SELECT \"EMIR\".available_cells();")
+        available_cells = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".produitsnum();")
+        pros = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".colis_entrants_jour();")
+        todayentering = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".colis_sortants_jour();")
+        todaygoing = cur.fetchone()[0]
+        metrics_layout.addWidget(MetricCard("No of Products", f"{pros:,}", "Current Inventory"))
+        metrics_layout.addWidget(MetricCard("Remaining Cells", f"{available_cells}", "Items remaining", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Today Receptions", f"{todayentering}", "Incoming Orders"))
+        metrics_layout.addWidget(MetricCard("Today Expeditions", f"{todaygoing}", "Outgoing Orders"))
 
         layout.addLayout(metrics_layout)
         layout.addSpacing(30)
@@ -1512,7 +1133,7 @@ class WarehouseDashboard(QMainWindow):
         # Instantiate all main widgets
         self.dashboard_widget = StockManagerDashboardWidget(self.data, self)
         self.realtime_inventory_widget = RealtimeInventoryViewWidget(self.data)
-        self.menu_interaction_widget = WarehouseMenuInteractionWidget(self.data)
+        #self.menu_interaction_widget = WarehouseMenuInteractionWidget(self.data)
         self.storage_management_widget = StorageSpaceManagementWidget(self.data)
         self.reports_widget = ReportsWidget(self.data)
         self.daily_planning_widget = DailyOperationsPlanningWidget(self.data)
@@ -1520,7 +1141,7 @@ class WarehouseDashboard(QMainWindow):
         # Add widgets to the stacked widget
         self.stacked_widget.addWidget(self.dashboard_widget) # Index 0
         self.stacked_widget.addWidget(self.realtime_inventory_widget) # Index 1
-        self.stacked_widget.addWidget(self.menu_interaction_widget)  # Index 2
+        #self.stacked_widget.addWidget(self.menu_interaction_widget)  # Index 2
         self.stacked_widget.addWidget(self.storage_management_widget) # Index 2
         self.stacked_widget.addWidget(self.reports_widget) # Index 3
         self.stacked_widget.addWidget(self.daily_planning_widget) # Index 4

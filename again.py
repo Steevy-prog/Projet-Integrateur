@@ -7,10 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont, QPainter, QPixmap, QColor, QBrush, QLinearGradient
 import psycopg2
 import hashlib
-from Worker_Dashboard import MainWindow as window1
-from Client_Dashboard import MainWindow as window2
-from IT_Technician import MainWindow as window3
-from Manager_Dashboard import WarehouseDashboard as window4
+from yo import interface as dashboard
 
 
 class BackgroundWidget(QWidget):
@@ -63,10 +60,10 @@ class MainApp(QStackedWidget):
     def __init__(self):
         super().__init__()
         self.login = FlipCard(self)
-        self.worker = window1()
-        self.client = window2()
-        self.it = window3()
-        self.manager = window4()
+        self.worker = dashboard.create_interface(1)
+        self.client = dashboard.create_interface(2)
+        self.it = dashboard.create_interface(3)
+        self.manager = dashboard.create_interface(4)
 
         self.addWidget(self.login)    # index 0
         self.addWidget(self.worker)   # index 1
