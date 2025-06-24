@@ -4,9 +4,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QDate, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QPushButton, QStackedWidget, QFrame, QButtonGroup,
+    QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
+    QLineEdit, QComboBox, QDialog, QTextEdit, QSpinBox, QListWidget,
+    QFormLayout, QSplitter, QMessageBox, QGridLayout # Added QGridLayout
+)
+from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal
+from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 
@@ -15,6 +21,7 @@ class WorkerData:
 
     def __init__(self):
         self.generate_sample_data()
+        self.initialize_storage_cells()
 
     def generate_sample_data(self):
         # Products data
@@ -25,75 +32,201 @@ class WorkerData:
             ("P004", "Desk Lamp", "Furniture", "IKEA", 45, "C1-05", 156),
             ("P005", "Wireless Mouse", "Electronics", "Logitech", 25, "A1-33", 234),
             ("P006", "Monitor 24\"", "Electronics", "Samsung", 250, "A2-18", 67),
-            ("P007", "Standing Desk", "Furniture", "Varidesk", 400, "B1-12", 23),
-            ("P008", "Keyboard Mechanical", "Electronics", "Corsair", 120, "A1-27", 89),
-            ("P009", "Bookshelf", "Furniture", "IKEA", 80, "C2-09", 45),
-            ("P010", "Tablet iPad", "Electronics", "Apple", 600, "A2-31", 56)
+            ("P007", "Standing Desk", "Furniture", "FlexiSpot", 400, "B3-01", 30),
+            ("P008", "Bluetooth Speaker", "Electronics", "JBL", 120, "A1-10", 89),
+            ("P009", "Ergonomic Keyboard", "Electronics", "Logitech", 75, "A1-07", 112),
+            ("P010", "Webcam HD", "Electronics", "Logitech", 60, "A2-05", 55),
         ]
+        self.products = pd.DataFrame(products, columns=['Product_ID', 'Product_Name', 'Category', 'Brand', 'Value', 'Location', 'Stock'])
 
-        self.products_df = pd.DataFrame(products,
-                                      columns=['ID', 'Name', 'Category', 'Brand', 'Value', 'Location', 'Stock'])
-
-        # Expedition tasks (orders to be picked and packed)
-        self.expedition_tasks = []
-        priorities = ['High', 'Medium', 'Low']
-        statuses = ['Pending', 'In Progress', 'Completed']
-        
-        for i in range(15):
-            task_items = random.sample(products, random.randint(1, 4))
-            total_items = sum([random.randint(1, 5) for _ in task_items])
-            
-            self.expedition_tasks.append({
-                'Order_ID': f'WO{i+1:03d}',
-                'Priority': random.choice(priorities),
-                'Status': random.choice(statuses),
-                'Items_Count': total_items,
-                'Due_Time': datetime.datetime.now() + datetime.timedelta(hours=random.randint(1, 8)),
-                'Assigned_Worker': 'Current Worker' if random.random() > 0.3 else 'Other Worker',
-                'Items': task_items,
-                'Customer': f'Customer_{i+1:02d}',
-                'Estimated_Time': random.randint(15, 90)  # minutes
+        # Expedition Tasks data
+        task_statuses = ['Pending', 'In Progress', 'Completed', 'Cancelled']
+        task_priorities = ['Low', 'Medium', 'High']
+        expedition_tasks_data = []
+        for i in range(1, 21):
+            product = self.products.sample(1).iloc[0]
+            items_count = random.randint(1, 10)
+            estimated_time = random.randint(10, 60)
+            status = random.choice(task_statuses)
+            priority = random.choice(task_priorities)
+            order_id = f"ORD{i:04d}"
+            due_time = datetime.datetime.now() + datetime.timedelta(hours=random.randint(-24, 48))
+            assigned_worker = random.choice(['Current Worker', 'Worker A', 'Worker B'])
+            expedition_tasks_data.append({
+                'Order_ID': order_id,
+                'Product_ID': product['Product_ID'],
+                'Product_Name': product['Product_Name'],
+                'Items_Count': items_count,
+                'Estimated_Time': estimated_time,
+                'Status': status,
+                'Priority': priority,
+                'Due_Time': due_time,
+                'Assigned_Worker': assigned_worker
             })
+        self.expedition_tasks = pd.DataFrame(expedition_tasks_data)
 
-        # Product movement tracking
-        self.movement_history = []
+        # Product Movement History
         movement_types = ['Pick', 'Pack', 'Move', 'Count']
-        
-        for i in range(50):
-            product = random.choice(products)
-            self.movement_history.append({
-                'Timestamp': datetime.datetime.now() - datetime.timedelta(hours=random.randint(0, 24)),
-                'Product_ID': product[0],
-                'Product_Name': product[1],
-                'Movement_Type': random.choice(movement_types),
-                'Quantity': random.randint(1, 10),
-                'From_Location': product[5],
-                'To_Location': product[5] if random.random() > 0.3 else f"{random.choice(['A1', 'A2', 'B1', 'B2'])}-{random.randint(10, 35):02d}",
-                'Worker': 'Current Worker' if random.random() > 0.4 else f'Worker_{random.randint(1, 5)}'
+        # locations = ['A1-15', 'B2-08', 'A2-22', 'C1-05', 'A1-33', 'A2-18', 'B3-01', 'A1-10', 'A1-07', 'A2-05', 'D1-01', 'Loading Dock', 'Shipping']
+        movement_history_data = []
+        for i in range(1, 51):
+            product = self.products.sample(1).iloc[0]
+            movement_type = random.choice(movement_types)
+            quantity = random.randint(1, product['Stock'] // 2 if product['Stock'] > 1 else 1)
+            from_loc = random.choice(self.products['Location'].unique().tolist() + ['Loading Dock'])
+            to_loc = random.choice(self.products['Location'].unique().tolist() + ['Shipping'])
+            timestamp = datetime.datetime.now() - datetime.timedelta(minutes=random.randint(1, 1440))
+            worker = random.choice(['Current Worker', 'Worker A', 'Worker B'])
+            movement_history_data.append({
+                'Movement_ID': f"MOV{i:05d}",
+                'Product_ID': product['Product_ID'],
+                'Product_Name': product['Product_Name'],
+                'Movement_Type': movement_type,
+                'Quantity': quantity,
+                'From_Location': from_loc,
+                'To_Location': to_loc,
+                'Timestamp': timestamp,
+                'Worker': worker
             })
+        self.movement_history = pd.DataFrame(movement_history_data)
 
-        # Exception reports
-        self.exceptions = []
-        exception_types = ['Product Not Found', 'Damaged Item', 'Quantity Mismatch', 'Wrong Location']
-        
-        for i in range(8):
-            product = random.choice(products)
-            self.exceptions.append({
-                'ID': f'EX{i+1:03d}',
-                'Type': random.choice(exception_types),
-                'Product_ID': product[0],
-                'Product_Name': product[1],
-                'Location': product[5],
-                'Reported_Time': datetime.datetime.now() - datetime.timedelta(hours=random.randint(0, 12)),
-                'Status': random.choice(['Open', 'In Review', 'Resolved']),
-                'Description': f'Issue with {product[1]} at location {product[5]}'
+        # Exceptions
+        exception_types = ['Damaged Product', 'Missing Item', 'Location Error', 'Quantity Mismatch', 'System Error']
+        exception_statuses = ['Open', 'In Review', 'Resolved']
+        exceptions_data = []
+        for i in range(1, 11):
+            product = self.products.sample(1).iloc[0]
+            exception_type = random.choice(exception_types)
+            reported_time = datetime.datetime.now() - datetime.timedelta(hours=random.randint(1, 72))
+            status = random.choice(exception_statuses)
+            reported_by = random.choice(['Current Worker', 'Supervisor X', 'Worker B'])
+            description = f"Detailed description for {exception_type} concerning {product['Product_Name']}."
+            exceptions_data.append({
+                'ID': f"EXC{i:03d}",
+                'Type': exception_type,
+                'Product_ID': product['Product_ID'],
+                'Product_Name': product['Product_Name'],
+                'Location': product['Location'],
+                'Reported_Time': reported_time,
+                'Status': status,
+                'Reported_By': reported_by,
+                'Description': description
             })
+        self.exceptions = pd.DataFrame(exceptions_data)
+
+    def initialize_storage_cells(self):
+        # Create a dictionary to hold the state of each storage cell
+        # For a more robust system, this would be loaded from a database or config
+        self.storage_cells = {}
+        warehouse_layout = {
+            'A': 3, 'B': 3, 'C': 2, 'D': 2 # Rows and columns for each aisle
+        }
+        cell_counter = 1
+        for aisle, num_cols in warehouse_layout.items():
+            for row in range(1, 4): # Example: 3 rows per aisle
+                for col in range(1, num_cols + 1):
+                    cell_id = f"{aisle}{row}-{col}"
+                    self.storage_cells[cell_id] = {
+                        'products': {}, # Dictionary of {product_id: quantity}
+                        'capacity': random.randint(50, 200), # Example capacity
+                        'status': 'Available' # e.g., Available, Full, Restricted
+                    }
+                    cell_counter += 1
+
+        # Distribute some products into cells initially for demonstration
+        for _, product in self.products.iterrows():
+            product_id = product['Product_ID']
+            product_name = product['Product_Name']
+            stock = product['Stock']
+            initial_location = product['Location']
+
+            if initial_location in self.storage_cells:
+                # Add product to its initial specified location
+                self.storage_cells[initial_location]['products'][product_id] = self.storage_cells[initial_location]['products'].get(product_id, 0) + stock
+                self.storage_cells[initial_location]['status'] = 'Occupied'
+            else:
+                # If product's location isn't a defined cell, find a random available cell
+                available_cells = [cid for cid, data in self.storage_cells.items() if data['status'] == 'Available']
+                if available_cells:
+                    target_cell_id = random.choice(available_cells)
+                    self.storage_cells[target_cell_id]['products'][product_id] = self.storage_cells[target_cell_id]['products'].get(product_id, 0) + stock
+                    self.storage_cells[target_cell_id]['status'] = 'Occupied'
+
+    def get_cell_contents(self, cell_id):
+        return self.storage_cells.get(cell_id, {'products': {}, 'capacity': 0, 'status': 'Unknown'})
+
+    def move_product_between_cells(self, product_id, quantity, from_cell_id, to_cell_id):
+        # Basic validation and movement logic
+        if from_cell_id not in self.storage_cells or to_cell_id not in self.storage_cells:
+            return False, "Invalid source or destination cell."
+
+        from_cell = self.storage_cells[from_cell_id]
+        to_cell = self.storage_cells[to_cell_id]
+
+        if product_id not in from_cell['products'] or from_cell['products'][product_id] < quantity:
+            return False, "Not enough product in source cell."
+
+        # Simulate capacity check (simplified)
+        # In a real system, you'd check volume/weight vs. remaining capacity
+        current_to_cell_fill = sum(to_cell['products'].values())
+        if (current_to_cell_fill + quantity) > to_cell['capacity']:
+            return False, "Destination cell does not have enough capacity."
+
+        # Perform the move
+        from_cell['products'][product_id] -= quantity
+        if from_cell['products'][product_id] == 0:
+            del from_cell['products'][product_id]
+            if not from_cell['products']:
+                from_cell['status'] = 'Available'
+
+        to_cell['products'][product_id] = to_cell['products'].get(product_id, 0) + quantity
+        to_cell['status'] = 'Occupied'
+
+        # Log this as a movement in movement_history
+        product_name = self.products[self.products['Product_ID'] == product_id]['Product_Name'].iloc[0] if product_id in self.products['Product_ID'].values else "Unknown Product"
+        self.add_movement(product_id, product_name, "Move", quantity, from_cell_id, to_cell_id)
+
+        return True, "Product moved successfully."
+
+
+    def add_movement(self, product_id, product_name, movement_type, quantity, from_location, to_location):
+        new_id = f"MOV{len(self.movement_history) + 1:05d}"
+        new_movement = {
+            'Movement_ID': new_id,
+            'Product_ID': product_id,
+            'Product_Name': product_name,
+            'Movement_Type': movement_type,
+            'Quantity': quantity,
+            'From_Location': from_location,
+            'To_Location': to_location,
+            'Timestamp': datetime.datetime.now(),
+            'Worker': 'Current Worker' # Assuming a logged-in user
+        }
+        # Append as a new row to the DataFrame
+        self.movement_history = pd.concat([self.movement_history, pd.DataFrame([new_movement])], ignore_index=True)
+        print(f"Added new movement: {new_movement}")
+
+    def add_exception(self, exception_type, product_id, product_name, location, description):
+        new_id = f"EXC{len(self.exceptions) + 1:03d}"
+        new_exception = {
+            'ID': new_id,
+            'Type': exception_type,
+            'Product_ID': product_id,
+            'Product_Name': product_name,
+            'Location': location,
+            'Reported_Time': datetime.datetime.now(),
+            'Status': 'Open',
+            'Reported_By': 'Current Worker', # Assuming a logged-in user
+            'Description': description
+        }
+        self.exceptions = pd.concat([self.exceptions, pd.DataFrame([new_exception])], ignore_index=True)
+        print(f"Added new exception: {new_exception}")
 
 class TaskCard(QFrame):
-    """Card widget for displaying individual tasks"""
-    
+    """Card widget for displaying individual tasks with new design."""
+
     task_selected = pyqtSignal(dict)
-    
+
     def __init__(self, task_data, card_type="expedition"):
         super().__init__()
         self.task_data = task_data
@@ -101,570 +234,549 @@ class TaskCard(QFrame):
         self.init_ui()
 
     def init_ui(self):
-        self.setFrameStyle(QFrame.StyledPanel)
-        self.setFixedHeight(120)
-        
-        # Color coding based on priority or status
-        if self.card_type == "expedition":
-            color = self.get_priority_color(self.task_data['Priority'])
-        else:
-            color = "#4CAF50"
-            
+        self.setFrameStyle(QFrame.Shape.NoFrame) # Remove default frame
+        self.setFixedHeight(120) # Slightly taller cards
+        self.setContentsMargins(0, 0, 0, 0)
+
+        color = self.get_priority_color(self.task_data.get('Priority', 'Low')) # Handle missing priority
+
+        # Modern card style
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: white;
-                border-left: 5px solid {color};
-                border-radius: 8px;
-                margin: 5px;
-                padding: 10px;
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #E0E0E0;
+                margin: 5px 0; /* Reduced vertical margin */
+                padding: 0;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+                transition: all 0.2s ease-in-out;
             }}
             QFrame:hover {{
-                background-color: #f8f9fa;
-                border: 2px solid {color};
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* More pronounced shadow on hover */
+                transform: translateY(-2px); /* Slight lift effect */
             }}
         """)
 
-        layout = QVBoxLayout()
-        
-        # Header
-        header_layout = QHBoxLayout()
-        
+        # Accent bar on the left
+        accent_bar = QFrame(self)
+        accent_bar.setFixedWidth(6)
+        accent_bar.setStyleSheet(f"background-color: {color}; border-top-left-radius: 12px; border-bottom-left-radius: 12px;")
+        # No need to set position, layout will handle it
+
+        # Main layout
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0) # Remove internal margins
+        main_layout.setSpacing(0) # Remove spacing between accent bar and content
+
+        main_layout.addWidget(accent_bar) # Add accent bar first
+
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(15, 10, 15, 10) # Padding for content inside card
+        content_layout.setSpacing(20)
+
+        # Left: Info
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(5)
+
+        # Header row
+        header_row = QHBoxLayout()
         order_label = QLabel(self.task_data['Order_ID'])
-        order_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333;")
-        
+        order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;")
+        header_row.addWidget(order_label)
+        header_row.addStretch()
+
         if self.card_type == "expedition":
             priority_label = QLabel(self.task_data['Priority'])
-            priority_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 12px;")
-            header_layout.addWidget(order_label)
-            header_layout.addStretch()
-            header_layout.addWidget(priority_label)
-        else:
-            header_layout.addWidget(order_label)
-            header_layout.addStretch()
+            priority_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 11px; font-weight: bold; padding: 4px 10px;")
+            header_row.addWidget(priority_label)
+        info_layout.addLayout(header_row)
 
-        # Details
+        # Details row
         if self.card_type == "expedition":
-            details_text = f"Items: {self.task_data['Items_Count']} | Est. Time: {self.task_data['Estimated_Time']}min"
-            due_text = f"Due: {self.task_data['Due_Time'].strftime('%H:%M')}"
-        else:
-            details_text = f"Customer: {self.task_data.get('Customer', 'N/A')}"
-            due_text = f"Status: {self.task_data.get('Status', 'Pending')}"
-            
-        details_label = QLabel(details_text)
-        details_label.setStyleSheet("font-size: 12px; color: #666;")
-        
-        due_label = QLabel(due_text)
-        due_label.setStyleSheet("font-size: 12px; color: #666;")
+            details_text = f"Items: <b>{self.task_data['Items_Count']}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['Estimated_Time']} min</b>"
+            due_text = f"Due: <b>{self.task_data['Due_Time'].strftime('%H:%M')}</b>"
+        else: # For other card types, adjust details as needed
+            details_text = f"Customer: <b>{self.task_data.get('Customer', 'N/A')}</b>"
+            due_text = f"Status: <b>{self.task_data.get('Status', 'Pending')}</b>"
 
-        # Action button
-        action_btn = QPushButton("View Details" if self.card_type == "expedition" else "Start Task")
-        action_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {color};
-                color: white;
+        details_label = QLabel(details_text)
+        details_label.setStyleSheet("font-size: 13px; color: #666666;")
+        details_label.setTextFormat(Qt.TextFormat.RichText)
+        due_label = QLabel(due_text)
+        due_label.setStyleSheet("font-size: 13px; color: #888888;")
+        due_label.setTextFormat(Qt.TextFormat.RichText)
+
+        info_layout.addWidget(details_label)
+        info_layout.addWidget(due_label)
+        info_layout.addStretch()
+
+        # Right: Action button
+        action_btn = QPushButton("View Details")
+        action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        action_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6C63FF;
                 border: none;
-                padding: 5px 15px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 12px;
-            }}
-            QPushButton:hover {{
-                opacity: 0.8;
-            }}
+                border-radius: 8px;
+                padding: 10px 18px;
+                font-size: 14px;
+                font-weight: 600;
+                color: #FFFFFF;
+                box-shadow: 0 2px 8px rgba(108, 99, 255, 0.2);
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+            }
         """)
         action_btn.clicked.connect(self.on_action_clicked)
 
-        layout.addLayout(header_layout)
-        layout.addWidget(details_label)
-        layout.addWidget(due_label)
-        layout.addStretch()
-        layout.addWidget(action_btn, alignment=Qt.AlignRight)
+        content_layout.addLayout(info_layout, stretch=3)
+        content_layout.addWidget(action_btn, stretch=1, alignment=Qt.AlignmentFlag.AlignVCenter)
 
-        self.setLayout(layout)
+        main_layout.addLayout(content_layout)
+        self.setLayout(main_layout)
 
     def get_priority_color(self, priority):
         colors = {
-            'High': '#F44336',
-            'Medium': '#FF9800', 
-            'Low': '#4CAF50'
+            'High': '#F44336', # Red
+            'Medium': '#FF9800', # Orange
+            'Low': '#4CAF50' # Green
         }
-        return colors.get(priority, '#4CAF50')
+        return colors.get(priority, '#666666') # Default color
 
     def on_action_clicked(self):
         self.task_selected.emit(self.task_data)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.task_selected.emit(self.task_data)
 
-class ExpeditionManagementWidget(QWidget):
-    """Widget for managing expedition tasks (picking and packing)"""
-    
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
+class TaskDetailDialog(QDialog):
+    """Dialog to display details of a selected task with new design."""
+    def __init__(self, task_data, parent=None):
+        super().__init__(parent)
+        self.task_data = task_data
+        self.setWindowTitle(f"Task Details: {self.task_data['Order_ID']}")
+        self.setFixedSize(500, 550) # Slightly larger dialog
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel("Expedition Management")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333;")
-
-        refresh_btn = QPushButton("Refresh Tasks")
-        refresh_btn.setStyleSheet("""
+        layout.setContentsMargins(25, 25, 25, 25) # More padding
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA; /* Light background for dialogs */
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); /* More prominent shadow for dialog */
+            }
+            QLabel {
+                font-size: 15px;
+                color: #333333;
+                margin-bottom: 7px;
+            }
+            QLabel.title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #333333;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #E0E0E0;
+            }
             QPushButton {
-                background-color: #2196F3;
+                background-color: #6C63FF; /* Primary accent for buttons */
                 color: white;
                 border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
+                padding: 12px 25px;
+                border-radius: 8px;
                 font-weight: bold;
+                font-size: 15px;
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #1976D2;
+                background-color: #5247D6;
+            }
+            QListWidget {
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 10px;
+                background-color: white;
+                min-height: 150px; /* Ensure sufficient height for list */
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QFormLayout QLabel { /* Specific style for labels in form layout */
+                font-weight: bold;
+                color: #555555;
             }
         """)
 
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        header_layout.addWidget(refresh_btn)
+        title_label = QLabel(f"Task: {self.task_data['Order_ID']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
 
-        # Quick stats
-        stats_layout = QHBoxLayout()
-        
-        pending_tasks = len([t for t in self.data.expedition_tasks if t['Status'] == 'Pending'])
-        in_progress_tasks = len([t for t in self.data.expedition_tasks if t['Status'] == 'In Progress'])
-        completed_today = len([t for t in self.data.expedition_tasks if t['Status'] == 'Completed'])
-        
-        stats_layout.addWidget(self.create_stat_card("Pending", pending_tasks, "#FF9800"))
-        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#2196F3"))
-        stats_layout.addWidget(self.create_stat_card("Completed", completed_today, "#4CAF50"))
+        form_layout = QFormLayout()
+        form_layout.addRow("Product:", QLabel(self.task_data['Product_Name']))
+        form_layout.addRow("Items Count:", QLabel(str(self.task_data['Items_Count'])))
+        form_layout.addRow("Estimated Time (min):", QLabel(str(self.task_data['Estimated_Time'])))
+        form_layout.addRow("Status:", QLabel(self.task_data['Status']))
+        form_layout.addRow("Priority:", QLabel(self.task_data['Priority']))
+        form_layout.addRow("Due Time:", QLabel(self.task_data['Due_Time'].strftime('%Y-%m-%d %H:%M')))
+        form_layout.addRow("Assigned Worker:", QLabel(self.task_data['Assigned_Worker']))
+        layout.addLayout(form_layout)
 
-        # Task sections
-        sections_layout = QHBoxLayout()
-        
-        # High Priority Tasks
-        high_priority_section = self.create_task_section("High Priority", 
-            [t for t in self.data.expedition_tasks if t['Priority'] == 'High' and t['Status'] != 'Completed'])
-        
-        # My Current Tasks
-        my_tasks_section = self.create_task_section("My Current Tasks",
-            [t for t in self.data.expedition_tasks if t['Assigned_Worker'] == 'Current Worker' and t['Status'] != 'Completed'])
-        
-        sections_layout.addWidget(high_priority_section)
-        sections_layout.addWidget(my_tasks_section)
+        # For more complex tasks, you might add a list of sub-tasks or required steps
+        items_list_label = QLabel("Items to Pick/Pack:")
+        layout.addWidget(items_list_label)
+        items_list = QListWidget()
+        # In a real scenario, task_data would have detailed items. For now, simulate.
+        items_list.addItem(f"- {self.task_data['Items_Count']} x {self.task_data['Product_Name']} (ID: {self.task_data['Product_ID']})")
+        items_list.addItem("- Check quality")
+        items_list.addItem("- Scan barcode")
+        layout.addWidget(items_list)
 
-        layout.addLayout(header_layout)
-        layout.addLayout(stats_layout)
-        layout.addLayout(sections_layout)
-        
+        # Action buttons
+        button_layout = QHBoxLayout()
+        complete_button = QPushButton("Mark as Completed")
+        complete_button.setStyleSheet("background-color: #4CAF50;") # Green for complete
+        # complete_button.clicked.connect(self.mark_as_completed) # Implement this logic in WorkerData
+        button_layout.addWidget(complete_button)
+
+        cancel_button = QPushButton("Cancel Task")
+        cancel_button.setStyleSheet("background-color: #F44336;") # Red for cancel
+        # cancel_button.clicked.connect(self.cancel_task) # Implement this logic in WorkerData
+        button_layout.addWidget(cancel_button)
+
+        close_button = QPushButton("Close")
+        close_button.setStyleSheet("background-color: #999999;") # Gray for close
+        close_button.clicked.connect(self.accept)
+        button_layout.addWidget(close_button)
+
+        layout.addLayout(button_layout)
         self.setLayout(layout)
 
-    def create_stat_card(self, title, value, color):
-        card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel)
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                padding: 15px;
-                margin: 5px;
-            }}
-        """)
-
-        layout = QVBoxLayout()
-        
-        title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
-        
-        value_label = QLabel(str(value))
-        value_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color};")
-
-        layout.addWidget(title_label)
-        layout.addWidget(value_label)
-        card.setLayout(layout)
-        
-        return card
-
-    def create_task_section(self, title, tasks):
-        section = QFrame()
-        section.setStyleSheet("""
-            QFrame {
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                padding: 15px;
-                margin: 5px;
-            }
-        """)
-        
-        layout = QVBoxLayout()
-        
-        # Section title
-        title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px;")
-        layout.addWidget(title_label)
-
-        # Scrollable task list
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setMaximumHeight(400)
-
-        task_widget = QWidget()
-        task_layout = QVBoxLayout(task_widget)
-
-        for task in tasks[:5]:  # Show top 5 tasks
-            task_card = TaskCard(task, "expedition")
-            task_card.task_selected.connect(self.on_task_selected)
-            task_layout.addWidget(task_card)
-
-        if not tasks:
-            no_tasks_label = QLabel("No tasks available")
-            no_tasks_label.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
-            task_layout.addWidget(no_tasks_label)
-
-        task_layout.addStretch()
-        scroll_area.setWidget(task_widget)
-        layout.addWidget(scroll_area)
-        
-        section.setLayout(layout)
-        return section
-
-    def on_task_selected(self, task_data):
-        # Open task detail dialog
-        dialog = TaskDetailDialog(task_data, self)
-        dialog.exec_()
-
-class ProductMovementTrackingWidget(QWidget):
-    """Widget for tracking product movements and location updates"""
-    
-    def __init__(self, data):
-        super().__init__()
+class NewMovementDialog(QDialog):
+    """Dialog to record a new product movement."""
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
         self.data = data
+        self.setWindowTitle("Record New Product Movement")
+        self.setFixedSize(450, 400)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel("Product Movement Tracking")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333;")
-        
-        new_movement_btn = QPushButton("Record Movement")
-        new_movement_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-weight: bold;
+        layout.setContentsMargins(25, 25, 25, 25)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
             }
-            QPushButton:hover {
-                background-color: #43A047;
+            QLabel {
+                font-size: 15px;
+                color: #333333;
             }
-        """)
-        new_movement_btn.clicked.connect(self.record_new_movement)
-
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        header_layout.addWidget(new_movement_btn)
-
-        # Quick search
-        search_layout = QHBoxLayout()
-        search_label = QLabel("Search Product:")
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Enter product ID or name...")
-        self.search_input.textChanged.connect(self.filter_movements)
-        
-        search_layout.addWidget(search_label)
-        search_layout.addWidget(self.search_input)
-        search_layout.addStretch()
-
-        # Movement types filter
-        filter_layout = QHBoxLayout()
-        filter_label = QLabel("Filter by type:")
-        self.type_combo = QComboBox()
-        self.type_combo.addItems(['All', 'Pick', 'Pack', 'Move', 'Count'])
-        self.type_combo.currentTextChanged.connect(self.filter_movements)
-        
-        filter_layout.addWidget(filter_label)
-        filter_layout.addWidget(self.type_combo)
-        filter_layout.addStretch()
-
-        # Recent movements table
-        self.movements_table = self.create_movements_table()
-
-        layout.addLayout(header_layout)
-        layout.addLayout(search_layout)
-        layout.addLayout(filter_layout)
-        layout.addWidget(self.movements_table)
-        
-        self.setLayout(layout)
-
-    def create_movements_table(self):
-        table = QTableWidget()
-        table.setColumnCount(7)
-        table.setHorizontalHeaderLabels(['Time', 'Product', 'Type', 'Quantity', 'From', 'To', 'Worker'])
-        
-        # Sort movements by timestamp (most recent first)
-        sorted_movements = sorted(self.data.movement_history, 
-                                key=lambda x: x['Timestamp'], reverse=True)
-        
-        table.setRowCount(len(sorted_movements))
-        
-        for i, movement in enumerate(sorted_movements):
-            table.setItem(i, 0, QTableWidgetItem(movement['Timestamp'].strftime('%H:%M')))
-            table.setItem(i, 1, QTableWidgetItem(movement['Product_Name'][:25] + '...' if len(movement['Product_Name']) > 25 else movement['Product_Name']))
-            
-            # Color code movement types
-            type_item = QTableWidgetItem(movement['Movement_Type'])
-            type_colors = {
-                'Pick': '#FF9800',
-                'Pack': '#4CAF50', 
-                'Move': '#2196F3',
-                'Count': '#9C27B0'
-            }
-            type_item.setBackground(QColor(type_colors.get(movement['Movement_Type'], '#e0e0e0')))
-            table.setItem(i, 2, type_item)
-            
-            table.setItem(i, 3, QTableWidgetItem(str(movement['Quantity'])))
-            table.setItem(i, 4, QTableWidgetItem(movement['From_Location']))
-            table.setItem(i, 5, QTableWidgetItem(movement['To_Location']))
-            
-            worker_item = QTableWidgetItem(movement['Worker'])
-            if movement['Worker'] == 'Current Worker':
-                worker_item.setBackground(QColor('#E8F5E8'))
-            table.setItem(i, 6, worker_item)
-
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
-            }
-            QHeaderView::section {
-                background-color: #f5f5f5;
+            QLineEdit, QComboBox, QSpinBox {
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: white;
+            }
+            QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
+                border: 1px solid #00BFA5; /* Teal focus color */
+            }
+            QPushButton {
+                background-color: #00BFA5; /* Teal for primary action */
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
                 font-weight: bold;
+                font-size: 15px;
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #00897B;
             }
         """)
-        
-        table.setAlternatingRowColors(True)
-        table.resizeColumnsToContents()
-        
-        return table
 
-    def filter_movements(self):
-        search_text = self.search_input.text().lower()
-        movement_type = self.type_combo.currentText()
-        
-        # Filter data based on search and type
-        filtered_movements = []
-        for movement in self.data.movement_history:
-            # Check search filter
-            if search_text and search_text not in movement['Product_Name'].lower() and search_text not in movement['Product_ID'].lower():
-                continue
-                
-            # Check type filter
-            if movement_type != 'All' and movement['Movement_Type'] != movement_type:
-                continue
-                
-            filtered_movements.append(movement)
-        
-        # Update table with filtered data
-        self.update_movements_table(filtered_movements)
+        form_layout = QFormLayout()
 
-    def update_movements_table(self, movements):
-        sorted_movements = sorted(movements, key=lambda x: x['Timestamp'], reverse=True)
-        self.movements_table.setRowCount(len(sorted_movements))
-        
-        for i, movement in enumerate(sorted_movements):
-            self.movements_table.setItem(i, 0, QTableWidgetItem(movement['Timestamp'].strftime('%H:%M')))
-            self.movements_table.setItem(i, 1, QTableWidgetItem(movement['Product_Name'][:25] + '...' if len(movement['Product_Name']) > 25 else movement['Product_Name']))
-            
-            type_item = QTableWidgetItem(movement['Movement_Type'])
-            type_colors = {
-                'Pick': '#FF9800',
-                'Pack': '#4CAF50', 
-                'Move': '#2196F3',
-                'Count': '#9C27B0'
-            }
-            type_item.setBackground(QColor(type_colors.get(movement['Movement_Type'], '#e0e0e0')))
-            self.movements_table.setItem(i, 2, type_item)
-            
-            self.movements_table.setItem(i, 3, QTableWidgetItem(str(movement['Quantity'])))
-            self.movements_table.setItem(i, 4, QTableWidgetItem(movement['From_Location']))
-            self.movements_table.setItem(i, 5, QTableWidgetItem(movement['To_Location']))
-            
-            worker_item = QTableWidgetItem(movement['Worker'])
-            if movement['Worker'] == 'Current Worker':
-                worker_item.setBackground(QColor('#E8F5E8'))
-            self.movements_table.setItem(i, 6, worker_item)
+        self.product_combo = QComboBox()
+        self.product_combo.addItems(self.data.products['Product_Name'].tolist())
+        self.product_combo.setEditable(True)
+        self.product_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.product_combo.completer().setFilterMode(Qt.MatchFlag.MatchContains)
+        form_layout.addRow("Product:", self.product_combo)
 
-    def record_new_movement(self):
-        dialog = NewMovementDialog(self.data, self)
-        if dialog.exec_() == QDialog.Accepted:
-            # Refresh the movements table
-            self.movements_table = self.create_movements_table()
-            self.layout().replaceWidget(self.layout().itemAt(-1).widget(), self.movements_table)
+        self.movement_type_combo = QComboBox()
+        self.movement_type_combo.addItems(['Pick', 'Pack', 'Move', 'Count'])
+        form_layout.addRow("Movement Type:", self.movement_type_combo)
 
-class ExceptionReportsWidget(QWidget):
-    """Widget for viewing and managing exception reports"""
-    
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
+        self.quantity_spin = QSpinBox()
+        self.quantity_spin.setRange(1, 1000)
+        form_layout.addRow("Quantity:", self.quantity_spin)
+
+        self.from_location_input = QLineEdit()
+        self.from_location_input.setPlaceholderText("e.g., A1-15")
+        form_layout.addRow("From Location:", self.from_location_input)
+
+        self.to_location_input = QLineEdit()
+        self.to_location_input.setPlaceholderText("e.g., Shipping Dock")
+        form_layout.addRow("To Location:", self.to_location_input)
+
+        layout.addLayout(form_layout)
+
+        button_layout = QHBoxLayout()
+        record_button = QPushButton("Record Movement")
+        record_button.clicked.connect(self.record_movement)
+        button_layout.addWidget(record_button)
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setStyleSheet("background-color: #CCCCCC;")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def record_movement(self):
+        product_name = self.product_combo.currentText()
+        product_id = self.data.products[self.data.products['Product_Name'] == product_name]['Product_ID'].values
+        if not product_id.size > 0:
+            QMessageBox.warning(self, "Invalid Product", "Please select a valid product from the list.")
+            return
+
+        movement_type = self.movement_type_combo.currentText()
+        quantity = self.quantity_spin.value()
+        from_location = self.from_location_input.text()
+        to_location = self.to_location_input.text()
+
+        if not all([product_name, movement_type, quantity, from_location, to_location]):
+            QMessageBox.warning(self, "Input Error", "Please fill in all fields.")
+            return
+
+        self.data.add_movement(product_id[0], product_name, movement_type, quantity, from_location, to_location)
+        QMessageBox.information(self, "Success", "Movement recorded successfully!")
+        self.accept()
+
+class ExceptionDetailDialog(QDialog):
+    """Dialog to display details of an exception and allow status update."""
+    def __init__(self, exception_data, parent=None):
+        super().__init__(parent)
+        self.exception_data = exception_data
+        self.setWindowTitle(f"Exception Details: {self.exception_data['ID']}")
+        self.setFixedSize(500, 600)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel("Exception Reports")
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333;")
-        
-        report_exception_btn = QPushButton("Report Exception")
-        report_exception_btn.setStyleSheet("""
+        layout.setContentsMargins(25, 25, 25, 25)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            }
+            QLabel {
+                font-size: 15px;
+                color: #333333;
+            }
+            QLabel.title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #333333;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #E0E0E0;
+            }
+            QTextEdit, QComboBox {
+                padding: 8px;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: white;
+            }
+            QTextEdit:focus, QComboBox:focus {
+                border: 1px solid #F44336; /* Red focus color */
+            }
             QPushButton {
-                background-color: #F44336;
+                background-color: #F44336; /* Red for primary action */
                 color: white;
                 border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
+                padding: 12px 25px;
+                border-radius: 8px;
                 font-weight: bold;
+                font-size: 15px;
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
                 background-color: #D32F2F;
             }
         """)
-        report_exception_btn.clicked.connect(self.report_new_exception)
 
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        header_layout.addWidget(report_exception_btn)
+        title_label = QLabel(f"Exception: {self.exception_data['ID']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
 
-        # Exception stats
-        stats_layout = QHBoxLayout()
-        
-        open_exceptions = len([e for e in self.data.exceptions if e['Status'] == 'Open'])
-        in_review = len([e for e in self.data.exceptions if e['Status'] == 'In Review'])
-        resolved_today = len([e for e in self.data.exceptions if e['Status'] == 'Resolved'])
-        
-        stats_layout.addWidget(self.create_exception_stat_card("Open", open_exceptions, "#F44336"))
-        stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#FF9800"))
-        stats_layout.addWidget(self.create_exception_stat_card("Resolved", resolved_today, "#4CAF50"))
+        form_layout = QFormLayout()
+        form_layout.addRow("Type:", QLabel(self.exception_data['Type']))
+        form_layout.addRow("Product:", QLabel(self.exception_data['Product_Name']))
+        form_layout.addRow("Location:", QLabel(self.exception_data['Location']))
+        form_layout.addRow("Reported By:", QLabel(self.exception_data['Reported_By']))
+        form_layout.addRow("Reported Time:", QLabel(self.exception_data['Reported_Time'].strftime('%Y-%m-%d %H:%M')))
 
-        # Exceptions table
-        self.exceptions_table = self.create_exceptions_table()
+        description_label = QLabel("Description:")
+        layout.addWidget(description_label)
+        description_text = QTextEdit()
+        description_text.setText(self.exception_data['Description'])
+        description_text.setReadOnly(True)
+        layout.addWidget(description_text)
 
-        layout.addLayout(header_layout)
-        layout.addLayout(stats_layout)
-        layout.addWidget(self.exceptions_table)
-        
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(QLabel("Update Status:"))
+        self.status_combo = QComboBox()
+        self.status_combo.addItems(['Open', 'In Review', 'Resolved'])
+        self.status_combo.setCurrentText(self.exception_data['Status'])
+        status_layout.addWidget(self.status_combo)
+        status_layout.addStretch()
+        layout.addLayout(status_layout)
+
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("Save Status")
+        save_button.clicked.connect(self.save_status)
+        button_layout.addWidget(save_button)
+
+        close_button = QPushButton("Close")
+        close_button.setStyleSheet("background-color: #CCCCCC;")
+        close_button.clicked.connect(self.reject)
+        button_layout.addWidget(close_button)
+
+        layout.addLayout(button_layout)
         self.setLayout(layout)
 
-    def create_exception_stat_card(self, title, value, color):
-        card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel)
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                padding: 15px;
-                margin: 5px;
-            }}
-        """)
+    def save_status(self):
+        new_status = self.status_combo.currentText()
+        if new_status != self.exception_data['Status']:
+            exception_index = self.exception_data.name # Get the index of the current exception in the DataFrame
+            # Find the actual dataframe row by index
+            if exception_index in self.parent().data.exceptions.index:
+                self.parent().data.exceptions.loc[exception_index, 'Status'] = new_status
+                QMessageBox.information(self, "Status Updated", f"Exception {self.exception_data['ID']} status updated to {new_status}.")
+                self.accept() # Close dialog and signal acceptance
+            else:
+                QMessageBox.warning(self, "Error", "Could not find exception in data to update.")
+        else:
+            self.accept() # No change, just close
 
+class NewExceptionDialog(QDialog):
+    """Dialog to report a new exception."""
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
+        self.data = data
+        self.setWindowTitle("Report New Exception")
+        self.setFixedSize(450, 500)
+        self.init_ui()
+
+    def init_ui(self):
         layout = QVBoxLayout()
-        
-        title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
-        
-        value_label = QLabel(str(value))
-        value_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color};")
-
-        layout.addWidget(title_label)
-        layout.addWidget(value_label)
-        card.setLayout(layout)
-        
-        return card
-
-    def create_exceptions_table(self):
-        table = QTableWidget()
-        table.setColumnCount(6)
-        table.setHorizontalHeaderLabels(['ID', 'Type', 'Product', 'Location', 'Time', 'Status'])
-        
-        # Sort exceptions by time (most recent first)
-        sorted_exceptions = sorted(self.data.exceptions, 
-                                 key=lambda x: x['Reported_Time'], reverse=True)
-        
-        table.setRowCount(len(sorted_exceptions))
-        
-        for i, exception in enumerate(sorted_exceptions):
-            table.setItem(i, 0, QTableWidgetItem(exception['ID']))
-            table.setItem(i, 1, QTableWidgetItem(exception['Type']))
-            table.setItem(i, 2, QTableWidgetItem(exception['Product_Name'][:20] + '...' if len(exception['Product_Name']) > 20 else exception['Product_Name']))
-            table.setItem(i, 3, QTableWidgetItem(exception['Location']))
-            table.setItem(i, 4, QTableWidgetItem(exception['Reported_Time'].strftime('%m/%d %H:%M')))
-            
-            # Color code status
-            status_item = QTableWidgetItem(exception['Status'])
-            status_colors = {
-                'Open': '#FFEBEE',
-                'In Review': '#FFF3E0',
-                'Resolved': '#E8F5E8'
+        layout.setContentsMargins(25, 25, 25, 25)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
             }
-            status_item.setBackground(QColor(status_colors.get(exception['Status'], '#f5f5f5')))
-            table.setItem(i, 5, status_item)
-
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+            QLabel {
+                font-size: 15px;
+                color: #333333;
             }
-            QHeaderView::section {
-                background-color: #f5f5f5;
+            QLineEdit, QComboBox, QTextEdit {
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: white;
+            }
+            QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
+                border: 1px solid #F44336; /* Red focus color */
+            }
+            QPushButton {
+                background-color: #F44336; /* Red for primary action */
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
                 font-weight: bold;
+                font-size: 15px;
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #D32F2F;
             }
         """)
-        
-        table.setAlternatingRowColors(True)
-        table.resizeColumnsToContents()
-        table.cellDoubleClicked.connect(self.view_exception_details)
-        
-        return table
 
-    def view_exception_details(self, row, column):
-        exception_id = self.exceptions_table.item(row, 0).text()
-        exception_data = next((e for e in self.data.exceptions if e['ID'] == exception_id), None)
-        
-        if exception_data:
-            dialog = ExceptionDetailDialog(exception_data, self)
-            dialog.exec_()
+        form_layout = QFormLayout()
 
-    def report_new_exception(self):
-        dialog = NewExceptionDialog(self.data, self)
-        if dialog.exec_() == QDialog.Accepted:
-            # Refresh the exceptions table
-            self.exceptions_table = self.create_exceptions_table()
-            self.layout().replaceWidget(self.layout().itemAt(-1).widget(), self.exceptions_table)
+        self.exception_type_combo = QComboBox()
+        self.exception_type_combo.addItems(['Damaged Product', 'Missing Item', 'Location Error', 'Quantity Mismatch', 'System Error', 'Other'])
+        form_layout.addRow("Exception Type:", self.exception_type_combo)
+
+        self.product_combo = QComboBox()
+        self.product_combo.addItems(self.data.products['Product_Name'].tolist())
+        self.product_combo.setEditable(True)
+        self.product_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.product_combo.completer().setFilterMode(Qt.MatchFlag.MatchContains)
+        form_layout.addRow("Affected Product:", self.product_combo)
+
+        self.location_input = QLineEdit()
+        self.location_input.setPlaceholderText("e.g., A1-15")
+        form_layout.addRow("Location:", self.location_input)
+
+        description_label = QLabel("Description:")
+        layout.addWidget(description_label)
+        self.description_text = QTextEdit()
+        self.description_text.setPlaceholderText("Provide detailed information about the exception...")
+        layout.addWidget(self.description_text)
+
+        layout.addLayout(form_layout)
+
+        button_layout = QHBoxLayout()
+        report_button = QPushButton("Report Exception")
+        report_button.clicked.connect(self.report_exception)
+        button_layout.addWidget(report_button)
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setStyleSheet("background-color: #CCCCCC;")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def report_exception(self):
+        exception_type = self.exception_type_combo.currentText()
+        product_name = self.product_combo.currentText()
+        product_id = self.data.products[self.data.products['Product_Name'] == product_name]['Product_ID'].values
+        if not product_id.size > 0:
+            QMessageBox.warning(self, "Invalid Product", "Please select a valid product from the list.")
+            return
+        location = self.location_input.text()
+        description = self.description_text.toPlainText()
+
+        if not all([exception_type, product_name, location, description]):
+            QMessageBox.warning(self, "Input Error", "Please fill in all fields.")
+            return
+
+        self.data.add_exception(exception_type, product_id[0], product_name, location, description)
+        QMessageBox.information(self, "Success", "Exception reported successfully!")
+        self.accept()
 
 class WorkerMainDashboard(QWidget):
-    """Main dashboard widget for warehouse workers"""
+    """Main dashboard widget for warehouse workers with a new design."""
 
     def __init__(self, data, main_window):
         super().__init__()
@@ -674,547 +786,852 @@ class WorkerMainDashboard(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20) # Add some padding around the dashboard content
+        layout.setSpacing(25)
 
-        # Welcome header
-        header_layout = QHBoxLayout()
-        welcome_label = QLabel("Warehouse Worker Dashboard")
-        welcome_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #333; margin-bottom: 20px;")
+        # Hero Section
+        hero_frame = QFrame()
+        hero_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6C63FF, stop:1 #00BFA5); /* Gradient background */
+                border-radius: 15px;
+                padding: 30px;
+                color: #FFFFFF;
+                box-shadow: 0 8px 30px rgba(108, 99, 255, 0.3);
+            }
+            QLabel {
+                color: #FFFFFF;
+            }
+        """)
+        hero_layout = QVBoxLayout(hero_frame)
+
+        welcome_label = QLabel(f"Welcome Back, Current Worker!")
+        welcome_label.setStyleSheet("font-size: 32px; font-weight: bold;")
 
         time_label = QLabel(f"Today: {datetime.datetime.now().strftime('%A, %B %d, %Y')}")
-        time_label.setStyleSheet("font-size: 14px; color: #666;")
+        time_label.setStyleSheet("font-size: 16px; margin-top: 5px;")
 
-        header_layout.addWidget(welcome_label)
-        header_layout.addStretch()
-        header_layout.addWidget(time_label)
+        hero_layout.addWidget(welcome_label)
+        hero_layout.addWidget(time_label)
+        hero_layout.addStretch() # Push content to top
 
-        # Quick stats
-        stats_layout = QHBoxLayout()
+        # Dashboard Stat Cards (within hero section or below)
+        dashboard_stats_layout = QHBoxLayout()
+        dashboard_stats_layout.setSpacing(20)
 
-        my_pending_tasks = len([t for t in self.data.expedition_tasks if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Pending'])
-        completed_today = len([t for t in self.data.expedition_tasks if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Completed'])
-        my_movements = len([m for m in self.data.movement_history if m['Worker'] == 'Current Worker'])
-        open_exceptions = len([e for e in self.data.exceptions if e['Status'] == 'Open'])
+        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Pending'])
+        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Check if completed today
+        my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
+        open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
 
-        stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#FF9800", "Tasks assigned to me"))
-        stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#4CAF50", "Tasks finished today"))
-        stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#2196F3", "Product movements logged"))
-        stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#F44336", "Issues requiring attention"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#FFC107", "Tasks assigned to me"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#4CAF50", "Tasks finished today"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#6C63FF", "Product movements logged"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#F44336", "Issues requiring attention"))
 
-        # Quick actions
+        hero_layout.addLayout(dashboard_stats_layout)
+        layout.addWidget(hero_frame)
+
+
+        # Quick Actions
         quick_actions_group = QGroupBox("Quick Actions")
-        quick_actions_group.setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; margin-top: 10px; }"
-                                         "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 3px; }"
-                                         "QGroupBox { border: 1px solid #e0e0e0; border-radius: 8px; padding-top: 20px; }")
+        quick_actions_group.setStyleSheet("""
+            QGroupBox {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333333;
+                margin-top: 20px;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding-top: 15px;
+                background-color: #FFFFFF;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 10px;
+                margin-left: 10px;
+                color: #6C63FF; /* Accent color for title */
+            }
+        """)
         quick_actions_layout = QHBoxLayout()
-
-        pick_pack_btn = QPushButton("View Pick/Pack Tasks")
-        pick_pack_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
-        pick_pack_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.expedition_widget))
-
-        record_movement_btn = QPushButton("Record New Movement")
-        record_movement_btn.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
-        record_movement_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.movement_widget))
-
-        report_exception_btn = QPushButton("Report an Exception")
-        report_exception_btn.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
-        report_exception_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.exception_widget))
+        quick_actions_layout.setSpacing(15)
+        quick_actions_layout.setContentsMargins(20, 25, 20, 20)
 
         button_style = """
             QPushButton {
-                background-color: #f0f0f0;
-                border: 1px solid #dcdcdc;
-                border-radius: 5px;
-                padding: 15px 20px;
-                font-size: 14px;
-                font-weight: bold;
-                color: #555;
+                background-color: #F0F2F5; /* Light background */
+                border: none;
+                border-radius: 10px;
+                padding: 15px 25px;
+                font-size: 16px;
+                font-weight: 600;
+                color: #333333;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #e0e0e0;
-                border: 1px solid #c0c0c0;
+                background-color: #6C63FF; /* Primary accent on hover */
+                color: #FFFFFF;
+                transform: translateY(-2px); /* Slight lift effect */
             }
         """
+
+        pick_pack_btn = QPushButton("View Pick/Pack Tasks")
         pick_pack_btn.setStyleSheet(button_style)
+        pick_pack_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.expedition_widget))
+
+        record_movement_btn = QPushButton("Record New Movement")
         record_movement_btn.setStyleSheet(button_style)
+        record_movement_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.movement_widget))
+
+        report_exception_btn = QPushButton("Report an Exception")
         report_exception_btn.setStyleSheet(button_style)
+        report_exception_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.exception_widget))
 
         quick_actions_layout.addWidget(pick_pack_btn)
         quick_actions_layout.addWidget(record_movement_btn)
         quick_actions_layout.addWidget(report_exception_btn)
         quick_actions_group.setLayout(quick_actions_layout)
+        layout.addWidget(quick_actions_group)
 
-        # Recent activities (simplified - showing latest 5 movements)
+        # Recent activities
         recent_activity_group = QGroupBox("Recent Activities")
-        recent_activity_group.setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; margin-top: 10px; }"
-                                          "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 3px; }"
-                                          "QGroupBox { border: 1px solid #e0e0e0; border-radius: 8px; padding-top: 20px; }")
+        recent_activity_group.setStyleSheet("""
+            QGroupBox {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333333;
+                margin-top: 20px;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding-top: 15px;
+                background-color: #FFFFFF;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 10px;
+                margin-left: 10px;
+                color: #00BFA5; /* Secondary accent for title */
+            }
+        """)
         recent_activity_layout = QVBoxLayout()
+        recent_activity_layout.setContentsMargins(20, 25, 20, 20)
+        recent_activity_layout.setSpacing(10)
 
-        latest_movements = sorted(self.data.movement_history, key=lambda x: x['Timestamp'], reverse=True)[:5]
+        latest_movements = sorted(self.data.movement_history.to_dict('records'), key=lambda x: x['Timestamp'], reverse=True)[:5]
         if latest_movements:
             for movement in latest_movements:
-                activity_label = QLabel(f"- {movement['Timestamp'].strftime('%H:%M')} | {movement['Movement_Type']} of {movement['Quantity']}x {movement['Product_Name']} by {movement['Worker']}")
-                activity_label.setStyleSheet("font-size: 12px; color: #444; padding: 2px 0;")
+                activity_label = QLabel(f"<span style='font-weight:bold;'>{movement['Timestamp'].strftime('%H:%M')}</span> | {movement['Movement_Type']} of <span style='font-weight:bold;'>{movement['Quantity']}x</span> {movement['Product_Name']} by {movement['Worker']}")
+                activity_label.setStyleSheet("font-size: 14px; color: #444; padding: 2px 0;")
+                activity_label.setTextFormat(Qt.TextFormat.RichText)
                 recent_activity_layout.addWidget(activity_label)
         else:
-            no_activity_label = QLabel("No recent activities.")
+            no_activity_label = QLabel("No recent activities to display.")
             no_activity_label.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
             recent_activity_layout.addWidget(no_activity_label)
 
         recent_activity_group.setLayout(recent_activity_layout)
-
-        layout.addLayout(header_layout)
-        layout.addLayout(stats_layout)
-        layout.addWidget(quick_actions_group)
         layout.addWidget(recent_activity_group)
-        layout.addStretch() # Pushes content to the top
+        layout.addStretch()
 
         self.setLayout(layout)
 
     def create_dashboard_card(self, title, value, color, description):
         card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel)
+        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShadow(QFrame.Shadow.Raised)
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: white;
-                border: 1px solid #e0e0e0;
-                border-left: 5px solid {color};
-                border-radius: 8px;
-                padding: 15px;
-                margin: 5px;
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding: 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             }}
         """)
 
         layout = QVBoxLayout()
+        layout.setSpacing(5)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 14px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
 
         value_label = QLabel(str(value))
-        value_label.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {color};")
+        value_label.setStyleSheet(f"font-size: 36px; font-weight: bold; color: {color};")
 
         description_label = QLabel(description)
-        description_label.setStyleSheet("font-size: 10px; color: #999;")
+        description_label.setStyleSheet("font-size: 12px; color: #999999;")
 
         layout.addWidget(title_label)
         layout.addWidget(value_label)
         layout.addWidget(description_label)
+        layout.addStretch() # Pushes content to top
+
+        card.setLayout(layout)
+        return card
+
+class ExpeditionManagementWidget(QWidget):
+    """Widget for managing expedition tasks (picking and packing) with new design."""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(25)
+
+        # Header
+        header_layout = QHBoxLayout()
+        title = QLabel("Expedition Management")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+
+        refresh_btn = QPushButton("Refresh Tasks")
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+                box-shadow: 0 4px 10px rgba(108, 99, 255, 0.2);
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+                transform: translateY(-2px);
+            }
+        """)
+        # refresh_btn.clicked.connect(self.refresh_tasks) # Implement refresh logic if needed
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(refresh_btn)
+        layout.addLayout(header_layout)
+
+        # Quick stats
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(20)
+
+        pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'Pending'])
+        in_progress_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'In Progress'])
+        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Example of checking "today"
+
+        stats_layout.addWidget(self.create_stat_card("Pending Tasks", pending_tasks, "#FFC107"))
+        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#6C63FF"))
+        stats_layout.addWidget(self.create_stat_card("Completed Today", completed_today, "#4CAF50"))
+        layout.addLayout(stats_layout)
+
+        # Task sections using QSplitter for adjustable layout
+        sections_splitter = QSplitter(Qt.Orientation.Horizontal)
+        sections_splitter.setHandleWidth(10)
+        sections_splitter.setStyleSheet("QSplitter::handle { background-color: #E0E0E0; border-radius: 5px; }")
+
+        # My Current Tasks
+        my_tasks_section = self.create_task_section("My Current Tasks",
+            [t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] != 'Completed'])
+        sections_splitter.addWidget(my_tasks_section)
+
+        # High Priority Tasks
+        high_priority_section = self.create_task_section("High Priority Tasks",
+            [t for t in self.data.expedition_tasks.to_dict('records') if t['Priority'] == 'High' and t['Status'] != 'Completed'])
+        sections_splitter.addWidget(high_priority_section)
+
+        sections_splitter.setSizes([self.width() // 2, self.width() // 2]) # Initial sizes
+        layout.addWidget(sections_splitter)
+
+        self.setLayout(layout)
+
+    def create_stat_card(self, title, value, color):
+        card = QFrame()
+        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShadow(QFrame.Shadow.Raised)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding: 18px 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }}
+        """)
+
+        layout = QVBoxLayout()
+        layout.setSpacing(5)
+
+        title_label = QLabel(title)
+        title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
+
+        value_label = QLabel(str(value))
+        value_label.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {color};")
+
+        layout.addWidget(title_label)
+        layout.addWidget(value_label)
         card.setLayout(layout)
 
         return card
 
-class TaskDetailDialog(QDialog):
-    """Dialog to display details of a selected task"""
-    def __init__(self, task_data, parent=None):
-        super().__init__(parent)
-        self.task_data = task_data
-        self.setWindowTitle(f"Task Details: {self.task_data['Order_ID']}")
-        self.setFixedSize(450, 500)
+    def create_task_section(self, title, tasks):
+        section = QFrame()
+        section.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 10px;
+                padding: 15px;
+                border: 1px solid #E0E0E0;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+        """)
+
+        layout = QVBoxLayout()
+        layout.setSpacing(15)
+
+        # Section title
+        title_label = QLabel(title)
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #333333; margin-bottom: 5px;")
+        layout.addWidget(title_label)
+
+        # Scrollable task list
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setMaximumHeight(600) # Increased height for more tasks
+
+        task_widget = QWidget()
+        task_layout = QVBoxLayout(task_widget)
+        task_layout.setSpacing(10) # Spacing between task cards
+
+        if tasks:
+            for task in tasks:
+                task_card = TaskCard(task, "expedition")
+                task_card.task_selected.connect(self.on_task_selected)
+                task_layout.addWidget(task_card)
+        else:
+            no_tasks_label = QLabel("No tasks available in this section.")
+            no_tasks_label.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
+            task_layout.addWidget(no_tasks_label)
+
+        task_layout.addStretch()
+        scroll_area.setWidget(task_widget)
+        layout.addWidget(scroll_area)
+
+        section.setLayout(layout)
+        return section
+
+    def on_task_selected(self, task_data):
+        dialog = TaskDetailDialog(task_data, self)
+        dialog.exec()
+
+class ProductMovementTrackingWidget(QWidget):
+    """Widget for tracking product movements and location updates with new design."""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #f8f9fa;
-                border-radius: 10px;
-            }
-            QLabel {
-                font-size: 14px;
-                color: #333;
-                margin-bottom: 5px;
-            }
-            QLabel.title {
-                font-size: 18px;
-                font-weight: bold;
-                color: #000;
-                margin-bottom: 15px;
-            }
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(25)
+
+        # Header
+        header_layout = QHBoxLayout()
+        title = QLabel("Product Movement Tracking")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+
+        new_movement_btn = QPushButton("Record Movement")
+        new_movement_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #00BFA5; /* Teal */
                 color: white;
                 border: none;
                 padding: 10px 20px;
-                border-radius: 5px;
+                border-radius: 8px;
                 font-weight: bold;
+                font-size: 15px;
+                box-shadow: 0 4px 10px rgba(0, 191, 165, 0.2);
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #1976D2;
-            }
-            QListWidget {
-                border: 1px solid #e0e0e0;
-                border-radius: 5px;
-                padding: 5px;
-                background-color: white;
+                background-color: #00897B;
+                transform: translateY(-2px);
             }
         """)
+        new_movement_btn.clicked.connect(self.record_new_movement)
 
-        # Title
-        title_label = QLabel(f"Order: {self.task_data['Order_ID']}")
-        title_label.setProperty("class", "title")
-        layout.addWidget(title_label)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(new_movement_btn)
+        layout.addLayout(header_layout)
 
-        # Details
-        details_form_layout = QFormLayout()
-        details_form_layout.addRow("Priority:", QLabel(self.task_data['Priority']))
-        details_form_layout.addRow("Status:", QLabel(self.task_data['Status']))
-        details_form_layout.addRow("Items Count:", QLabel(str(self.task_data['Items_Count'])))
-        details_form_layout.addRow("Due Time:", QLabel(self.task_data['Due_Time'].strftime('%Y-%m-%d %H:%M')))
-        details_form_layout.addRow("Estimated Time:", QLabel(f"{self.task_data['Estimated_Time']} minutes"))
-        details_form_layout.addRow("Assigned Worker:", QLabel(self.task_data['Assigned_Worker']))
-        details_form_layout.addRow("Customer:", QLabel(self.task_data['Customer']))
-        layout.addLayout(details_form_layout)
+        # Filters and Search
+        filter_search_layout = QHBoxLayout()
+        filter_search_layout.setSpacing(15)
 
-        # Items list
-        items_label = QLabel("Items to Pick:")
-        items_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
-        layout.addWidget(items_label)
-
-        items_list_widget = QListWidget()
-        for item_data in self.task_data['Items']:
-            list_item = QListWidgetItem(f"{item_data[1]} ({item_data[0]}) - Loc: {item_data[5]}")
-            items_list_widget.addItem(list_item)
-        items_list_widget.setFixedSize(400, 150)
-        layout.addWidget(items_list_widget)
-
-        # Action buttons
-        button_layout = QHBoxLayout()
-        close_button = QPushButton("Close")
-        close_button.clicked.connect(self.accept)
-        button_layout.addStretch()
-        button_layout.addWidget(close_button)
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
-
-class NewMovementDialog(QDialog):
-    """Dialog to record a new product movement"""
-    def __init__(self, data, parent=None):
-        super().__init__(parent)
-        self.data = data
-        self.setWindowTitle("Record New Product Movement")
-        self.setFixedSize(400, 350)
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QFormLayout()
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #f8f9fa;
-                border-radius: 10px;
+        search_label = QLabel("Search Product:")
+        search_label.setStyleSheet("font-size: 15px; color: #666;")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Enter product ID or name...")
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                font-size: 15px;
             }
-            QLabel {
-                font-size: 14px;
-                color: #333;
-            }
-            QLineEdit, QComboBox, QSpinBox {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #43A047;
-            }
-            QPushButton#cancelButton {
-                background-color: #f44336;
-            }
-            QPushButton#cancelButton:hover {
-                background-color: #d32f2f;
+            QLineEdit:focus {
+                border: 1px solid #6C63FF;
             }
         """)
+        self.search_input.textChanged.connect(self.filter_movements)
 
-        # Product selection
-        product_names = [p[1] for p in self.data.products_df.values]
-        self.product_combo = QComboBox()
-        self.product_combo.addItems(product_names)
-        layout.addRow("Product:", self.product_combo)
-
-        # Movement Type
+        type_label = QLabel("Filter by type:")
+        type_label.setStyleSheet("font-size: 15px; color: #666;")
         self.type_combo = QComboBox()
-        self.type_combo.addItems(['Pick', 'Pack', 'Move', 'Count'])
-        layout.addRow("Movement Type:", self.type_combo)
+        self.type_combo.addItems(['All', 'Pick', 'Pack', 'Move', 'Count'])
+        self.type_combo.setStyleSheet("""
+            QComboBox {
+                padding: 8px;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: #FFFFFF;
+            }
+            QComboBox::drop-down {
+                border: 0px;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(icons/arrow_down.png); /* Placeholder for an actual icon if you have one */
+                width: 12px;
+                height: 12px;
+            }
+        """)
+        self.type_combo.currentTextChanged.connect(self.filter_movements)
 
-        # Quantity
-        self.quantity_spinbox = QSpinBox()
-        self.quantity_spinbox.setRange(1, 1000)
-        self.quantity_spinbox.setValue(1)
-        layout.addRow("Quantity:", self.quantity_spinbox)
+        filter_search_layout.addWidget(search_label)
+        filter_search_layout.addWidget(self.search_input, 3)
+        filter_search_layout.addWidget(type_label)
+        filter_search_layout.addWidget(self.type_combo, 1)
+        filter_search_layout.addStretch() # Push widgets to left
 
-        # From Location
-        self.from_location_input = QLineEdit()
-        self.from_location_input.setPlaceholderText("e.g., A1-15")
-        layout.addRow("From Location:", self.from_location_input)
+        layout.addLayout(filter_search_layout)
 
-        # To Location
-        self.to_location_input = QLineEdit()
-        self.to_location_input.setPlaceholderText("e.g., B2-08 (optional)")
-        layout.addRow("To Location:", self.to_location_input)
-
-        # Worker
-        self.worker_input = QLineEdit("Current Worker")
-        self.worker_input.setDisabled(True)
-        layout.addRow("Worker:", self.worker_input)
-
-        # Buttons
-        button_box = QHBoxLayout()
-        submit_btn = QPushButton("Record Movement")
-        submit_btn.clicked.connect(self.record_movement)
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setObjectName("cancelButton")
-        cancel_btn.clicked.connect(self.reject)
-
-        button_box.addStretch()
-        button_box.addWidget(submit_btn)
-        button_box.addWidget(cancel_btn)
-        layout.addRow(button_box)
+        # Recent movements table
+        self.movements_table = self.create_movements_table()
+        layout.addWidget(self.movements_table)
 
         self.setLayout(layout)
 
-    def record_movement(self):
-        product_name = self.product_combo.currentText()
-        product_id = self.data.products_df[self.data.products_df['Name'] == product_name]['ID'].iloc[0]
+    def create_movements_table(self):
+        table = QTableWidget()
+        table.setColumnCount(7)
+        table.setHorizontalHeaderLabels(['Time', 'Product', 'Type', 'Quantity', 'From', 'To', 'Worker'])
+
+        # Set default row height
+        table.verticalHeader().setDefaultSectionSize(40) # Adjust row height
+
+        # Table styling
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                font-size: 14px;
+                selection-background-color: #E6E6FF; /* Light purple selection */
+                selection-color: #333333;
+                gridline-color: #F0F2F5; /* Lighter grid lines */
+            }
+            QHeaderView::section {
+                background-color: #6C63FF; /* Primary accent for header */
+                color: #FFFFFF;
+                padding: 12px;
+                border: none;
+                font-weight: bold;
+                font-size: 15px;
+                text-align: left; /* Align header text left */
+            }
+            QHeaderView::section:first {
+                border-top-left-radius: 10px;
+            }
+            QHeaderView::section:last {
+                border-top-right-radius: 10px;
+            }
+            QTableWidget::item {
+                padding: 8px; /* Padding for cell content */
+            }
+            QTableWidget::item:selected {
+                background-color: #E6E6FF;
+                color: #333333;
+            }
+        """)
+
+        self.movements_table = table  # <-- Assign before update
+        self.update_movements_table(self.data.movement_history.to_dict('records'))
+
+        table.setAlternatingRowColors(True)
+        table.horizontalHeader().setStretchLastSection(True) # Make last column stretch
+        table.verticalHeader().setVisible(False) # Hide vertical header (row numbers)
+        table.resizeColumnsToContents()
+
+        return table
+    def filter_movements(self):
+        search_text = self.search_input.text().lower()
         movement_type = self.type_combo.currentText()
-        quantity = self.quantity_spinbox.value()
-        from_location = self.from_location_input.text()
-        to_location = self.to_location_input.text() if self.to_location_input.text() else from_location # Default to_location
-        worker = self.worker_input.text()
 
-        if not from_location:
-            QMessageBox.warning(self, "Input Error", "Please provide a 'From Location'.")
-            return
+        filtered_movements = []
+        for movement in self.data.movement_history.to_dict('records'):
+            if search_text and search_text not in movement['Product_Name'].lower() and search_text not in movement['Product_ID'].lower():
+                continue
+            if movement_type != 'All' and movement['Movement_Type'] != movement_type:
+                continue
+            filtered_movements.append(movement)
 
-        new_movement = {
-            'Timestamp': datetime.datetime.now(),
-            'Product_ID': product_id,
-            'Product_Name': product_name,
-            'Movement_Type': movement_type,
-            'Quantity': quantity,
-            'From_Location': from_location,
-            'To_Location': to_location,
-            'Worker': worker
-        }
-        self.data.movement_history.append(new_movement)
-        QMessageBox.information(self, "Success", "Product movement recorded successfully!")
-        self.accept()
+        self.update_movements_table(filtered_movements)
 
-class ExceptionDetailDialog(QDialog):
-    """Dialog to display and manage exception report details"""
-    def __init__(self, exception_data, parent=None):
-        super().__init__(parent)
-        self.exception_data = exception_data
-        self.setWindowTitle(f"Exception Details: {self.exception_data['ID']}")
-        self.setFixedSize(450, 400)
+    def update_movements_table(self, movements):
+        sorted_movements = sorted(movements, key=lambda x: x['Timestamp'], reverse=True)
+        self.movements_table.setRowCount(len(sorted_movements))
+
+        # Use a single accent color for all movement types
+        accent_color = "#2921C5"  # Your primary accent color
+
+        for i, movement in enumerate(sorted_movements):
+            self.movements_table.setItem(i, 0, QTableWidgetItem(movement['Timestamp'].strftime('%H:%M %b %d')))
+            self.movements_table.setItem(i, 1, QTableWidgetItem(movement['Product_Name']))
+
+            # Uniform color for all movement types
+            type_item = QTableWidgetItem(movement['Movement_Type'])
+            type_item.setBackground(QColor(accent_color))
+            type_item.setForeground(QColor('#FFFFFF'))  # Always white text for contrast
+            self.movements_table.setItem(i, 2, type_item)
+
+            self.movements_table.setItem(i, 3, QTableWidgetItem(str(movement['Quantity'])))
+            self.movements_table.setItem(i, 4, QTableWidgetItem(movement['From_Location']))
+            self.movements_table.setItem(i, 5, QTableWidgetItem(movement['To_Location']))
+
+            worker_item = QTableWidgetItem(movement['Worker'])
+            if movement['Worker'] == 'Current Worker':
+                worker_item.setBackground(QColor('#E8F5E8'))  # Light green highlight
+                worker_item.setForeground(QColor('#333333'))
+            self.movements_table.setItem(i, 6, worker_item)
+    def record_new_movement(self):
+        dialog = NewMovementDialog(self.data, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.update_movements_table(self.data.movement_history.to_dict('records')) # Refresh table after new entry
+            # Re-apply filters after update if necessary (optional)
+            self.filter_movements()
+
+class ExceptionReportsWidget(QWidget):
+    """Widget for viewing and managing exception reports with new design."""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #f8f9fa;
-                border-radius: 10px;
-            }
-            QLabel {
-                font-size: 14px;
-                color: #333;
-                margin-bottom: 5px;
-            }
-            QLabel.title {
-                font-size: 18px;
-                font-weight: bold;
-                color: #000;
-                margin-bottom: 15px;
-            }
-            QTextEdit {
-                border: 1px solid #e0e0e0;
-                border-radius: 5px;
-                padding: 5px;
-                background-color: white;
-            }
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(25)
+
+        # Header
+        header_layout = QHBoxLayout()
+        title = QLabel("Exception Reports")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+
+        report_exception_btn = QPushButton("Report Exception")
+        report_exception_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #F44336; /* Red */
                 color: white;
                 border: none;
                 padding: 10px 20px;
-                border-radius: 5px;
+                border-radius: 8px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-            QPushButton#resolveButton {
-                background-color: #4CAF50;
-            }
-            QPushButton#resolveButton:hover {
-                background-color: #43A047;
-            }
-        """)
-
-        # Title
-        title_label = QLabel(f"Exception: {self.exception_data['ID']}")
-        title_label.setProperty("class", "title")
-        layout.addWidget(title_label)
-
-        # Details
-        details_form_layout = QFormLayout()
-        details_form_layout.addRow("Type:", QLabel(self.exception_data['Type']))
-        details_form_layout.addRow("Product:", QLabel(f"{self.exception_data['Product_Name']} ({self.exception_data['Product_ID']})"))
-        details_form_layout.addRow("Location:", QLabel(self.exception_data['Location']))
-        details_form_layout.addRow("Reported Time:", QLabel(self.exception_data['Reported_Time'].strftime('%Y-%m-%d %H:%M')))
-        details_form_layout.addRow("Status:", QLabel(self.exception_data['Status']))
-        layout.addLayout(details_form_layout)
-
-        # Description
-        description_label = QLabel("Description:")
-        description_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
-        layout.addWidget(description_label)
-        description_text = QTextEdit()
-        description_text.setPlainText(self.exception_data['Description'])
-        description_text.setReadOnly(True)
-        layout.addWidget(description_text)
-
-        # Action buttons
-        button_layout = QHBoxLayout()
-        if self.exception_data['Status'] != 'Resolved':
-            resolve_btn = QPushButton("Mark as Resolved")
-            resolve_btn.setObjectName("resolveButton")
-            resolve_btn.clicked.connect(self.resolve_exception)
-            button_layout.addWidget(resolve_btn)
-
-        close_button = QPushButton("Close")
-        close_button.clicked.connect(self.accept)
-        button_layout.addStretch()
-        button_layout.addWidget(close_button)
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
-
-    def resolve_exception(self):
-        reply = QMessageBox.question(self, "Resolve Exception",
-                                     "Are you sure you want to mark this exception as 'Resolved'?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            self.exception_data['Status'] = 'Resolved'
-            QMessageBox.information(self, "Success", "Exception marked as resolved.")
-            self.accept()
-
-class NewExceptionDialog(QDialog):
-    """Dialog to report a new exception"""
-    def __init__(self, data, parent=None):
-        super().__init__(parent)
-        self.data = data
-        self.setWindowTitle("Report New Exception")
-        self.setFixedSize(400, 450)
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QFormLayout()
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #f8f9fa;
-                border-radius: 10px;
-            }
-            QLabel {
-                font-size: 14px;
-                color: #333;
-            }
-            QLineEdit, QComboBox, QTextEdit {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color: #F44336;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-weight: bold;
+                font-size: 15px;
+                box-shadow: 0 4px 10px rgba(244, 67, 54, 0.2);
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
                 background-color: #D32F2F;
-            }
-            QPushButton#cancelButton {
-                background-color: #9E9E9E;
-            }
-            QPushButton#cancelButton:hover {
-                background-color: #757575;
+                transform: translateY(-2px);
             }
         """)
+        report_exception_btn.clicked.connect(self.report_new_exception)
 
-        # Exception Type
-        self.type_combo = QComboBox()
-        self.type_combo.addItems(['Product Not Found', 'Damaged Item', 'Quantity Mismatch', 'Wrong Location', 'Other'])
-        layout.addRow("Exception Type:", self.type_combo)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(report_exception_btn)
+        layout.addLayout(header_layout)
 
-        # Product selection
-        product_names = [p[1] for p in self.data.products_df.values]
-        self.product_combo = QComboBox()
-        self.product_combo.addItems(product_names)
-        layout.addRow("Product:", self.product_combo)
+        # Exception stats
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(20)
 
-        # Location
-        self.location_input = QLineEdit()
-        self.location_input.setPlaceholderText("e.g., A1-15")
-        layout.addRow("Location:", self.location_input)
+        open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
+        in_review = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'In Review'])
+        resolved_today = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Resolved' and (datetime.datetime.now() - e['Reported_Time']).total_seconds() < 86400])
 
-        # Description
-        self.description_input = QTextEdit()
-        self.description_input.setPlaceholderText("Provide a detailed description of the exception...")
-        self.description_input.setFixedHeight(120)
-        layout.addRow("Description:", self.description_input)
+        stats_layout.addWidget(self.create_exception_stat_card("Open Reports", open_exceptions, "#F44336"))
+        stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#FFC107"))
+        stats_layout.addWidget(self.create_exception_stat_card("Resolved Today", resolved_today, "#4CAF50"))
+        layout.addLayout(stats_layout)
 
-        # Buttons
-        button_box = QHBoxLayout()
-        report_btn = QPushButton("Report Exception")
-        report_btn.clicked.connect(self.report_exception)
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setObjectName("cancelButton")
-        cancel_btn.clicked.connect(self.reject)
-
-        button_box.addStretch()
-        button_box.addWidget(report_btn)
-        button_box.addWidget(cancel_btn)
-        layout.addRow(button_box)
+        # Exceptions table
+        self.exceptions_table = self.create_exceptions_table()
+        layout.addWidget(self.exceptions_table)
 
         self.setLayout(layout)
 
-    def report_exception(self):
-        exception_type = self.type_combo.currentText()
-        product_name = self.product_combo.currentText()
-        product_id = self.data.products_df[self.data.products_df['Name'] == product_name]['ID'].iloc[0]
-        location = self.location_input.text()
-        description = self.description_input.toPlainText()
+    def create_exception_stat_card(self, title, value, color):
+        card = QFrame()
+        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShadow(QFrame.Shadow.Raised)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding: 18px 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }}
+        """)
 
-        if not location or not description:
-            QMessageBox.warning(self, "Input Error", "Please fill in all required fields (Location, Description).")
-            return
+        layout = QVBoxLayout()
+        layout.setSpacing(5)
 
-        new_exception = {
-            'ID': f'EX{len(self.data.exceptions) + 1:03d}',
-            'Type': exception_type,
-            'Product_ID': product_id,
-            'Product_Name': product_name,
-            'Location': location,
-            'Reported_Time': datetime.datetime.now(),
-            'Status': 'Open',
-            'Description': description
-        }
-        self.data.exceptions.append(new_exception)
-        QMessageBox.information(self, "Success", "Exception reported successfully!")
-        self.accept()
+        title_label = QLabel(title)
+        title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
 
+        value_label = QLabel(str(value))
+        value_label.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {color};")
+
+        layout.addWidget(title_label)
+        layout.addWidget(value_label)
+        card.setLayout(layout)
+
+        return card
+
+    def create_exceptions_table(self):
+        table = QTableWidget()
+        table.setColumnCount(6)
+        table.setHorizontalHeaderLabels(['ID', 'Type', 'Product', 'Location', 'Time', 'Status'])
+
+        table.verticalHeader().setDefaultSectionSize(40)
+
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                font-size: 14px;
+                selection-background-color: #FFEBEE; /* Light red selection */
+                selection-color: #333333;
+                gridline-color: #F0F2F5;
+            }
+            QHeaderView::section {
+                background-color: #F44336; /* Red for header */
+                color: #FFFFFF;
+                padding: 12px;
+                border: none;
+                font-weight: bold;
+                font-size: 15px;
+                text-align: left;
+            }
+            QHeaderView::section:first {
+                border-top-left-radius: 10px;
+            }
+            QHeaderView::section:last {
+                border-top-right-radius: 10px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #FFEBEE;
+                color: #333333;
+            }
+        """)
+
+        self.exceptions_table = table  # <-- Assign before update
+        self.update_exceptions_table(self.data.exceptions.to_dict('records'))
+
+        table.setAlternatingRowColors(True)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.verticalHeader().setVisible(False)
+        table.resizeColumnsToContents()
+        table.cellDoubleClicked.connect(self.view_exception_details)
+
+        return table
+
+    def update_exceptions_table(self, exceptions):
+        sorted_exceptions = sorted(exceptions, key=lambda x: x['Reported_Time'], reverse=True)
+        self.exceptions_table.setRowCount(len(sorted_exceptions))
+
+        for i, exception in enumerate(sorted_exceptions):
+            self.exceptions_table.setItem(i, 0, QTableWidgetItem(exception['ID']))
+            self.exceptions_table.setItem(i, 1, QTableWidgetItem(exception['Type']))
+            self.exceptions_table.setItem(i, 2, QTableWidgetItem(exception['Product_Name']))
+            self.exceptions_table.setItem(i, 3, QTableWidgetItem(exception['Location']))
+            self.exceptions_table.setItem(i, 4, QTableWidgetItem(exception['Reported_Time'].strftime('%m/%d %H:%M')))
+
+            status_item = QTableWidgetItem(exception['Status'])
+            status_colors = {
+                'Open': '#F44336', # Red
+                'In Review': '#FFC107', # Amber
+                'Resolved': '#4CAF50' # Green
+            }
+            status_item.setBackground(QColor(status_colors.get(exception['Status'], '#E0E0E0')))
+            status_item.setForeground(QColor('#FFFFFF')) # White text for better contrast
+            if exception['Status'] == 'In Review':
+                status_item.setForeground(QColor('#333333')) # Darker text for Amber background
+            self.exceptions_table.setItem(i, 5, status_item)
+
+    def view_exception_details(self, row, column):
+        exception_id = self.exceptions_table.item(row, 0).text()
+        # Find the full exception data from the original DataFrame using the ID
+        exception_data = self.data.exceptions[self.data.exceptions['ID'] == exception_id].iloc[0]
+
+        if exception_data is not None:
+            dialog = ExceptionDetailDialog(exception_data, self)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table if status changed
+
+    def report_new_exception(self):
+        dialog = NewExceptionDialog(self.data, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table after new entry
+
+class StorageCellWidget(QWidget):
+    """Widget for viewing and managing storage cells in a 2D grid."""
+    cell_clicked = pyqtSignal(str) # Signal to emit the cell ID when clicked
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(25)
+
+        # Header
+        header_layout = QHBoxLayout()
+        title = QLabel("Cellule d'Entreposage (2D View)")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
+
+        # Storage grid area
+        grid_scroll_area = QScrollArea()
+        grid_scroll_area.setWidgetResizable(True)
+        grid_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        grid_widget = QWidget()
+        self.grid_layout = QGridLayout(grid_widget)
+        self.grid_layout.setSpacing(10) # Spacing between cells
+        self.grid_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Populate the grid with cells
+        self.populate_cell_grid()
+
+        grid_scroll_area.setWidget(grid_widget)
+        layout.addWidget(grid_scroll_area)
+
+        self.setLayout(layout)
+
+    def populate_cell_grid(self):
+        # Clear existing widgets if repopulating
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        # Get all unique aisles and sort for horizontal layout
+        aisles = sorted(list(set(c[0] for c in self.data.storage_cells.keys())))
+        max_rows_per_aisle = max([int(c.split('-')[0][1:]) for c in self.data.storage_cells.keys()])
+        max_cols_per_aisle = max([int(c.split('-')[1]) for c in self.data.storage_cells.keys()])
+
+        # Add aisle labels as column headers (horizontal)
+        for col, aisle_char in enumerate(aisles):
+            aisle_label = QLabel(f"Aisle {aisle_char}")
+            aisle_label.setStyleSheet("font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #333;")
+            self.grid_layout.addWidget(aisle_label, 0, col + 1)  # Row 0, columns 1..N
+
+        # Add row labels (row numbers)
+        for row in range(1, max_rows_per_aisle + 1):
+            row_label = QLabel(f"Row {row}")
+            row_label.setStyleSheet("font-weight: bold; font-size: 16px; margin-right: 5px; color: #333;")
+            self.grid_layout.addWidget(row_label, row, 0)  # Column 0
+
+        # Place cells in grid: rows = row numbers, columns = aisles
+        for col, aisle_char in enumerate(aisles):
+            for row in range(1, max_rows_per_aisle + 1):
+                for c in range(1, max_cols_per_aisle + 1):
+                    cell_id = f"{aisle_char}{row}-{c}"
+                    if cell_id in self.data.storage_cells:
+                        cell_data = self.data.get_cell_contents(cell_id)
+                        cell_button = QPushButton(cell_id)
+                        cell_button.setFixedSize(100, 80)
+                        cell_button.setCursor(Qt.CursorShape.PointingHandCursor)
+
+                        # Determine color and text for cell
+                        if cell_data['products']:
+                            bg_color = "#E6E6FF"  # Light blue/purple for occupied
+                            text_color = "#232946"
+                            # Show product count in button
+                            content = "<br>".join([f"{qty}x" for qty in cell_data['products'].values()])
+                            cell_button.setText(f"{cell_id}\n{content}")
+                        elif cell_data['status'] == 'Available':
+                            bg_color = "#E8F5E8"  # Light green
+                            text_color = "#232946"
+                            cell_button.setText(f"{cell_id}\nEmpty")
+                        elif cell_data['status'] == 'Full':
+                            bg_color = "#FFEBEE"  # Light red
+                            text_color = "#232946"
+                            cell_button.setText(f"{cell_id}\nFull")
+                        else:
+                            bg_color = "#E0E0E0"  # Default grey
+                            text_color = "#232946"
+                            cell_button.setText(f"{cell_id}\nN/A")
+
+                        cell_button.setStyleSheet(f"""
+                            QPushButton {{
+                                background-color: {bg_color};
+                                border: 1px solid #CCCCCC;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                font-weight: bold;
+                                color: {text_color};
+                            }}
+                            QPushButton:hover {{
+                                border: 2px solid #6C63FF;
+                            }}
+                        """)
+                        cell_button.clicked.connect(lambda checked, cid=cell_id: self.on_cell_clicked(cid))
+                        # Place in grid: row index = row, column index = col+1 (since col 0 is label)
+                        self.grid_layout.addWidget(cell_button, row, col + 1)
+        # Stretch for nice layout
+        self.grid_layout.setRowStretch(self.grid_layout.rowCount(), 1)
+        self.grid_layout.setColumnStretch(self.grid_layout.columnCount(), 1)
+    
+    def on_cell_clicked(self, cell_id):
+        """Emit the cell_clicked signal with the cell ID."""
+        self.cell_clicked.emit(cell_id)
+        
 class MainWindow(QMainWindow):
-    """Main application window with navigation"""
+    """Main application window with top navigation and modern design."""
     def __init__(self):
         super().__init__()
         self.data = WorkerData()
@@ -1225,85 +1642,137 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-        self.main_layout = QHBoxLayout(self.central_widget)
+        self.main_layout = QVBoxLayout(self.central_widget) # Change to QVBoxLayout for top navbar
 
-        self.create_sidebar()
+        self.create_navbar()
         self.create_content_area()
 
         self.apply_global_styles()
 
         # Set initial view
         self.navigate_to_widget(self.dashboard_widget)
+        self.dashboard_btn.setChecked(True) # Ensure dashboard button is highlighted
 
     def apply_global_styles(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f5f5f5;
+                background-color: #F0F2F5;
             }
-            QMenuBar {
-                background-color: #333;
-                color: white;
+            QLabel, QGroupBox, QTableWidget, QLineEdit, QComboBox, QPushButton, QTextEdit, QSpinBox, QListWidget {
+                font-family: 'Segoe UI', 'Arial', sans-serif;
+                font-size: 15px;
+                color: #232946;
             }
-            QMenuBar::item {
-                background-color: #333;
-                color: white;
-                padding: 5px 10px;
+            QTableWidget {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                font-size: 15px;
+                selection-background-color: #6C63FF;
+                selection-color: #FFFFFF;
+                gridline-color: #F0F2F5;
+                alternate-background-color: #F8F9FA;
             }
-            QMenuBar::item:selected {
-                background-color: #555;
+            QHeaderView::section {
+                background-color: #2921C5;
+                color: #FFFFFF;
+                padding: 12px;
+                border: none;
+                font-weight: bold;
+                font-size: 16px;
+                text-align: left;
             }
-            QStatusBar {
-                background-color: #eee;
-                color: #333;
+            QHeaderView::section:first {
+                border-top-left-radius: 10px;
+            }
+            QHeaderView::section:last {
+                border-top-right-radius: 10px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                font-size: 15px;
+            }
+            QTableWidget::item:selected {
+                background-color: #6C63FF;
+                color: #FFFFFF;
+            }
+            QScrollArea {
+                border: none;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F0F2F5;
+                width: 10px;
+                margin: 0px 0px 0px 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #B0B0B0;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
             }
         """)
 
-    def create_sidebar(self):
-        self.sidebar = QFrame()
-        self.sidebar.setFixedWidth(200)
-        self.sidebar.setStyleSheet("""
+    def create_navbar(self):
+        self.navbar = QFrame()
+        self.navbar.setFixedHeight(70) # Fixed height for navbar
+        self.navbar.setStyleSheet("""
             QFrame {
-                background-color: #2c3e50; /* Darker blue-grey */
-                color: white;
-                border-right: 1px solid #1a242f;
+                background-color: #FFFFFF; /* White navbar background */
+                border-bottom: 1px solid #E0E0E0;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             }
             QPushButton {
                 background-color: transparent;
                 border: none;
-                color: white;
-                padding: 15px 10px;
-                text-align: left;
+                color: #666666; /* Medium gray text */
+                padding: 10px 20px;
                 font-size: 16px;
-                border-bottom: 1px solid #34495e;
+                font-weight: 500;
+                border-radius: 5px;
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #34495e; /* Slightly lighter on hover */
+                background-color: #F0F2F5; /* Light background on hover */
+                color: #333333; /* Darker text on hover */
             }
             QPushButton:checked {
-                background-color: #1abc9c; /* Teal for active state */
+                background-color: #6C63FF; /* Primary accent for selected */
+                color: #FFFFFF;
                 font-weight: bold;
             }
         """)
-        sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(0)
+        navbar_layout = QHBoxLayout(self.navbar)
+        navbar_layout.setContentsMargins(20, 0, 20, 0)
+        navbar_layout.setSpacing(15)
 
         # Logo/Title
         logo_label = QLabel("Warehouse Ops")
-        logo_label.setAlignment(Qt.AlignCenter)
-        logo_label.setStyleSheet("font-size: 20px; font-weight: bold; padding: 20px 0; background-color: #34495e;")
-        sidebar_layout.addWidget(logo_label)
+        logo_label.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            color: #333333;
+            margin-right: 30px;
+        """)
+        navbar_layout.addWidget(logo_label)
 
         # Navigation buttons
         self.dashboard_btn = QPushButton("Dashboard")
-        self.expedition_btn = QPushButton("Expedition Management")
-        self.movement_btn = QPushButton("Product Movements")
-        self.exceptions_btn = QPushButton("Exception Reports")
+        self.expedition_btn = QPushButton("Expedition")
+        self.movement_btn = QPushButton("Movements")
+        self.exceptions_btn = QPushButton("Exceptions")
+        self.cells_btn = QPushButton("Cells") # New button for storage cells
 
         self.dashboard_btn.setCheckable(True)
         self.expedition_btn.setCheckable(True)
         self.movement_btn.setCheckable(True)
         self.exceptions_btn.setCheckable(True)
+        self.cells_btn.setCheckable(True) # Make new button checkable
 
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
@@ -1311,41 +1780,55 @@ class MainWindow(QMainWindow):
         self.button_group.addButton(self.expedition_btn)
         self.button_group.addButton(self.movement_btn)
         self.button_group.addButton(self.exceptions_btn)
+        self.button_group.addButton(self.cells_btn) # Add new button to group
 
         self.dashboard_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
         self.expedition_btn.clicked.connect(lambda: self.navigate_to_widget(self.expedition_widget))
         self.movement_btn.clicked.connect(lambda: self.navigate_to_widget(self.movement_widget))
         self.exceptions_btn.clicked.connect(lambda: self.navigate_to_widget(self.exception_widget))
+        self.cells_btn.clicked.connect(lambda: self.navigate_to_widget(self.storage_cell_widget)) # Connect new button
 
-        sidebar_layout.addWidget(self.dashboard_btn)
-        sidebar_layout.addWidget(self.expedition_btn)
-        sidebar_layout.addWidget(self.movement_btn)
-        sidebar_layout.addWidget(self.exceptions_btn)
-        sidebar_layout.addStretch()
+        navbar_layout.addStretch() # Pushes buttons to the center/right
+        navbar_layout.addWidget(self.dashboard_btn)
+        navbar_layout.addWidget(self.expedition_btn)
+        navbar_layout.addWidget(self.movement_btn)
+        navbar_layout.addWidget(self.exceptions_btn)
+        navbar_layout.addWidget(self.cells_btn) # Add new button to navbar layout
+        navbar_layout.addStretch() # For more centered look if desired
 
-        self.main_layout.addWidget(self.sidebar)
+        self.main_layout.addWidget(self.navbar)
 
     def create_content_area(self):
         self.content_stack = QStackedWidget()
-        self.content_stack.setStyleSheet("background-color: #f5f5f5; padding: 20px;")
+        self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 20px;") # Content area background
 
-        self.dashboard_widget = WorkerMainDashboard(self.data, self)
-        self.expedition_widget = ExpeditionManagementWidget(self.data)
-        self.movement_widget = ProductMovementTrackingWidget(self.data)
-        self.exception_widget = ExceptionReportsWidget(self.data)
+        def scrollable(widget):
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(widget)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            return scroll
+
+        self.dashboard_widget = scrollable(WorkerMainDashboard(self.data, self))
+        self.expedition_widget = scrollable(ExpeditionManagementWidget(self.data))
+        self.movement_widget = scrollable(ProductMovementTrackingWidget(self.data))
+        self.exception_widget = scrollable(ExceptionReportsWidget(self.data))
+        self.storage_cell_widget = scrollable(StorageCellWidget(self.data)) # Instantiate new widget
 
         self.content_stack.addWidget(self.dashboard_widget)
         self.content_stack.addWidget(self.expedition_widget)
         self.content_stack.addWidget(self.movement_widget)
         self.content_stack.addWidget(self.exception_widget)
+        self.content_stack.addWidget(self.storage_cell_widget) # Add new widget to stack
 
         self.main_layout.addWidget(self.content_stack)
 
     def navigate_to_widget(self, target_widget):
         self.content_stack.setCurrentWidget(target_widget)
-        # Uncheck all buttons and then check the corresponding one
+        # The QButtonGroup handles the checking, but this ensures initial state or manual calls work
         for button in self.button_group.buttons():
-            button.setChecked(False)
+            button.setChecked(False) # Uncheck all first
+        
         if target_widget == self.dashboard_widget:
             self.dashboard_btn.setChecked(True)
         elif target_widget == self.expedition_widget:
@@ -1354,10 +1837,28 @@ class MainWindow(QMainWindow):
             self.movement_btn.setChecked(True)
         elif target_widget == self.exception_widget:
             self.exceptions_btn.setChecked(True)
+        elif target_widget == self.storage_cell_widget: # Handle new button
+            self.cells_btn.setChecked(True)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setStyle("Fusion") # A modern style
+    
+        # --- Set a global palette for dialogs and message boxes ---
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor("#FFFFFF"))  # Dialog background
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
+    palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
+    palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+    app.setPalette(palette)
+    # ----------------------------------------------------------
+
+    
     main_window = MainWindow()
     main_window.showMaximized() # Start maximized for a better experience
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
