@@ -42,15 +42,17 @@ class WarehouseData:
         # Inventory data
         inventory_data = []
         storage_zones = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2']
-
         for _, product in self.products_df.iterrows():
+            cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
+            quantity = cur.fetchone()[0]
+            cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
+            zone = cur.fetchone()[0]
             inventory_data.append({
                 'Product_ID': product['ID'],
                 'Product_Name': product['Name'],
-                'Quantity': random.randint(10, 500),
-                'Zone': random.choice(storage_zones),
+                'Quantity': quantity,
+                'Zone': zone,
                 'Last_Updated': datetime.datetime.now() - datetime.timedelta(days=random.randint(0, 30)),
-                'Min_Stock': random.randint(5, 50),
                 'Value': product['Prix Unitaire'] 
             })
 
@@ -298,15 +300,6 @@ class RealtimeInventoryViewWidget(QWidget):
 
         bars = ax.bar(range(len(top_products)), top_products['Quantity'])
 
-        # Color bars based on stock level
-        for i, (_, row) in enumerate(top_products.iterrows()):
-            if row['Quantity'] <= row['Min_Stock']:
-                bars[i].set_color('#F44336')  # Red for low stock
-            elif row['Quantity'] <= row['Min_Stock'] * 2:
-                bars[i].set_color('#FF9800')  # Orange for medium stock
-            else:
-                bars[i].set_color('#4CAF50')  # Green for good stock
-
         ax.set_title('Stock Levels - Top Products', fontsize=14, fontweight='bold')
         ax.set_xlabel('Products')
         ax.set_ylabel('Quantity')
@@ -322,24 +315,17 @@ class RealtimeInventoryViewWidget(QWidget):
         table = QTableWidget()
         table.setRowCount(len(self.data.inventory_df))
         table.setColumnCount(6)
-        table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Zone', 'Min Stock', 'Status', 'Value'])
+        table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Zone', 'Status', 'Value'])
 
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
             table.setItem(i, 1, QTableWidgetItem(str(row['Quantity'])))
             table.setItem(i, 2, QTableWidgetItem(row['Zone']))
-            table.setItem(i, 3, QTableWidgetItem(str(row['Min_Stock'])))
 
             # Status based on stock level
-            if row['Quantity'] <= row['Min_Stock']:
-                status = "Low Stock"
-                status_item = QTableWidgetItem(status)
-                status_item.setBackground(QColor('#FFEBEE'))
-            else:
-                status = "In Stock"
-                status_item = QTableWidgetItem(status)
-                status_item.setBackground(QColor('#E8F5E8'))
-
+            status = "In Stock"
+            status_item = QTableWidgetItem(status)
+            status_item.setBackground(QColor('#E8F5E8'))
             table.setItem(i, 4, status_item)
             table.setItem(i, 5, QTableWidgetItem(f"${row['Value']:,.2f}"))
 
@@ -447,41 +433,9 @@ class ReportsWidget(QWidget):
         exception_reports_layout = QVBoxLayout()
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
-        # Example: Low Stock Exception
-        self.low_stock_exceptions = self.data.inventory_df[self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']] # Make it an instance variable
-        if not self.low_stock_exceptions.empty:
-            exception_reports_layout.addWidget(QLabel("<p style='color: red; font-weight: bold;'>Critical Low Stock Items:</p>"))
-            self.low_stock_table = QTableWidget() # Make it an instance variable
-            self.low_stock_table.setRowCount(len(self.low_stock_exceptions))
-            self.low_stock_table.setColumnCount(3)
-            self.low_stock_table.setHorizontalHeaderLabels(['Product', 'Quantity', 'Min Stock'])
-            for i, (_, row) in enumerate(self.low_stock_exceptions.iterrows()):
-                self.low_stock_table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
-                self.low_stock_table.setItem(i, 1, QTableWidgetItem(str(row['Quantity'])))
-                self.low_stock_table.setItem(i, 2, QTableWidgetItem(str(row['Min_Stock'])))
-            exception_reports_layout.addWidget(self.low_stock_table)
+        # Example: Low Stock Exception # Make it an instance variable
 
-            # Add Save button for Low Stock Exceptions
-            save_low_stock_btn = QPushButton("Save Low Stock Report to CSV")
-            save_low_stock_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #FF9800;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    font-weight: bold;
-                    margin-top: 10px;
-                }
-                QPushButton:hover {
-                    background-color: #FB8C00;
-                }
-            """)
-            save_low_stock_btn.clicked.connect(self.save_low_stock_report_to_csv)
-            exception_reports_layout.addWidget(save_low_stock_btn)
-
-        else:
-            exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
+        exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
 
         exception_reports_widget.setLayout(exception_reports_layout)
         tabs.addTab(exception_reports_widget, "Exception Reports")
@@ -494,7 +448,7 @@ class ReportsWidget(QWidget):
         table = QTableWidget()
         table.setRowCount(len(self.data.inventory_df))
         table.setColumnCount(5)
-        table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Min Stock', 'Current Value'])
+        table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
 
         # Prepare data for easy CSV export
         self.stock_summary_data = []
@@ -504,13 +458,11 @@ class ReportsWidget(QWidget):
             table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
             table.setItem(i, 1, QTableWidgetItem(product_info['Category']))
             table.setItem(i, 2, QTableWidgetItem(str(row['Quantity'])))
-            table.setItem(i, 3, QTableWidgetItem(str(row['Min_Stock'])))
-            table.setItem(i, 4, QTableWidgetItem(f"${current_value:,.2f}"))
+            table.setItem(i, 3, QTableWidgetItem(f"${current_value:,.2f}"))
             self.stock_summary_data.append({
                 'Product': row['Product_Name'],
                 'Category': product_info['Category'],
                 'Quantity': row['Quantity'],
-                'Min Stock': row['Min_Stock'],
                 'Current Value': current_value
             })
         self.stock_summary_df = pd.DataFrame(self.stock_summary_data) # Store as DataFrame for easy export
@@ -537,7 +489,7 @@ class ReportsWidget(QWidget):
             if file_name:
                 try:
                     # Select relevant columns for the low stock report
-                    report_df = self.low_stock_exceptions[['Product_Name', 'Quantity', 'Min_Stock']]
+                    report_df = self.low_stock_exceptions[['Product_Name', 'Quantity']]
                     report_df.to_csv(file_name, index=False)
                     QMessageBox.information(self, "Success", f"Low stock report saved to:\n{file_name}")
                 except Exception as e:
@@ -929,17 +881,18 @@ class StockManagerDashboardWidget(QWidget):
         # Quick Metrics/KPIs (Summarized from underlying widgets)
         metrics_layout = QHBoxLayout()
         
-        low_stock_items = len(self.data.inventory_df[
-            self.data.inventory_df['Quantity'] <= self.data.inventory_df['Min_Stock']
-        ])
-        pending_receptions = len(self.data.reception_df[self.data.reception_df['Status'] == 'Pending'])
-        pending_expeditions = len(self.data.expedition_df[self.data.expedition_df['Status'] == 'Pending'])
+        cur.execute("SELECT \"EMIR\".available_cells();")
+        available_cells = cur.fetchone()[0]
         cur.execute("SELECT \"EMIR\".produitsnum();")
         pros = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".colis_entrants_jour();")
+        todayentering = cur.fetchone()[0]
+        cur.execute("SELECT \"EMIR\".colis_sortants_jour();")
+        todaygoing = cur.fetchone()[0]
         metrics_layout.addWidget(MetricCard("No of Products", f"{pros:,}", "Current Inventory"))
-        metrics_layout.addWidget(MetricCard("Low Stock Alerts", str(low_stock_items), "Items needing reorder", "#FF9800"))
-        metrics_layout.addWidget(MetricCard("Pending Receptions", str(pending_receptions), "Incoming Orders"))
-        metrics_layout.addWidget(MetricCard("Pending Expeditions", str(pending_expeditions), "Outgoing Orders"))
+        metrics_layout.addWidget(MetricCard("Remaining Cells", f"{available_cells}", "Items remaining", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Today Receptions", f"{todayentering}", "Incoming Orders"))
+        metrics_layout.addWidget(MetricCard("Today Expeditions", f"{todaygoing}", "Outgoing Orders"))
 
         layout.addLayout(metrics_layout)
         layout.addSpacing(30)
