@@ -1,57 +1,53 @@
 import sys
-from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QRect
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QPainter, QColor, QBrush
 
-
-class Dot(QLabel):
-    def __init__(self, size=18, color="#2ecc71"):
-        super().__init__()
-        self.setFixedSize(size, size)
-        self.setStyleSheet(f"""
-            background-color: {color};
-            border-radius: {size // 2}px;
-        """)
-
-
-class ThreeDotWaveLoader(QWidget):
+class CubeLoader(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Wave Dot Loader")
-        self.setFixedSize(200, 100)
-        self.setStyleSheet("background-color: white; border-radius: 12px;")
+        self.setWindowTitle("3D Cube Loader")
+        self.setFixedSize(200, 200)
+        self.angle = 0
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.animate)
+        self.timer.start(30)
 
-        layout = QHBoxLayout()
-        layout.setSpacing(15)
-        layout.setAlignment(Qt.AlignCenter)
-        layout.setContentsMargins(20, 20, 20, 20)
+    def animate(self):
+        self.angle = (self.angle + 2) % 360
+        self.update()
 
-        self.dots = [Dot() for _ in range(3)]
-        for dot in self.dots:
-            layout.addWidget(dot)
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.translate(self.width() // 2, self.height() // 2)
+        painter.rotate(self.angle)
+        
+        size = 75
+        side = size // 2
+        depth = 37  # Approximate Z depth
 
-        self.setLayout(layout)
-        self.animations = []
+        faces = [
+            QColor(40, 180, 180),
+            QColor(60, 160, 160),
+            QColor(80, 140, 140),
+            QColor(100, 120, 120)
+        ]
 
-        self.init_wave()
+        for i in range(4):
+            painter.save()
+            painter.rotate(i * 90)
+            painter.translate(depth, 0)
+            painter.setBrush(QBrush(faces[i]))
+            painter.drawRect(-side, -side, size, size)
+            painter.restore()
 
-    def init_wave(self):
-        for i, dot in enumerate(self.dots):
-            anim = QPropertyAnimation(dot, b"geometry")
-            anim.setDuration(700)
-            anim.setStartValue(QRect(dot.x(), dot.y(), dot.width(), dot.height()))
-            anim.setKeyValueAt(0.5, QRect(dot.x(), dot.y() - 20, dot.width(), dot.height()))
-            anim.setEndValue(QRect(dot.x(), dot.y(), dot.width(), dot.height()))
-            anim.setLoopCount(-1)
-            anim.setEasingCurve(QEasingCurve.InOutSine)
-
-            # Start each animation with a delay for wave effect
-            QTimer.singleShot(i * 200, anim.start)
-
-            self.animations.append(anim)
-
+        # Top face (simulate cube top)
+        painter.setBrush(QBrush(QColor(80, 80, 80)))
+        painter.drawRect(-side, -side, size, size)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    loader = ThreeDotWaveLoader()
-    loader.show()
+    window = CubeLoader()
+    window.show()
     sys.exit(app.exec_())
