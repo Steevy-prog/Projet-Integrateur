@@ -4,9 +4,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QDate, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
+    QLabel, QPushButton, QLineEdit, QCheckBox, QFrame, QScrollArea,
+    QSizePolicy, QSpacerItem, QGridLayout, QMessageBox, QComboBox, QStackedWidget,
+    QTableWidgetItem, QTableWidget, QHeaderView, QTextEdit, QSplitter, QSpinBox,
+    QAbstractItemView, QGroupBox, QListWidget, QListWidgetItem, QRadioButton, QDoubleSpinBox, QButtonGroup, QStyle,
+    QDialog  
+)
+from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal
+from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
@@ -104,7 +111,7 @@ class TaskCard(QFrame):
         self.init_ui()
 
     def init_ui(self):
-        self.setFrameStyle(QFrame.StyledPanel)
+        self.setFrameStyle(QFrame.Shape.StyledPanel)
         self.setFixedHeight(120)
         
         # Color coding based on priority or status
@@ -181,7 +188,7 @@ class TaskCard(QFrame):
         layout.addWidget(details_label)
         layout.addWidget(due_label)
         layout.addStretch()
-        layout.addWidget(action_btn, alignment=Qt.AlignRight)
+        layout.addWidget(action_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.setLayout(layout)
 
@@ -268,7 +275,7 @@ class ExpeditionManagementWidget(QWidget):
 
     def create_stat_card(self, title, value, color):
         card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel)
+        card.setFrameStyle(QFrame.Shape.StyledPanel)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
@@ -314,7 +321,7 @@ class ExpeditionManagementWidget(QWidget):
         # Scrollable task list
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setMaximumHeight(400)
 
         task_widget = QWidget()
@@ -340,7 +347,7 @@ class ExpeditionManagementWidget(QWidget):
     def on_task_selected(self, task_data):
         # Open task detail dialog
         dialog = TaskDetailDialog(task_data, self)
-        dialog.exec_()
+        dialog.exec()
 
 class ProductCreationPopup(QDialog):
     def __init__(self, parent=None):
@@ -460,7 +467,7 @@ class ProductCreationPopup(QDialog):
 
 def show_product_creation_popup(parent=None):
     dialog = ProductCreationPopup(parent)
-    dialog.exec_()
+    dialog.exec()
 
 class ProductMovementTrackingWidget(QWidget):
     def __init__(self, data):
@@ -556,6 +563,7 @@ class ProductMovementTrackingWidget(QWidget):
 
     def create_stat_card(self, title, value, color):
         card = QFrame()
+        card.setFrameStyle(QFrame.Shape.StyledPanel)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
@@ -593,7 +601,7 @@ class ProductMovementTrackingWidget(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setMaximumHeight(300)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         task_container = QWidget()
         task_layout = QVBoxLayout(task_container)
@@ -939,7 +947,7 @@ class ProductMovementTrackingWidget(QWidget):
 
     def on_task_selected(self, task_data):
         dialog = TaskDetailDialog(task_data, self)
-        dialog.exec_()
+        dialog.exec()
 class ExceptionReportsWidget(QWidget):
     """Widget for viewing and managing exception reports"""
     
@@ -998,7 +1006,7 @@ class ExceptionReportsWidget(QWidget):
 
     def create_exception_stat_card(self, title, value, color):
         card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel)
+        card.setFrameStyle(QFrame.Shape.StyledPanel)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
@@ -1078,11 +1086,11 @@ class ExceptionReportsWidget(QWidget):
         
         if exception_data:
             dialog = ExceptionDetailDialog(exception_data, self)
-            dialog.exec_()
+            dialog.exec()
 
     def report_new_exception(self):
         dialog = NewExceptionDialog(self.data, self)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             # Refresh the exceptions table
             self.exceptions_table = self.create_exceptions_table()
             self.layout().replaceWidget(self.layout().itemAt(-1).widget(), self.exceptions_table)
@@ -1132,15 +1140,15 @@ class WorkerMainDashboard(QWidget):
         quick_actions_layout = QHBoxLayout()
 
         pick_pack_btn = QPushButton("Send Packages")
-        pick_pack_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+        pick_pack_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowRight))
         pick_pack_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.expedition_widget))
 
         record_movement_btn = QPushButton("Recieve Packages")
-        record_movement_btn.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
+        record_movement_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation))
         record_movement_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.movement_widget))
 
         report_exception_btn = QPushButton("Report an Exception")
-        report_exception_btn.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+        report_exception_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogCancelButton))
         report_exception_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.exception_widget))
 
         button_style = """
@@ -1197,7 +1205,7 @@ class WorkerMainDashboard(QWidget):
 
     def create_dashboard_card(self, title, value, color, description):
         card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel)
+        card.setFrameStyle(QFrame.Shape.StyledPanel)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
@@ -1524,8 +1532,8 @@ class ExceptionDetailDialog(QDialog):
     def resolve_exception(self):
         reply = QMessageBox.question(self, "Resolve Exception",
                                      "Are you sure you want to mark this exception as 'Resolved'?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
             self.exception_data['Status'] = 'Resolved'
             QMessageBox.information(self, "Success", "Exception marked as resolved.")
             self.accept()
@@ -1714,7 +1722,7 @@ class MainWindow(QMainWindow):
 
         # Logo/Title
         logo_label = QLabel("Warehouse Ops")
-        logo_label.setAlignment(Qt.AlignCenter)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_label.setStyleSheet("font-size: 20px; font-weight: bold; padding: 20px 0; background-color: #34495e;")
         sidebar_layout.addWidget(logo_label)
 
@@ -1784,4 +1792,4 @@ if __name__ == '__main__':
     app.setStyle("Fusion") # A modern style
     main_window = MainWindow()
     main_window.showMaximized() # Start maximized for a better experience
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

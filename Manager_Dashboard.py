@@ -4,9 +4,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QDate, QTimer
-from PyQt5.QtGui import QFont, QColor, QPalette
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QPushButton, QStackedWidget, QFrame, QButtonGroup,
+    QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
+    QLineEdit, QComboBox, QDialog, QTextEdit, QSpinBox, QListWidget,
+    QFormLayout, QSplitter, QMessageBox, QGridLayout, QFileDialog, QTabWidget, QDateEdit
+)
+from PyQt6.QtCore import Qt, QDate, QTimer
+from PyQt6.QtGui import QFont, QColor, QPalette
 import datetime
 import random
 import psycopg2
@@ -29,9 +35,6 @@ class WarehouseData:
 
     def generate_sample_data(self):
         # Products data
-        
-
-
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
         if len(products) == 0:
@@ -76,7 +79,6 @@ class WarehouseData:
         self.reception_df = pd.DataFrame(reception_data)
 
         #reception data 2
-
         reception2_datas=[]
         for i in range(20):
             reception2_datas.append({
@@ -142,7 +144,7 @@ class MetricCard(QFrame):
 
     def __init__(self, title, value, subtitle="", color="#4CAF50"):
         super().__init__()
-        self.setFrameStyle(QFrame.StyledPanel)
+        self.setFrameStyle(QFrame.Shape.StyledPanel)
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
@@ -430,7 +432,7 @@ class ZoneEmballage(QWidget):
             label_bg="#607D8B"
         )
         
-        metrics_emballage_layout.addWidget(card3, 1, 0, 1, 2, Qt.AlignCenter)
+        metrics_emballage_layout.addWidget(card3, 1, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
 
         emballage_layout.addLayout(metrics_emballage_layout)
         emballage_layout.addStretch()
@@ -500,7 +502,7 @@ class ZoneEmballage(QWidget):
             label_bg="#607D8B"
         )
         
-        metrics_desemballage_layout.addWidget(card6, 1, 0, 1, 2, Qt.AlignCenter)
+        metrics_desemballage_layout.addWidget(card6, 1, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
 
         desemballage_layout.addLayout(metrics_desemballage_layout)
         desemballage_layout.addStretch()
@@ -1219,7 +1221,7 @@ class StockManagerDashboardWidget(QWidget):
         layout = QVBoxLayout()
         title = QLabel("Stock Manager Dashboard")
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #333; margin-bottom: 20px;")
-        layout.addWidget(title, alignment=Qt.AlignCenter)
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Quick Metrics/KPIs (Summarized from underlying widgets)
         metrics_layout = QHBoxLayout()
@@ -1299,7 +1301,7 @@ class StockManagerDashboardWidget(QWidget):
 
     def create_function_card(self, title, description, button):
         card = QFrame()
-        card.setFrameShape(QFrame.StyledPanel)
+        card.setFrameShape(QFrame.Shape.StyledPanel)
         card.setStyleSheet("""
             QFrame {
                 background-color: white;
@@ -1335,7 +1337,7 @@ class StockManagerDashboardWidget(QWidget):
         card_layout.addWidget(QLabel(title))
         card_layout.addWidget(QLabel(description))
         card_layout.addStretch()
-        card_layout.addWidget(button, alignment=Qt.AlignRight)
+        card_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignRight)
         card.setLayout(card_layout)
         return card
 
@@ -1469,7 +1471,7 @@ class WarehouseDashboard(QMainWindow):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(scroll_content_widget) # Set the scroll_content_widget as the widget for QScrollArea
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) # Typically, vertical scroll is sufficient for dashboards
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff) # Typically, vertical scroll is sufficient for dashboards
 
         content_layout.addWidget(self.scroll_area)
 
@@ -1594,21 +1596,21 @@ if __name__ == '__main__':
     app.setStyle("Fusion")
 
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor("#f5f5f5"))
-    palette.setColor(QPalette.WindowText, QColor("#333333"))
-    palette.setColor(QPalette.Base, QColor("#ffffff"))
-    palette.setColor(QPalette.AlternateBase, QColor("#f0f0f0"))
-    palette.setColor(QPalette.ToolTipBase, Qt.black)
-    palette.setColor(QPalette.ToolTipText, Qt.white)
-    palette.setColor(QPalette.Text, QColor("#333333"))
-    palette.setColor(QPalette.Button, QColor("#e0e0e0"))
-    palette.setColor(QPalette.ButtonText, QColor("#333333"))
-    palette.setColor(QPalette.BrightText, Qt.red)
-    palette.setColor(QPalette.Link, QColor("#2196F3"))
-    palette.setColor(QPalette.Highlight, QColor("#2196F3"))
-    palette.setColor(QPalette.HighlightedText, Qt.white)
+    palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
+    palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
+    palette.setColor(QPalette.ColorRole.Text, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+    palette.setColor(QPalette.ColorRole.Link, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
     app.setPalette(palette)
 
     dashboard = WarehouseDashboard()
     dashboard.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
