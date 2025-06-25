@@ -17,11 +17,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal, QDir
 from PyQt6.QtGui import QFont, QColor, QPalette
 
-# host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
-# database = "test_bpdd"
-# user = "test"
-# password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"
-# port = 5432
+host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
+database = "test_bpdd"
+user = "test"
+password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"
+port = 5432
 
 
 db_connection = None
