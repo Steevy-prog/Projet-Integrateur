@@ -454,7 +454,7 @@ class AccountSettingsPage(QWidget):
     def _load_password_policy(self):
         cursor = None
         try:
-            if self.db_connection is None or self.db_connection.closed:
+            if db_connection is None or db_connection.closed:
                 raise Exception("Database connection is not open.")
             cursor = self.db_connection.cursor()
             query = "SELECT setting_name, setting_value FROM application_settings WHERE setting_group = 'password_policy';"
@@ -513,6 +513,9 @@ class AccountSettingsPage(QWidget):
         self._clear_selection_and_forms()
 
 class SystemConfigurationPage(QWidget):
+    # Signal to emit when custom QSS changes are saved
+    custom_qss_changed = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("placeholderPage")
@@ -873,6 +876,7 @@ class MainWindow(QMainWindow):
                 background-color: #f39c12;
                 color: #2c3e50;
                 font-weight: bold;
+                border-left: 5px solid #e67e22; /* Darker orange left border */
             }
             QPushButton[active="true"]:hover {
                 background-color: #e67e22;
