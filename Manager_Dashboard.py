@@ -58,7 +58,8 @@ class WarehouseData:
                 try:
                     cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
                     quantity = cur.fetchone()[0]
-                    cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
+                    print(f"Fetched quantity for product {product['ID']}: {quantity}")
+                    cur.execute('SELECT "EMIR".findzone(%s::"SCA".idproduit);', (product['ID'],))
                     zone = cur.fetchone()[0]
                 except Exception as e:
                     print(f"Error fetching inventory for product {product['ID']}: {e}. Using dummy values.")
@@ -1077,8 +1078,14 @@ class ReportsWidget(QWidget):
 
     def save_stock_report_to_csv(self):
         if not self.stock_summary_df.empty:
-            options = QFileDialog.Options()
-            file_name, _ = QFileDialog.getSaveFileName(self, "Save Stock Report", "stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
+            options = QFileDialog.Option.DontUseNativeDialog  # option facultative
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Stock Report",
+                "stock_report.csv",
+                "CSV Files (*.csv);;All Files (*)",
+                options=options
+            )
             if file_name:
                 try:
                     self.stock_summary_df.to_csv(file_name, index=False)
@@ -1093,7 +1100,7 @@ class ReportsWidget(QWidget):
             QMessageBox.warning(self, "No Data", "No low stock exceptions to save.")
             return
 
-        options = QFileDialog.Options()
+        options = QFileDialog.options()
         file_name, _ = QFileDialog.getSaveFileName(self, "Save Low Stock Report", "low_stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
         if file_name:
             try:
