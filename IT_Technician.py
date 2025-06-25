@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QAbstractItemView
 )
-from PyQt6.QtCore import Qt, QSize, QTimer
+from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
@@ -1050,6 +1050,20 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     font = QFont("Arial", 10)
     app.setFont(font)
+    
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor("#FFFFFF"))  # Dialog background
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
+    palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
+    palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+    app.setPalette(palette)
+    
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
+    
+
