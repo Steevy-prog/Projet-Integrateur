@@ -30,12 +30,27 @@ import psycopg2
 
 idorg = 'OABCDE'
 conn = psycopg2.connect(
-    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
-    database="steevy1",
-    user="steevy",
-    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
+    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+    database="projet_integrateur",
+    user="group13",
+    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
     port=5432
 )
+#conn = psycopg2.connect(
+#    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
+#    database="steevy1",
+#    user="steevy",
+#    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
+#   port=5432
+#)
+
+#conn = psycopg2.connect(
+#    host="localhost",
+#    database="postgres",
+#    user="postgres",
+#    password="steevy",
+#    port=5432
+#)
 cur = conn.cursor()
 
 class WarehouseData:
@@ -60,6 +75,9 @@ class WarehouseData:
             )
         else:
             self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+        
+        for product in self.products_df.itertuples():
+            print(f"Product ID: {product.ID}, Name: {product.Name}")
 
         # Inventory data
         inventory_data = []
@@ -69,6 +87,7 @@ class WarehouseData:
                 try:
                     cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
                     quantity = cur.fetchone()[0]
+                    print(f"Fetched quantity for product {product['ID']}: {quantity}")
                     cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
                     zone = cur.fetchone()[0]
                 except Exception as e:
@@ -258,6 +277,9 @@ class RealtimeInventoryViewWidget(QWidget):
         try:
             cur.execute("SELECT \"EMIR\".total();")
             total_items = cur.fetchone()[0]
+            if total_items is None:
+                print("fuck")
+                total_items = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching total_items: {e}. Using dummy value.")
             total_items = 0
@@ -265,6 +287,9 @@ class RealtimeInventoryViewWidget(QWidget):
         try:
             cur.execute("SELECT \"EMIR\".valeur();")
             total_value = cur.fetchone()[0]
+            if total_value is None:
+                print("fuck")
+                total_value = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching total_value: {e}. Using dummy value.")
             total_value = 0
@@ -272,6 +297,9 @@ class RealtimeInventoryViewWidget(QWidget):
         try:
             cur.execute("SELECT \"EMIR\".available_cells();")
             available_cells = cur.fetchone()[0]
+            if available_cells is None:
+                print("fuck")
+                available_cells = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching available_cells: {e}. Using dummy value.")
             available_cells = 0
@@ -279,6 +307,9 @@ class RealtimeInventoryViewWidget(QWidget):
         try:
             cur.execute("SELECT \"EMIR\".numzones();")
             zones_used = cur.fetchone()[0]
+            if zones_used is None:
+                print("fuck")
+                zones_used = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching numzones: {e}. Using dummy value.")
             zones_used = 0
@@ -349,19 +380,34 @@ class RealtimeInventoryViewWidget(QWidget):
 
     def create_category_chart(self, chart_widget):
         # pyqtgraph does not have a direct pie chart. Representing as a bar chart.
-        merged_df = pd.merge(self.data.inventory_df, self.data.products_df[['ID', 'Category']],
-                             left_on='Product_ID', right_on='ID', how='left')
+        merged_df = pd.merge(
+            self.data.inventory_df,
+            self.data.products_df[['ID', 'Category']],
+            left_on='Product_ID',
+            right_on='ID',
+            how='left'
+        )
+    
+        # Replace missing quantities with 0 before groupby
+        merged_df['Quantity'] = merged_df['Quantity'].fillna(0)
+    
         category_summary = merged_df.groupby('Category')['Quantity'].sum()
-
+    
         x_vals = np.arange(len(category_summary.index))
         y_vals = category_summary.values
-        
-        colors = [QColor('#FF9800'), QColor('#4CAF50'), QColor('#2196F3'), QColor('#9C27B0'), QColor('#FFC107'), QColor('#00BCD4')]
+    
+        # Replace NaN or non-numeric values with 0
+        y_vals = np.nan_to_num(y_vals, nan=0.0)
+    
+        colors = [
+            QColor('#FF9800'), QColor('#4CAF50'), QColor('#2196F3'),
+            QColor('#9C27B0'), QColor('#FFC107'), QColor('#00BCD4')
+        ]
         brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
-
+    
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
         chart_widget.addItem(bargraph)
-
+    
         # Set custom x-axis ticks
         ticks = [(i, label) for i, label in enumerate(category_summary.index)]
         chart_widget.getAxis('bottom').setTicks([ticks])
@@ -369,19 +415,28 @@ class RealtimeInventoryViewWidget(QWidget):
         chart_widget.plotItem.setLabel('left', 'Quantity')
 
     def create_stock_levels_chart(self, chart_widget):
+        # Ensure Quantity column is numeric
+        self.data.inventory_df['Quantity'] = pd.to_numeric(
+            self.data.inventory_df['Quantity'], errors='coerce'
+        ).fillna(0)
+    
         top_products = self.data.inventory_df.nlargest(8, 'Quantity')
-
+    
         x_vals = np.arange(len(top_products))
         y_vals = top_products['Quantity'].values
-
+    
+        y_vals = np.nan_to_num(y_vals, nan=0.0)
+    
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6)
         chart_widget.addItem(bargraph)
-
-        # Set custom x-axis ticks with rotated labels
-        product_names = [name[:15] + '...' if len(name) > 15 else name for name in top_products['Product_Name']]
+    
+        product_names = [
+            name[:15] + '...' if len(name) > 15 else name 
+            for name in top_products['Product_Name']
+        ]
         ticks = [(i, label) for i, label in enumerate(product_names)]
         chart_widget.getAxis('bottom').setTicks([ticks])
-        chart_widget.getAxis('bottom').setHeight(60) # Adjust height for rotated labels
+        chart_widget.getAxis('bottom').setHeight(60)
         
         chart_widget.plotItem.setTitle('Stock Levels - Top Products')
         chart_widget.plotItem.setLabel('left', 'Quantity')
@@ -1088,8 +1143,14 @@ class ReportsWidget(QWidget):
 
     def save_stock_report_to_csv(self):
         if not self.stock_summary_df.empty:
-            options = QFileDialog.Options()
-            file_name, _ = QFileDialog.getSaveFileName(self, "Save Stock Report", "stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
+            options = QFileDialog.Option.DontUseNativeDialog  # option facultative
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Stock Report",
+                "stock_report.csv",
+                "CSV Files (*.csv);;All Files (*)",
+                options=options
+            )
             if file_name:
                 try:
                     self.stock_summary_df.to_csv(file_name, index=False)
@@ -1104,7 +1165,7 @@ class ReportsWidget(QWidget):
             QMessageBox.warning(self, "No Data", "No low stock exceptions to save.")
             return
 
-        options = QFileDialog.Options()
+        options = QFileDialog.options()
         file_name, _ = QFileDialog.getSaveFileName(self, "Save Low Stock Report", "low_stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
         if file_name:
             try:
@@ -1220,12 +1281,20 @@ class OrdersWidget(QWidget):
 
         # Metrics
         metrics_layout = QHBoxLayout()
+        cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
+        today_rec = cur.fetchone()[0]
+        if today_rec is None:
+            today_rec = 0
+        cur.execute("SELECT \"EMIR\".valuereception();")
+        total_value = cur.fetchone()[0]
+        if total_value is None:
+            total_value = 0.0
+        cur.execute("SELECT \"EMIR\".avgitemsreception();")
+        avg_items = cur.fetchone()[0]
+        if avg_items is None:
+            avg_items = 0.0
 
-        pending_orders = len(self.data.reception_df[self.data.reception_df['Status'] == 'Pending'])
-        total_value = self.data.reception_df['Total_Value'].sum()
-        avg_items = self.data.reception_df['Items_Count'].mean()
-
-        metrics_layout.addWidget(MetricCard("Pending Orders", str(pending_orders), "Awaiting Receipt"))
+        metrics_layout.addWidget(MetricCard("Today Receptions", f"{today_rec:,}", "Awaiting Receipt"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
         metrics_layout.addWidget(MetricCard("Avg Items", f"{avg_items:.1f}", "Per Order"))
 
@@ -1270,11 +1339,20 @@ class OrdersWidget(QWidget):
         # Metrics
         metrics_layout = QHBoxLayout()
 
-        pending_orders = len(self.data.expedition_df[self.data.expedition_df['Status'] == 'Pending'])
-        total_value = self.data.expedition_df['Total_Value'].sum()
-        avg_items = self.data.expedition_df['Items_Count'].mean()
+        cur.execute("SELECT \"EMIR\".colis_sortants_jour_count();")
+        today_exp = cur.fetchone()[0]
+        if today_exp is None:
+            today_exp = 0
+        cur.execute("SELECT \"EMIR\".valueexpedition();")
+        total_value = cur.fetchone()[0]
+        if total_value is None:
+            total_value = 0.0
+        cur.execute("SELECT \"EMIR\".avgitemsexpedition();")
+        avg_items = cur.fetchone()[0]
+        if avg_items is None:
+            avg_items = 0.0
 
-        metrics_layout.addWidget(MetricCard("Pending Orders", str(pending_orders), "Ready to Ship"))
+        metrics_layout.addWidget(MetricCard("Today Expeditions", f"{today_exp:,}", "Ready to Ship"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
         metrics_layout.addWidget(MetricCard("Avg Items", f"{avg_items:.1f}", "Per Order"))
 
@@ -1683,6 +1761,9 @@ class MainDashboardWidget(QWidget):
         try:
             cur.execute('SELECT "EMIR".total();')
             total_items = cur.fetchone()[0]
+            if total_items is None:
+                print("fuck")
+                total_items = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching total_items: {e}")
             total_items = 0
@@ -1690,6 +1771,9 @@ class MainDashboardWidget(QWidget):
         try:
             cur.execute('SELECT "EMIR".valeur();')
             total_value = cur.fetchone()[0]
+            if total_value is None:
+                print("fuck")
+                total_value = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching total_value: {e}")
             total_value = 0
@@ -1697,6 +1781,9 @@ class MainDashboardWidget(QWidget):
         try:
             cur.execute('SELECT "EMIR".available_cells();')
             available_cells = cur.fetchone()[0]
+            if available_cells is None:
+                print("fuck")
+                available_cells = 0
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching available_cells: {e}")
             available_cells = 0
