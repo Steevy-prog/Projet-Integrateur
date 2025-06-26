@@ -1270,12 +1270,20 @@ class OrdersWidget(QWidget):
 
         # Metrics
         metrics_layout = QHBoxLayout()
+        cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
+        today_rec = cur.fetchone()[0]
+        if today_rec is None:
+            today_rec = 0
+        cur.execute("SELECT \"EMIR\".valuereception();")
+        total_value = cur.fetchone()[0]
+        if total_value is None:
+            total_value = 0.0
+        cur.execute("SELECT \"EMIR\".avgitemsreception();")
+        avg_items = cur.fetchone()[0]
+        if avg_items is None:
+            avg_items = 0.0
 
-        pending_orders = len(self.data.reception_df[self.data.reception_df['Status'] == 'Pending'])
-        total_value = self.data.reception_df['Total_Value'].sum()
-        avg_items = self.data.reception_df['Items_Count'].mean()
-
-        metrics_layout.addWidget(MetricCard("Pending Orders", str(pending_orders), "Awaiting Receipt"))
+        metrics_layout.addWidget(MetricCard("Today Receptions", f"{today_rec:,}", "Awaiting Receipt"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
         metrics_layout.addWidget(MetricCard("Avg Items", f"{avg_items:.1f}", "Per Order"))
 
@@ -1320,11 +1328,20 @@ class OrdersWidget(QWidget):
         # Metrics
         metrics_layout = QHBoxLayout()
 
-        pending_orders = len(self.data.expedition_df[self.data.expedition_df['Status'] == 'Pending'])
-        total_value = self.data.expedition_df['Total_Value'].sum()
-        avg_items = self.data.expedition_df['Items_Count'].mean()
+        cur.execute("SELECT \"EMIR\".colis_sortants_jour_count();")
+        today_exp = cur.fetchone()[0]
+        if today_exp is None:
+            today_exp = 0
+        cur.execute("SELECT \"EMIR\".valueexpedition();")
+        total_value = cur.fetchone()[0]
+        if total_value is None:
+            total_value = 0.0
+        cur.execute("SELECT \"EMIR\".avgitemsexpedition();")
+        avg_items = cur.fetchone()[0]
+        if avg_items is None:
+            avg_items = 0.0
 
-        metrics_layout.addWidget(MetricCard("Pending Orders", str(pending_orders), "Ready to Ship"))
+        metrics_layout.addWidget(MetricCard("Today Expeditions", f"{today_exp:,}", "Ready to Ship"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
         metrics_layout.addWidget(MetricCard("Avg Items", f"{avg_items:.1f}", "Per Order"))
 
