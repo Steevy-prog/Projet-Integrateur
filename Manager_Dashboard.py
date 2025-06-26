@@ -1639,12 +1639,28 @@ class MainDashboardWidget(QWidget):
         self.animation=None
         self.init_ui()
 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
+                            QLabel, QSizePolicy, QMessageBox)
+from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt
+
+class MainDashboardWidget(QWidget):
+    """Dashboard with sidebar menu and top bar"""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.current_widget = None
+        self.is_menu_expanded = True
+        self.init_ui()
+
     def init_ui(self):
-        # Layout principal vertical (barre supérieure + contenu)
+        # Main vertical layout (top bar + content)
         main_vertical_layout = QVBoxLayout(self)
         main_vertical_layout.setContentsMargins(0, 0, 0, 0)
         main_vertical_layout.setSpacing(0)
 
+        # Top bar
         top_bar = QWidget()
         top_bar.setFixedHeight(50)
         top_bar.setStyleSheet("""
@@ -1654,35 +1670,25 @@ class MainDashboardWidget(QWidget):
         top_bar_layout = QHBoxLayout(top_bar)
         top_bar_layout.setContentsMargins(20, 0, 20, 0)
 
-        # Bouton pour réduire/étendre le menu
+        # Menu toggle button
         self.toggle_btn = QPushButton("≡")
         self.toggle_btn.setStyleSheet("""
             QPushButton {
                 background: #2c3e50;
                 color: white;
                 font-size: 40px;
-                margin-left:2px;
+                margin-left: 2px;
                 margin-right: 5px;
-                margin-bottom:2px;
-                padding:10px;
+                margin-bottom: 2px;
+                padding: 10px;
                 border: none;
             }
             QPushButton:hover {
                 background: #3d566e;
             }
         """)
-        self.logout_button = QPushButton("Logout")
-        self.logout_button.clicked.connect(self.logout)
-        self.logout_button.setStyleSheet("""
-            QPushButton {
-                background: #2c3e50;
-                color: white;
-                font-size: 14px;
-                padding: 8px 16px;
-                border-radius: 5px;
-                margin-right:10px;
-            }""")
-        # Titre "Warehouse Manager Dashboard"
+        
+        # Title
         title_label = QLabel("Warehouse Manager Dashboard")
         title_label.setStyleSheet("""
             QLabel {
@@ -1690,38 +1696,34 @@ class MainDashboardWidget(QWidget):
                 font-size: 18px;
                 font-weight: bold;
             }
-        """)    
-        top_bar_layout.addWidget(self.logout_button)  # Align logout button to the right
+        """)
+        
         top_bar_layout.addWidget(self.toggle_btn)
         top_bar_layout.addWidget(title_label)
-        top_bar_layout.addStretch()  # Pousse le titre à gauche
-
+        top_bar_layout.addStretch()
         main_vertical_layout.addWidget(top_bar)
 
-        # Layout horizontal pour le menu latéral et le contenu
+        # Content area (sidebar + main content)
         content_horizontal_layout = QHBoxLayout()
         content_horizontal_layout.setContentsMargins(0, 0, 0, 0)
         content_horizontal_layout.setSpacing(0)
 
-        # Création du menu latéral (comme avant)
+        # Sidebar
         self.sidebar = QWidget()
         self.sidebar.setFixedWidth(220)
         self.sidebar.setStyleSheet("""
             background-color: #2c3e50;
             color: white;
-             border-right: 1px solid #1a2a3a;
-
+            border-right: 1px solid #1a2a3a;
         """)
         sidebar_layout = QVBoxLayout(self.sidebar)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
         sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-
         self.toggle_btn.clicked.connect(self.toggle_menu)
 
-
-        # Menu navigation
+        # Menu items
         self.menu_buttons = []
         menu_items = [
             ("Real-time Inventory", "list"),
@@ -1745,84 +1747,94 @@ class MainDashboardWidget(QWidget):
                 QPushButton:hover {
                     background: #34495e;
                     border-left: 4px solid #3498db;
-                    position:top;
                 }
             """)
             btn.clicked.connect(lambda _, t=text: self.switch_content(t))
             self.menu_buttons.append(btn)
             sidebar_layout.addWidget(btn)
 
-        # Ajouter les métriques
+        # Metrics widget
         metrics_widget = QWidget()
-        metrics_widget.setStyleSheet("background: #34495e; margin: 10px; border-radius: 5px;")
+        metrics_widget.setStyleSheet("""
+            background: #34495e; 
+            margin: 10px; 
+            border-radius: 5px;
+        """)
         metrics_layout = QVBoxLayout(metrics_widget)
         metrics_layout.setContentsMargins(10, 10, 10, 10)
 
-        try:
-            cur.execute('SELECT "EMIR".total();')
-            total_items = cur.fetchone()[0]
-            if total_items is None:
-                print("fuck")
-                total_items = 0
-        except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching total_items: {e}")
-            total_items = 0
-
-        try:
-            cur.execute('SELECT "EMIR".valeur();')
-            total_value = cur.fetchone()[0]
-            if total_value is None:
-                print("fuck")
-                total_value = 0
-        except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching total_value: {e}")
-            total_value = 0
-
-        try:
-            cur.execute('SELECT "EMIR".available_cells();')
-            available_cells = cur.fetchone()[0]
-            if available_cells is None:
-                print("fuck")
-                available_cells = 0
-        except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching available_cells: {e}")
-            available_cells = 0
-
+        # Add your metrics data here
         metrics_layout.addWidget(self.create_metric_label("Quick Stats"))
-        metrics_layout.addWidget(self.create_metric_item("Total Items", f"{total_items:,}"))
-        metrics_layout.addWidget(self.create_metric_item("Total Value", f"${total_value:,.0f}"))
-        metrics_layout.addWidget(self.create_metric_item("Available Cells", f"{available_cells:,}"))
+        metrics_layout.addWidget(self.create_metric_item("Total Items", "1,785"))
+        metrics_layout.addWidget(self.create_metric_item("Total Value", "$93,521,250"))
+        metrics_layout.addWidget(self.create_metric_item("Available Cells", "1"))
         
         sidebar_layout.addWidget(metrics_widget)
-        sidebar_layout.addStretch()
 
-        content_horizontal_layout.addWidget(self.sidebar)
+        # Logout button (added at the bottom)
+        sidebar_layout.addStretch()  # This pushes the logout button to the bottom
+        self.logout_button = QPushButton("Logout")
+        self.logout_button.setIcon(QIcon.fromTheme("system-log-out"))
+        self.logout_button.setStyleSheet("""
+            QPushButton {
+                text-align: left;
+                padding: 12px 15px;
+                color: white;
+                border: none;
+                font-size: 16px;
+                border-left: 4px solid transparent;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background: #34495e;
+                border-left: 4px solid #e74c3c;
+            }
+        """)
+        self.logout_button.clicked.connect(self.logout)
+        sidebar_layout.addWidget(self.logout_button)
 
-        # Zone de contenu principale
+        # Main content area
         self.content_area = QWidget()
-        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.content_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, 
+            QSizePolicy.Policy.Expanding
+        )
         self.content_area.setStyleSheet("background: #ecf0f1;")
         self.content_layout = QVBoxLayout(self.content_area)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
 
+        # Add widgets to layouts
+        content_horizontal_layout.addWidget(self.sidebar)
         content_horizontal_layout.addWidget(self.content_area, 1)
         main_vertical_layout.addLayout(content_horizontal_layout, 1)
 
-        # Afficher le premier widget par défaut
+        # Show default widget
         self.switch_content("Real-time Inventory")
-        self.sidebar.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.sidebar.setSizePolicy(
+            QSizePolicy.Policy.Fixed, 
+            QSizePolicy.Policy.Expanding
+        )
+        self.content_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, 
+            QSizePolicy.Policy.Expanding
+        )
 
     def logout(self):
-        response = QMessageBox.question(self,"Logout","Are you sure you want to logout?",
-        QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
-        QMessageBox.StandardButton.Cancel
+        response = QMessageBox.question(
+            self,
+            "Logout",
+            "Are you sure you want to logout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
-    
-        if response == QMessageBox.StandardButton.Ok:
+        if response == QMessageBox.StandardButton.Yes:
+            self.close()
+            parent_window = self.window()
+            if parent_window is not self:
+                parent_window.close()
             self.loginpage = login.FlipCard()
             self.loginpage.show()
-            self.close()
+
     def create_metric_label(self, text):
         label = QLabel(text)
         label.setStyleSheet("font-weight: bold; color: #bdc3c7;")
@@ -1851,7 +1863,7 @@ class MainDashboardWidget(QWidget):
             self.sidebar.setFixedWidth(220)
             self.sidebar.show()
         else:
-            self.sidebar.setFixedWidth(0)  # Réduit la largeur à 0 au lieu de hide()
+            self.sidebar.setFixedWidth(0)
 
     def switch_content(self, menu_item):
         if self.current_widget:
