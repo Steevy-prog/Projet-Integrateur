@@ -2,17 +2,28 @@ import sys
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-
+import again as login
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QStackedWidget, QFrame, QButtonGroup,
     QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
-    QLineEdit, QComboBox, QDialog, QTextEdit, QSpinBox, QListWidget,
+    QLineEdit, QComboBox, QDialog, QTextEdit, QSpinBox, QListWidget,QSizePolicy,
     QFormLayout, QSplitter, QMessageBox, QGridLayout, QFileDialog, QTabWidget, QDateEdit,
     QHeaderView # Import QHeaderView for table stretching
 )
+
+from PyQt6.QtCore import (
+    QPropertyAnimation, 
+    QEasingCurve, 
+    QParallelAnimationGroup,
+    QSequentialAnimationGroup
+)
+from PyQt6.QtWidgets import QGraphicsOpacityEffect, QGraphicsBlurEffect
+from PyQt6.QtGui import QPainter
+from PyQt6.QtWidgets import QGraphicsOpacityEffect
+from PyQt6.QtCore import QParallelAnimationGroup
 from PyQt6.QtCore import Qt, QDate, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette
+from PyQt6.QtGui import QFont, QColor, QPalette,QIcon,QPixmap
 import datetime
 import random
 import psycopg2
@@ -1539,83 +1550,239 @@ class PerformanceWidget(QWidget):
         chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
         chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
         chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
-
 class MainDashboardWidget(QWidget):
-    """Main dashboard content area"""
+    """Dashboard avec menu déroulant latéral et barre supérieure"""
 
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.current_widget = None
+        self.is_menu_expanded = True
+        self.animation=None
         self.init_ui()
 
     def init_ui(self):
-        # Clear existing layout if init_ui is called multiple times
-        if hasattr(self, '_main_layout') and self._main_layout is not None:
-            self.clear_layout(self._main_layout)
-        else:
-            self._main_layout = QVBoxLayout(self)
+        # Layout principal vertical (barre supérieure + contenu)
+        main_vertical_layout = QVBoxLayout(self)
+        main_vertical_layout.setContentsMargins(0, 0, 0, 0)
+        main_vertical_layout.setSpacing(0)
 
-        layout = self._main_layout
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        top_bar = QWidget()
+        top_bar.setFixedHeight(50)
+        top_bar.setStyleSheet("""
+            background-color: #2c3e50;
+            border-bottom: 1px solid #1a2a3a;
+        """)
+        top_bar_layout = QHBoxLayout(top_bar)
+        top_bar_layout.setContentsMargins(20, 0, 20, 0)
 
-        # Top section with welcome and overview
-        top_layout = QHBoxLayout()
-        welcome_label = QLabel("<h2>Welcome, Manager!</h2>")
-        welcome_label.setStyleSheet("color: #333; margin-bottom: 10px;")
-        top_layout.addWidget(welcome_label)
-        top_layout.addStretch()
+        # Bouton pour réduire/étendre le menu
+        self.toggle_btn = QPushButton("≡")
+        self.toggle_btn.setStyleSheet("""
+            QPushButton {
+                background: #2c3e50;
+                color: white;
+                font-size: 40px;
+                margin-left:2px;
+                margin-right: 5px;
+                margin-bottom:2px;
+                padding:10px;
+                border: none;
+            }
+            QPushButton:hover {
+                background: #3d566e;
+            }
+        """)
+        self.logout_button = QPushButton("Logout")
+        self.logout_button.clicked.connect(self.logout)
+        self.logout_button.setStyleSheet("""
+            QPushButton {
+                background: #2c3e50;
+                color: white;
+                font-size: 14px;
+                padding: 8px 16px;
+                border-radius: 5px;
+                margin-right:10px;
+            }""")
+        # Titre "Warehouse Manager Dashboard"
+        title_label = QLabel("Warehouse Manager Dashboard")
+        title_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+            }
+        """)    
+        top_bar_layout.addWidget(self.logout_button)  # Align logout button to the right
+        top_bar_layout.addWidget(self.toggle_btn)
+        top_bar_layout.addWidget(title_label)
+        top_bar_layout.addStretch()  # Pousse le titre à gauche
 
-        # Overview cards - metrics derived from the data
+        main_vertical_layout.addWidget(top_bar)
+
+        # Layout horizontal pour le menu latéral et le contenu
+        content_horizontal_layout = QHBoxLayout()
+        content_horizontal_layout.setContentsMargins(0, 0, 0, 0)
+        content_horizontal_layout.setSpacing(0)
+
+        # Création du menu latéral (comme avant)
+        self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(220)
+        self.sidebar.setStyleSheet("""
+            background-color: #2c3e50;
+            color: white;
+             border-right: 1px solid #1a2a3a;
+
+        """)
+        sidebar_layout = QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+        sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+
+        self.toggle_btn.clicked.connect(self.toggle_menu)
+
+
+        # Menu navigation
+        self.menu_buttons = []
+        menu_items = [
+            ("Real-time Inventory", "list"),
+            ("Daily Operations Planning", "calendar"),
+            ("Storage Space Management", "box"), 
+            ("Generate Reports", "file-text"),
+            ("Warehouse Interactions", "activity")
+        ]
+
+        for text, icon in menu_items:
+            btn = QPushButton(text)
+            btn.setIcon(QIcon.fromTheme(icon))
+            btn.setStyleSheet("""
+                QPushButton {
+                    text-align: left;
+                    padding: 12px 15px;
+                    color: white;
+                    border: none;
+                    border-left: 4px solid transparent;
+                }
+                QPushButton:hover {
+                    background: #34495e;
+                    border-left: 4px solid #3498db;
+                    position:top;
+                }
+            """)
+            btn.clicked.connect(lambda _, t=text: self.switch_content(t))
+            self.menu_buttons.append(btn)
+            sidebar_layout.addWidget(btn)
+
+        # Ajouter les métriques
+        metrics_widget = QWidget()
+        metrics_widget.setStyleSheet("background: #34495e; margin: 10px; border-radius: 5px;")
+        metrics_layout = QVBoxLayout(metrics_widget)
+        metrics_layout.setContentsMargins(10, 10, 10, 10)
+
         try:
             cur.execute('SELECT "EMIR".total();')
             total_items = cur.fetchone()[0]
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching total_items for dashboard: {e}. Using dummy value.")
+            print(f"Error fetching total_items: {e}")
             total_items = 0
 
         try:
             cur.execute('SELECT "EMIR".valeur();')
             total_value = cur.fetchone()[0]
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching total_value for dashboard: {e}. Using dummy value.")
+            print(f"Error fetching total_value: {e}")
             total_value = 0
 
         try:
-            cur.execute("SELECT \"EMIR\".available_cells();")
+            cur.execute('SELECT "EMIR".available_cells();')
             available_cells = cur.fetchone()[0]
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching available_cells for dashboard: {e}. Using dummy value.")
+            print(f"Error fetching available_cells: {e}")
             available_cells = 0
-        
-        overview_layout = QHBoxLayout()
-        overview_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "Current Stock"))
-        overview_layout.addWidget(MetricCard("Total Inventory Value", f"${total_value:,.0f}", "Estimated Worth"))
-        overview_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "For Storage", "#FF9800"))
-        
-        layout.addLayout(top_layout)
-        layout.addLayout(overview_layout)
 
-        # Main content sections as tabs or stacked widgets (for easy navigation)
-        self.tab_widget = QTabWidget()
-        self.tab_widget.addTab(RealtimeInventoryViewWidget(self.data), "Real-time Inventory")
-        self.tab_widget.addTab(DailyOperationsPlanningWidget(self.data), "Daily Operations Planning")
-        self.tab_widget.addTab(StorageSpaceManagementWidget(self.data), "Storage Space Management")
-        self.tab_widget.addTab(ReportsWidget(self.data), "Generate Reports")
-        self.tab_widget.addTab(WarehouseMenuInteractionWidget(self.data),"warehouse interactions")
+        metrics_layout.addWidget(self.create_metric_label("Quick Stats"))
+        metrics_layout.addWidget(self.create_metric_item("Total Items", f"{total_items:,}"))
+        metrics_layout.addWidget(self.create_metric_item("Total Value", f"${total_value:,.0f}"))
+        metrics_layout.addWidget(self.create_metric_item("Available Cells", f"{available_cells:,}"))
+        
+        sidebar_layout.addWidget(metrics_widget)
+        sidebar_layout.addStretch()
 
-        layout.addWidget(self.tab_widget)
+        content_horizontal_layout.addWidget(self.sidebar)
+
+        # Zone de contenu principale
+        self.content_area = QWidget()
+        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.content_area.setStyleSheet("background: #ecf0f1;")
+        self.content_layout = QVBoxLayout(self.content_area)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
+
+        content_horizontal_layout.addWidget(self.content_area, 1)
+        main_vertical_layout.addLayout(content_horizontal_layout, 1)
+
+        # Afficher le premier widget par défaut
+        self.switch_content("Real-time Inventory")
+        self.sidebar.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def logout(self):
+        response = QMessageBox.question(self,"Logout","Are you sure you want to logout?",
+        QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+        QMessageBox.StandardButton.Cancel
+        )
+    
+        if response == QMessageBox.StandardButton.Ok:
+            self.loginpage = login.FlipCard()
+            self.loginpage.show()
+            self.close()
+    def create_metric_label(self, text):
+        label = QLabel(text)
+        label.setStyleSheet("font-weight: bold; color: #bdc3c7;")
+        return label
+
+    def create_metric_item(self, name, value):
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 5, 0, 5)
+        
+        name_label = QLabel(name)
+        name_label.setStyleSheet("color: #bdc3c7;")
+        
+        value_label = QLabel(value)
+        value_label.setStyleSheet("color: white; font-weight: bold;")
+        
+        layout.addWidget(name_label)
         layout.addStretch()
+        layout.addWidget(value_label)
+        
+        return widget
 
-    def clear_layout(self, layout):
-        if layout is not None:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-                else:
-                    self.clear_layout(item.layout())
+    def toggle_menu(self):
+        self.is_menu_expanded = not self.is_menu_expanded
+        if self.is_menu_expanded:
+            self.sidebar.setFixedWidth(220)
+            self.sidebar.show()
+        else:
+            self.sidebar.setFixedWidth(0)  # Réduit la largeur à 0 au lieu de hide()
+
+    def switch_content(self, menu_item):
+        if self.current_widget:
+            self.current_widget.deleteLater()
+        
+        if menu_item == "Real-time Inventory":
+            widget = RealtimeInventoryViewWidget(self.data)
+        elif menu_item == "Daily Operations Planning":
+            widget = DailyOperationsPlanningWidget(self.data)
+        elif menu_item == "Storage Space Management":
+            widget = StorageSpaceManagementWidget(self.data)
+        elif menu_item == "Generate Reports":
+            widget = ReportsWidget(self.data)
+        elif menu_item == "Warehouse Interactions":
+            widget = WarehouseMenuInteractionWidget(self.data)
+        
+        self.current_widget = widget
+        self.content_layout.addWidget(widget)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -1625,138 +1792,21 @@ class MainWindow(QMainWindow):
 
         self.data = WarehouseData()
         
-        self.central_widget = QWidget()
+        # Widget central avec seulement le dashboard
+        self.central_widget = MainDashboardWidget(self.data)
         self.setCentralWidget(self.central_widget)
-        self.main_layout = QVBoxLayout(self.central_widget)
-        
-        self.init_ui()
 
-    # Helper function to make a widget scrollable
-    def scrollable(self, widget):
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(widget)
-        scroll.setFrameShape(QFrame.Shape.NoFrame) # No border around the scroll area
-        return scroll
-
-    def init_ui(self):
-        # Create a navigation bar
-        navbar = QFrame()
-        navbar.setStyleSheet("background-color: #34495E; padding: 10px;")
-        navbar_layout = QHBoxLayout(navbar)
-        navbar_layout.setSpacing(15)
-
-        # Logo/Title
-        logo_label = QLabel("WMS Dashboard")
-        logo_label.setStyleSheet("color: white; font-size: 20px; font-weight: bold;")
-        navbar_layout.addWidget(logo_label)
-
-        # Navigation buttons (example: could be implemented as a QButtonGroup)
-        self.home_btn = QPushButton("Dashboard")
-        self.inventory_btn = QPushButton("Inventory")
-        self.planning_btn = QPushButton("Planning")
-        self.storage_btn = QPushButton("Storage")
-        self.reports_btn = QPushButton("Reports")
-        self.interaction_btn = QPushButton("Warehouse Interactions")
-
-        buttons = [self.home_btn, self.inventory_btn, self.planning_btn, self.storage_btn, self.reports_btn, self.interaction_btn]
-        self.button_group = QButtonGroup(self) # Create a button group
-        for btn in buttons:
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #34495E;
-                    color: white;
-                    border: none;
-                    padding: 8px 15px;
-                    border-radius: 5px;
-                    font-size: 14px;
-                }
-                QPushButton:hover {
-                    background-color: #2C3E50;
-                }
-                QPushButton:checked {
-                    background-color: #2C3E50;
-                    border: 1px solid #2196F3;
-                }
-            """)
-            btn.setCheckable(True)
-            self.button_group.addButton(btn) # Add button to group
-            navbar_layout.addWidget(btn)
-
-        navbar_layout.addStretch()
-
-        self.main_layout.addWidget(navbar)
-
-        # Main content area - now all wrapped in scrollable widgets
-        self.content_stack = QStackedWidget()
-        self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 20px;") # Content area background
-
-        # Initialize widgets and wrap them in scroll areas
-        self.dashboard_widget = self.scrollable(MainDashboardWidget(self.data))
-        self.inventory_view_widget = self.scrollable(RealtimeInventoryViewWidget(self.data))
-        self.daily_planning_widget = self.scrollable(DailyOperationsPlanningWidget(self.data))
-        self.storage_management_widget = self.scrollable(StorageSpaceManagementWidget(self.data))
-        self.reports_widget = self.scrollable(ReportsWidget(self.data))
-        self.interaction_widget = self.scrollable(WarehouseMenuInteractionWidget(self.data))
-
-        # Add scrollable widgets to the stacked widget
-        self.content_stack.addWidget(self.dashboard_widget)
-        self.content_stack.addWidget(self.inventory_view_widget)
-        self.content_stack.addWidget(self.daily_planning_widget)
-        self.content_stack.addWidget(self.storage_management_widget)
-        self.content_stack.addWidget(self.reports_widget)
-        self.content_stack.addWidget(self.interaction_widget)
-
-        self.main_layout.addWidget(self.content_stack)
-
-        # Connect buttons to navigation and ensure only one is checked
-        self.home_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
-        self.inventory_btn.clicked.connect(lambda: self.navigate_to_widget(self.inventory_view_widget))
-        self.planning_btn.clicked.connect(lambda: self.navigate_to_widget(self.daily_planning_widget))
-        self.storage_btn.clicked.connect(lambda: self.navigate_to_widget(self.storage_management_widget))
-        self.reports_btn.clicked.connect(lambda: self.navigate_to_widget(self.reports_widget))
-        self.interaction_btn.clicked.connect(lambda: self.navigate_to_widget(self.interaction_widget))
-
-        # Set initial view and check the corresponding button
-        self.home_btn.setChecked(True)
-        self.content_stack.setCurrentWidget(self.dashboard_widget)
-
-        # Timer for periodic data refresh (optional)
+        # Timer pour le rafraîchissement des données
         self.timer = QTimer(self)
         self.timer.setInterval(60000) # 1 minute
-        self.timer.timeout.connect(self.refresh_all_data)
+        self.timer.timeout.connect(self.refresh_data)
         self.timer.start()
 
-    def navigate_to_widget(self, target_scroll_widget):
-        self.content_stack.setCurrentWidget(target_scroll_widget)
-        # Get the actual widget inside the QScrollArea
-        target_inner_widget = target_scroll_widget.widget()
-        # Ensure UI elements of the target inner widget are refreshed if they have an init_ui method
-        if hasattr(target_inner_widget, 'init_ui'):
-            target_inner_widget.init_ui()
-        
-        # Uncheck all buttons and then check the corresponding one
-        for button in self.button_group.buttons():
-            if button != self.sender(): # Don't uncheck the button that was just clicked
-                button.setChecked(False)
-
-    def refresh_all_data(self):
-        print("Refreshing all data...")
-        self.data.generate_sample_data() # Refresh underlying data
-
-        # Refresh individual widgets that display data
-        # We need to get the inner widget from the QScrollArea
-        if hasattr(self.dashboard_widget.widget(), "init_ui"):
-            self.dashboard_widget.widget().init_ui()
-        if hasattr(self.inventory_view_widget.widget(), "init_ui"):
-            self.inventory_view_widget.widget().init_ui()
-        if hasattr(self.daily_planning_widget.widget(), "init_ui"):
-            self.daily_planning_widget.widget().init_ui()
-        if hasattr(self.reports_widget.widget(), "init_ui"):
-            self.reports_widget.widget().init_ui()
-        if hasattr(self.interaction_widget.widget(), "init_ui"):
-            self.interaction_widget.widget().init_ui()
-
+    def refresh_data(self):
+        print("Refreshing data...")
+        self.data.generate_sample_data()
+        if hasattr(self.central_widget, 'init_ui'):
+            self.central_widget.init_ui()
         print("UI update complete.")
 
 if __name__ == '__main__':
@@ -1769,7 +1819,6 @@ if __name__ == '__main__':
 
     # Apply a modern style (optional)
     app.setStyle("Fusion")
-
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
     palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
