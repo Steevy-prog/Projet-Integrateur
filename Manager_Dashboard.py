@@ -3,6 +3,14 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 import again as login
+from PyQt6.QtGui import QIcon, QPixmap, QPen
+from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtWidgets import QProgressBar
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
+from PyQt6.QtWidgets import QScrollArea
+from PyQt6.QtWidgets import QWidget, QTableWidget, QTableWidgetItem, QFormLayout
+from PyQt6.QtWidgets import QLineEdit, QComboBox, QDialog
+from PyQt6.QtWidgets import QSpinBox, QListWidget, QSizePolicy, QSplitter
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QStackedWidget, QFrame, QButtonGroup,
@@ -1993,8 +2001,8 @@ class MainDashboardWidget(QWidget):
         elif menu_item == "Generate Reports":
             widget = ReportsWidget(self.data)
         elif menu_item == "Warehouse Interactions":
-            widget = WarehouseMenuInteractionWidgety(self.data)
-        
+            widget = WarehouseMenuInteractionWidget(self.data)
+
         self.current_widget = widget
         self.content_layout.addWidget(widget)
 class MainWindow(QMainWindow):
