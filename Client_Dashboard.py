@@ -1,8 +1,6 @@
 import sys
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -17,17 +15,67 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
+from id import idgenerator
 
 idorg = 'OABCDE'
+#conn = psycopg2.connect(
+#    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
+#    database="steevy1",
+#    user="steevy",
+#    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
+#    port=5432
+#)
+
 conn = psycopg2.connect(
-    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
-    database="steevy1",
-    user="steevy",
-    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
+   host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+    database="projet_integrateur",
+    user="group13",
+    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
     port=5432
 )
+
 cur = conn.cursor()
 
+cur.execute("SELECT (p).* FROM \"EMIR\".Organisation_EVA() AS p;")
+orgs = cur.fetchall()
+cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
+colis = cur.fetchall()
+cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+produits = cur.fetchall()
+
+added_products = {}
+added_lots = {}
+added_packages = {}
+
+productids = []
+lotids = []
+packageids = []
+
+class Product:
+    def __init__(self, name,fournisseur):
+        self.name = name 
+        self.fournisseur = fournisseur
+
+class MaterialProduct(Product):
+    def __init__(self, name,fournisseur, length, width, height, mass):
+        super().__init__(name,fournisseur)
+        self.length = length
+        self.width = width
+        self.height = height
+        self.mass = mass
+class SoftwareProduct(Product):
+    def __init__(self, name,fournisseur, version, license_key):
+        super().__init__(name,fournisseur)  
+        self.version = version
+        self.license_key = license_key
+
+class Lot:
+    def __init__(self, product, quantity):
+        self.product = product
+        self.quantity = quantity
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name}"
 
 class WorkerData:
     """Data generator and manager for warehouse worker operations"""
@@ -39,6 +87,16 @@ class WorkerData:
         # Products data
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
+        cur.execute("SELECT (p).* FROM \"EMIR\".Lot_EVA() AS p;")
+        lots = cur.fetchall()
+        cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
+        colis = cur.fetchall()
+        for pr in products:
+            productids.append(pr[0])
+        for lt in lots:
+            lotids.append(lt[0])
+        for cl in colis:
+            packageids.append(cl[0])
         if len(products) == 0:
             raise ValueError("No products loaded from the database. Check 'Produit_EVA()' function.")
 
@@ -353,7 +411,7 @@ class ProductCreationPopup(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Create Product")
-        self.setFixedSize(300, 250)
+        self.setFixedSize(600, 450)
         self.layout = QVBoxLayout(self)
         self.step = 1
         self.product_type = None
@@ -387,38 +445,78 @@ class ProductCreationPopup(QDialog):
         form_layout = QFormLayout()
 
         self.name_input = QLineEdit()
+        self.name_input.setStyleSheet(
+            """color:black;"""
+        )
+        self.prix_unitaire = QDoubleSpinBox()
+        self.prix_unitaire.setSuffix(" kg")
+        self.prix_unitaire.setStyleSheet(
+            """color:black;"""
+        )
+        self.prix_unitaire.setRange(0.0, 1000.0)
+
+        self.marque = QLineEdit()
+
+        self.description = QLineEdit()
+
+        self.modele = QLineEdit()
+
+        self.categorie1 = QRadioButton("Embalage")
+        self.categorie2 = QRadioButton("Electronic")
+        self.categorie3 = QRadioButton("Non-Electronic")
+        self.categorie1.setChecked(True)
+
+
+        self.fournisseur = QComboBox()
+        for org in orgs:
+            self.fournisseur.addItem(org[1], org[0])
 
         if self.product_type == "physical":
+            if self.categorie1.isChecked():
+                self.it ="produit de vente"
             self.length_input = QDoubleSpinBox()
             self.length_input.setSuffix(" cm")
             self.length_input.setRange(0.0, 1000.0)
+            self.length_input.setValue(10.0)    
 
             self.width_input = QDoubleSpinBox()
             self.width_input.setSuffix(" cm")
             self.width_input.setRange(0.0, 1000.0)
+            self.width_input.setValue(10.0)
 
             self.height_input = QDoubleSpinBox()
             self.height_input.setSuffix(" cm")
             self.height_input.setRange(0.0, 1000.0)
+            self.height_input.setValue(10.0)
 
             self.mass_input = QDoubleSpinBox()
             self.mass_input.setSuffix(" kg")
             self.mass_input.setRange(0.0, 1000.0)
-
+            self.mass_input.setValue(10.0)
+            ho = QHBoxLayout()
+            ho.addWidget(self.categorie1)
+            ho.addWidget(self.categorie2)
+            ho.addWidget(self.categorie3)
             form_layout.addRow("Name:", self.name_input)
+            form_layout.addRow("fornisseur:", self.fournisseur)
+            form_layout.addRow("Description:", self.description)
+            form_layout.addRow("Prix:", self.prix_unitaire)
+            form_layout.addRow("Marque:", self.marque)
+            form_layout.addRow("Modele:", self.modele)
+            form_layout.addRow("Categorie:",ho)
             form_layout.addRow("Length:", self.length_input)
             form_layout.addRow("Width:", self.width_input)
             form_layout.addRow("Height:", self.height_input)
             form_layout.addRow("Mass:", self.mass_input)
 
+
         else:  # software
             self.version_input = QLineEdit()
             self.license_input = QLineEdit()
-
             form_layout.addRow("Name:", self.name_input)
             form_layout.addRow("Version:", self.version_input)
             form_layout.addRow("License Key:", self.license_input)
-
+        self.produitid = idgenerator.generate_id("^P[A-Z0-9]{5}$",productids)
         submit_btn = QPushButton("Submit")
         submit_btn.clicked.connect(self.submit_product)
 
@@ -428,34 +526,26 @@ class ProductCreationPopup(QDialog):
 
     def submit_product(self):
         name = self.name_input.text().strip()
+        fournisseur = self.fournisseur.currentData()
+        description = self.description.text().strip()
+        prix_unitaire = self.prix_unitaire.value()
+        marque = self.marque.text().strip()
+        modele = self.modele.text().strip()
+        categorie = self.it
         if not name:
             QMessageBox.warning(self, "Validation Error", "Product name is required.")
             return
 
         if self.product_type == "physical":
-            data = {
-                "type": "Physical",
-                "name": name,
-                "length": self.length_input.value(),
-                "width": self.width_input.value(),
-                "height": self.height_input.value(),
-                "mass": self.mass_input.value()
-            }
+            cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)', (str(self.produitid), str(fournisseur),str(name), str(description), str(prix_unitaire), str(marque), str(modele), str(categorie)))
+            cur.execute('CALL "EMIR".ProduitMateriel_INS(%s,%s,%s,%s,%s)', (str(self.produitid), str(self.length_input.value()), str(self.width_input.value()), str(self.height_input.value()), str(self.mass_input.value())))
         else:
-            version = self.version_input.text().strip()
-            license_key = self.license_input.text().strip()
-            if not version or not license_key:
-                QMessageBox.warning(self, "Validation Error", "Version and License Key are required.")
-                return
-            data = {
-                "type": "Software",
-                "name": name,
-                "version": version,
-                "license_key": license_key
-            }
+            cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)', (str(self.produitid), str(fournisseur),str(name), str(description), str(prix_unitaire), str(marque), str(modele), str(categorie)))
+            cur.execute('CALL "EMIR".ProduitLogiciel_INS(%s,%s,%s)', (str(self.produitid), str(self.version_input.text().strip()), str(self.license_input.text().strip())))
+
 
         # You can do something with `data` here, like saving it
-        QMessageBox.information(self, "Success", f"{data['type']} product '{name}' created!")
+        QMessageBox.information(self, "Success", f"Product created! id {self.produitid}.")
         self.accept()  # closes the dialog
 
     def clear_layout(self):
@@ -473,12 +563,6 @@ class ProductMovementTrackingWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
-        cur.execute("SELECT (p).* FROM \"EMIR\".Organisation_EVA() AS p;")
-        self.org = cur.fetchall()
-        cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
-        self.colis = cur.fetchall()
-        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
-        self.produits = cur.fetchall()
         self.products = [
             {"id": 100, "name": "None"},
             {"id": 101, "name": "Widget Alpha"},
@@ -698,11 +782,10 @@ class ProductMovementTrackingWidget(QWidget):
         self.product_combo = QComboBox()
         self.product_combo1 = QComboBox()
         self.product_combo2 = QComboBox()
-        for product in self.colis:
-            self.product_combo2.addItem(product[0], product[1])
-        for product in self.org:
-            self.product_combo.addItem(product[1], product[4])
-            self.product_combo1.addItem(product[1], product[4])
+        self.product_combo2.addItem("— Select a product —", None)
+        for product in orgs:
+            self.product_combo.addItem(product[1])
+            self.product_combo1.addItem(product[1])
         form.addWidget(QLabel("Transporting Organisation:"), 0, 0)
         form.addWidget(self.product_combo, 0, 1)
         form.addWidget(QLabel("Receiving Organisation:"),1,0)
@@ -769,6 +852,25 @@ class ProductMovementTrackingWidget(QWidget):
         layout.addSpacing(10)
         section.setLayout(layout)
         return section
+    def sendpackage(self, packageid, org_from, org_to):
+        # This function would handle the logic to send a package
+        # For now, we just show a message box
+        if packageid not in packageids:
+            QMessageBox.warning(self, "Error", f"Package {packageid} does not exist.")
+            return
+        #cur.execute('SELECT "EMIR".colis_ins')
+        for lots in added_packages[packageid]:
+            lotid = idgenerator.generate_id("^L[A-Z0-9]{5}$",lotids)
+            prod = lots.product
+            quan = lots.quantity
+            lotids.append(lotid)
+            #cur.execute('SELECT "EMIR".Lot_ins()')
+            #cur.execute('SELECT "EMIR".Contenucolis()')
+
+
+            
+        QMessageBox.information(self, "Package Sent", f"Package {packageid} sent from {org_from} to {org_to}.") 
+
     def create_lot_form_section(self, name):
         section = QFrame()
         section.setStyleSheet("""
@@ -846,7 +948,7 @@ class ProductMovementTrackingWidget(QWidget):
                 """)
                 row = QHBoxLayout()
                 combo = QComboBox()
-                for p in self.produits:
+                for p in produits:
                     combo.addItem(p[2], p[0])
                 qty = QSpinBox()
                 combo.setStyleSheet(
@@ -873,6 +975,10 @@ class ProductMovementTrackingWidget(QWidget):
     
                 self.package_rows.append((combo, qty))
                 self.package_container.addLayout(row)
+                if len(self.package_rows) > 0:
+                    create_btn.show()
+                else:
+                    create_btn.hide()
 
             def remove_row(row):
                 for i in reversed(range(row.count())):
@@ -880,7 +986,21 @@ class ProductMovementTrackingWidget(QWidget):
                     if widget:
                         widget.setParent(None)
                 self.package_rows = [r for r in self.package_rows if r[0].parentWidget() is not None]
-
+            create_btn = QPushButton("Create Package")
+            create_btn.setFixedSize(140, 30)
+            create_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 4px;
+                    opacity: 0.5;
+                }
+                QPushButton:hover {
+                    background-color: #512DA8;
+                }
+            """)
+            create_btn.clicked.connect(self.create_package)
             add_layout = QHBoxLayout()
             add_btn = QPushButton("Add Product")
             add_btn.setFixedSize(140, 30)
@@ -897,28 +1017,13 @@ class ProductMovementTrackingWidget(QWidget):
                 }
             """)
             add_btn.clicked.connect(add_row)
-
+            create_btn.hide()
             add_layout.addStretch()
             add_layout.addWidget(add_btn)
             add_layout.addStretch()
             layout.addLayout(add_layout)
 
             btn_layout = QHBoxLayout()
-            create_btn = QPushButton("Create Package")
-            create_btn.setFixedSize(140, 30)
-            create_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: white;
-                    color: white;
-                    font-weight: bold;
-                    border-radius: 4px;
-                    opacity: 0.5;
-                }
-                QPushButton:hover {
-                    background-color: #512DA8;
-                }
-            """)
-            create_btn.clicked.connect(self.create_package)
             btn_layout.addStretch()
             btn_layout.addWidget(create_btn)
             btn_layout.addStretch()
@@ -929,25 +1034,71 @@ class ProductMovementTrackingWidget(QWidget):
         return section
 
     def create_lot(self):
+        lotid = idgenerator.generate_id("^L[A-Z0-9]{5}$",lotids)
         product = self.product_combo.currentText()
         quantity = self.qty_spin.value()
-        QMessageBox.information(self, "Lot Created", f"Lot created for {product} with quantity {quantity}")
+
+        QMessageBox.information(self, "Lot Created", f"Lot created for {product} with quantity {quantity} and ID <b>{lotid}</b>.")
 
     def create_package(self):
         package = []
+        pack = []
         for combo, spin in self.package_rows:
             product = combo.currentText()
             qty = spin.value()
+            lot = Lot(product, qty)
             package.append(f"{product} (x{qty})")
-
+            pack.append(lot)
+        packageid = idgenerator.generate_id("^P[A-Z0-9]{5}$",packageids)
+        dialog = NameInputDialog()
+        name = dialog.get_name()
+        added_packages[name] = pack
         if package:
-            QMessageBox.information(self, "Package Created", "Package contains:\n" + "\n".join(package))
+            self.product_combo2.addItem(name)
+            QMessageBox.information(
+                self,
+                "Package Created",
+                f"Package created with ID <b>{packageid}</b> containing:\n" + "\n".join(package)
+            )
         else:
             QMessageBox.warning(self, "No Products", "Please add at least one product.")
 
     def on_task_selected(self, task_data):
         dialog = TaskDetailDialog(task_data, self)
         dialog.exec()
+class NameInputDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Enter Your Name")
+        self.setFixedSize(300, 100)
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel("Please enter your name:")
+        layout.addWidget(self.label)
+
+        self.name_input = QLineEdit()
+        layout.addWidget(self.name_input)
+
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.submit_name)
+        layout.addWidget(self.ok_button)
+
+        self.setLayout(layout)
+        self.result_name = ""
+
+    def submit_name(self):
+        name = self.name_input.text().strip()
+        if name:
+            self.result_name = name
+        else:
+            self.result_name = ""
+        self.accept()
+
+    def get_name(self):
+        if self.exec() == QDialog.DialogCode.Accepted:
+            return self.result_name
+        return None
 class ExceptionReportsWidget(QWidget):
     """Widget for viewing and managing exception reports"""
     

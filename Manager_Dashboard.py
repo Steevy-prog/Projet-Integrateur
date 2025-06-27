@@ -37,6 +37,7 @@ import random
 import psycopg2
 
 idorg = 'OABCDE'
+
 conn = psycopg2.connect(
     host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
     database="projet_integrateur",
@@ -2122,8 +2123,6 @@ class MainWindow(QMainWindow):
     def refresh_data(self):
         print("Refreshing data...")
         self.data.generate_sample_data()
-        if hasattr(self.central_widget, 'init_ui'):
-            self.central_widget.init_ui()
         print("UI update complete.")
         
         
