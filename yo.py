@@ -9,7 +9,7 @@ from PyQt5.QtGui import QPainter, QPixmap
 from Worker_Dashboard import MainWindow as window1
 from Client_Dashboard import MainWindow as window2
 from IT_Technician import MainWindow as window3
-from Manager_Dashboard import WarehouseDashboard as window4
+from Manager_Dashboard import MainWindow as window4
 # ----------------------------
 # Abstract Definitions
 # ----------------------------
