@@ -1775,21 +1775,62 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 
-class MainDashboardWidget(QWidget):
-    """Dashboard with sidebar menu and top bar"""
+import sys
+import numpy as np
+import pandas as pd
+import pyqtgraph as pg
+import again as login
+from PyQt6.QtGui import QIcon, QPixmap, QPen, QPainter
+from PyQt6.QtCore import QRectF, Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QSequentialAnimationGroup, QDate, QTimer
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
+    QScrollArea, QWidget, QTableWidget, QTableWidgetItem, QFormLayout, QLineEdit, 
+    QComboBox, QDialog, QSpinBox, QListWidget, QSizePolicy, QSplitter, QStackedWidget,
+    QButtonGroup, QGroupBox, QTextEdit, QMessageBox, QGridLayout, QFileDialog, QTabWidget,
+    QDateEdit, QHeaderView, QProgressBar, QGraphicsOpacityEffect, QGraphicsBlurEffect
+)
+from PyQt6.QtGui import QFont, QColor, QPalette, QIcon, QPixmap
+import datetime
+import random
+import psycopg2
 
+# ... (le reste de vos imports et connexion DB reste inchangé)
+
+class ChartWidget(pg.PlotWidget):
+    def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
+        super().__init__(parent=parent, axisItems=axisItems)
+        self.plotItem.setTitle(title)
+        self.plotItem.setLabel('left', y_label)
+        self.plotItem.setLabel('bottom', x_label)
+        self.plotItem.showGrid(x=True, y=True, alpha=0.3)
+        self.setBackground('w')
+        self.setAntialiasing(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(200, 200)
+
+    def plot_data(self, *args, **kwargs):
+        self.clear()
+        self.plot(*args, **kwargs)
+
+    def add_item(self, item):
+        self.addItem(item)
+
+class MainDashboardWidget(QWidget):
+    """Dashboard with fully functional collapsible sidebar"""
+    
     def __init__(self, data):
         super().__init__()
         self.data = data
         self.current_widget = None
         self.is_menu_expanded = True
+        self.sidebar_width = 200  # Largeur initiale du sidebar
         self.init_ui()
 
     def init_ui(self):
-        # Main vertical layout (top bar + content)
-        main_vertical_layout = QVBoxLayout(self)
-        main_vertical_layout.setContentsMargins(0, 0, 0, 0)
-        main_vertical_layout.setSpacing(0)
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
         # Top bar
         top_bar = QWidget()
@@ -1799,26 +1840,24 @@ class MainDashboardWidget(QWidget):
             border-bottom: 1px solid #1a2a3a;
         """)
         top_bar_layout = QHBoxLayout(top_bar)
-        top_bar_layout.setContentsMargins(20, 0, 20, 0)
+        top_bar_layout.setContentsMargins(10, 0, 10, 0)
 
         # Menu toggle button
         self.toggle_btn = QPushButton("≡")
+        self.toggle_btn.setFixedWidth(40)
         self.toggle_btn.setStyleSheet("""
             QPushButton {
-                background: #2c3e50;
+                background: transparent;
                 color: white;
-                font-size: 40px;
-                margin-left: 2px;
-                margin-right: 5px;
-                margin-bottom: 2px;
-                padding: 10px;
+                font-size: 24px;
                 border: none;
             }
             QPushButton:hover {
                 background: #3d566e;
             }
         """)
-        
+        self.toggle_btn.clicked.connect(self.toggle_menu)
+
         # Title
         title_label = QLabel("Warehouse Manager Dashboard")
         title_label.setStyleSheet("""
@@ -1826,33 +1865,45 @@ class MainDashboardWidget(QWidget):
                 color: white;
                 font-size: 18px;
                 font-weight: bold;
+                padding-left: 10px;
             }
         """)
-        
+
         top_bar_layout.addWidget(self.toggle_btn)
         top_bar_layout.addWidget(title_label)
         top_bar_layout.addStretch()
-        main_vertical_layout.addWidget(top_bar)
+        main_layout.addWidget(top_bar)
 
-        # Content area (sidebar + main content)
-        content_horizontal_layout = QHBoxLayout()
-        content_horizontal_layout.setContentsMargins(0, 0, 0, 0)
-        content_horizontal_layout.setSpacing(0)
+        # Content area
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
 
-        # Sidebar
-        self.sidebar = QWidget()
-        self.sidebar.setFixedWidth(220)
+        # Sidebar 
+         self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(self.sidebar_width)
         self.sidebar.setStyleSheet("""
             background-color: #2c3e50;
             color: white;
             border-right: 1px solid #1a2a3a;
         """)
+        
+        # Effets visuels avancés
+        self.sidebar_effect = QGraphicsOpacityEffect()
+        self.sidebar_effect.setOpacity(1.0)
+        self.sidebar.setGraphicsEffect(self.sidebar_effect)
+        
+        # Conteneur pour le sidebar (permet un clipping propre)
+        self.sidebar_container = QWidget()
+        self.sidebar_container.setFixedWidth(self.sidebar_width)
+        self.sidebar_container.setLayout(QHBoxLayout())
+        self.sidebar_container.layout().setContentsMargins(0, 0, 0, 0)
+        self.sidebar_container.layout().addWidget(self.sidebar)
+        # Layout du sidebar
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(0)
+        sidebar_layout.setContentsMargins(0, 10, 0, 10)
+        sidebar_layout.setSpacing(5)
         sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        self.toggle_btn.clicked.connect(self.toggle_menu)
 
         # Menu items
         self.menu_buttons = []
@@ -1862,14 +1913,14 @@ class MainDashboardWidget(QWidget):
             ("Storage Space Management", "box"), 
             ("Generate Reports", "file-text"),
             ("Warehouse Interactions", "activity"),
-            ("Logout", "system-log-out")  # Ajouté ici
+            ("Logout", "system-log-out")
         ]
 
         for text, icon in menu_items:
             btn = QPushButton(text)
             btn.setIcon(QIcon.fromTheme(icon))
+            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             
-            # Style différent pour le bouton Logout
             if text == "Logout":
                 btn.setStyleSheet("""
                     QPushButton {
@@ -1914,50 +1965,87 @@ class MainDashboardWidget(QWidget):
         metrics_layout = QVBoxLayout(metrics_widget)
         metrics_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Add metrics data
         metrics_layout.addWidget(self.create_metric_label("Quick Stats"))
         metrics_layout.addWidget(self.create_metric_item("Total Items", "1,785"))
         metrics_layout.addWidget(self.create_metric_item("Total Value", "$93,521,250"))
         metrics_layout.addWidget(self.create_metric_item("Available Cells", "1"))
         
-        # Insérer les métriques avant le bouton Logout
         sidebar_layout.insertWidget(len(menu_items) - 1, metrics_widget)
-        sidebar_layout.addStretch(1)  # Ajoute un stretch pour pousser Logout en bas
+        sidebar_layout.addStretch(1)
 
-        # Main content area
+        # Content area
         self.content_area = QWidget()
-        self.content_area.setSizePolicy(
-            QSizePolicy.Policy.Expanding, 
-            QSizePolicy.Policy.Expanding
-        )
+        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_area.setStyleSheet("background: #ecf0f1;")
         self.content_layout = QVBoxLayout(self.content_area)
-        self.content_layout.setContentsMargins(20, 20, 20, 20)
+        self.content_layout.setContentsMargins(15, 15, 15, 15)
+        self.content_layout.setSpacing(15)
 
-        # Add widgets to layouts
-        content_horizontal_layout.addWidget(self.sidebar)
-        content_horizontal_layout.addWidget(self.content_area, 1)
-        main_vertical_layout.addLayout(content_horizontal_layout, 1)
+        # Add widgets to main layout
+        content_layout.addWidget(self.sidebar)
+        content_layout.addWidget(self.content_area)
+        main_layout.addLayout(content_layout)
 
         # Show default widget
         self.switch_content("Real-time Inventory")
 
-    def logout(self):
-        response = QMessageBox.question(
-            self,
-            "Logout",
-            "Are you sure you want to logout?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        if response == QMessageBox.StandardButton.Yes:
-            self.close()
-            parent_window = self.window()
-            if parent_window is not self:
-                parent_window.close()
-            self.loginpage = login.FlipCard()
-            self.loginpage.show()
+    def toggle_menu(self):
+        """Animation fluide du sidebar"""
+        if hasattr(self, '_anim_group') and self._anim_group.state() == QPropertyAnimation.State.Running:
+            return
 
+        # Création des animations
+        width_anim = QPropertyAnimation(self.sidebar, b"minimumWidth")
+        opacity_anim = QPropertyAnimation(self.sidebar_opacity, b"opacity")
+
+        # Configuration commune
+        for anim in (width_anim, opacity_anim):
+            anim.setDuration(350)  # Un peu plus long pour plus de fluidité
+            anim.setEasingCurve(QEasingCurve.Type.OutCubic)  # Courbe plus douce
+
+        # Valeurs de départ et d'arrivée
+        if self.is_menu_expanded:
+            width_anim.setStartValue(self.sidebar_width)
+            width_anim.setEndValue(0)
+            opacity_anim.setStartValue(1.0)
+            opacity_anim.setEndValue(0.0)
+        else:
+            width_anim.setStartValue(0)
+            width_anim.setEndValue(self.sidebar_width)
+            opacity_anim.setStartValue(0.0)
+            opacity_anim.setEndValue(1.0)
+
+        # Groupe d'animations
+        self._anim_group = QParallelAnimationGroup()
+        self._anim_group.addAnimation(width_anim)
+        self._anim_group.addAnimation(opacity_anim)
+        
+        # Callback de fin
+        self._anim_group.finished.connect(self.on_animation_finished)
+        
+        # Démarrer l'animation
+        self._anim_group.start()
+
+        # Désactiver le bouton pendant l'animation
+        self.toggle_btn.setEnabled(False)
+
+    def on_animation_finished(self):
+        """Nettoyage après animation"""
+        self.is_menu_expanded = not self.is_menu_expanded
+        self.toggle_btn.setText("≡" if self.is_menu_expanded else "≫")
+        self.toggle_btn.setEnabled(True)
+        
+        # Forcer la largeur finale pour éviter les artefacts
+        final_width = self.sidebar_width if self.is_menu_expanded else 0
+        self.sidebar.setFixedWidth(final_width)
+        
+        # Réinitialiser l'opacité si nécessaire
+        if self.is_menu_expanded:
+            self.sidebar_opacity.setOpacity(1.0)
+
+        # Nettoyer l'animation
+        self.sender().deleteLater()
+        del self._anim_group
     def create_metric_label(self, text):
         label = QLabel(text)
         label.setStyleSheet("font-weight: bold; color: #bdc3c7;")
@@ -1980,14 +2068,6 @@ class MainDashboardWidget(QWidget):
         
         return widget
 
-    def toggle_menu(self):
-        self.is_menu_expanded = not self.is_menu_expanded
-        if self.is_menu_expanded:
-            self.sidebar.setFixedWidth(220)
-            self.sidebar.show()
-        else:
-            self.sidebar.setFixedWidth(0)
-
     def switch_content(self, menu_item):
         if self.current_widget:
             self.current_widget.deleteLater()
@@ -2005,6 +2085,22 @@ class MainDashboardWidget(QWidget):
 
         self.current_widget = widget
         self.content_layout.addWidget(widget)
+
+    def logout(self):
+        response = QMessageBox.question(
+            self,
+            "Logout",
+            "Are you sure you want to logout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self.close()
+            parent_window = self.window()
+            if parent_window is not self:
+                parent_window.close()
+            self.loginpage = login.FlipCard()
+            self.loginpage.show()
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -2029,6 +2125,8 @@ class MainWindow(QMainWindow):
         if hasattr(self.central_widget, 'init_ui'):
             self.central_widget.init_ui()
         print("UI update complete.")
+        
+        
 
 if __name__ == '__main__':
     # It is recommended to install PySide6 as the primary Qt binding for pyqtgraph
