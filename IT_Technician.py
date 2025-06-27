@@ -459,7 +459,7 @@ class AccountSettingsPage(QWidget):
             if db_connection is None or db_connection.closed:
                 raise Exception("Database connection is not open.")
             cursor = self.db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM application_settings WHERE setting_group = 'password_policy';"
+            query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
             loaded_settings = {row[0]: row[1] for row in rows}
@@ -695,7 +695,7 @@ class SystemConfigurationPage(QWidget):
                 db_connection.connect() # Attempt to reconnect if closed
             
             cursor = db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM application_settings WHERE setting_group = 'system_config';"
+            query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'system_config';"
             cursor.execute(query)
             rows = cursor.fetchall()
             loaded_settings = {row[0]: row[1] for row in rows}
@@ -756,7 +756,7 @@ class SystemConfigurationPage(QWidget):
             
             for setting_name, setting_value in settings_to_save.items():
                 upsert_query = """
-                    INSERT INTO application_settings (setting_group, setting_name, setting_value)
+                    INSERT INTO "CREDENTIALS".PasswordPolicies (setting_group, setting_name, setting_value)
                     VALUES (%s, %s, %s)
                     ON CONFLICT (setting_group, setting_name) DO UPDATE
                     SET setting_value = EXCLUDED.setting_value;
@@ -822,6 +822,7 @@ class DatabaseMaintenancePage(QWidget):
         query_input_layout.setSpacing(10)
         query_input_layout.addWidget(QLabel("<b>Enter SQL Query:</b>"))
         self.query_text_edit = QTextEdit()
+        self.query_text_edit.setObjectName("queryTextEdit")
         self.query_text_edit.setPlaceholderText("e.g., SELECT * FROM \"Users\";")
         self.query_text_edit.setMinimumHeight(120)
         self.query_text_edit.setFont(QFont("Monospace", 10))
@@ -978,7 +979,7 @@ class SecuritySettingPage(QWidget):
             if db_connection is None or db_connection.closed:
                 raise Exception("Database connection is not open.")
             cursor = db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM application_settings WHERE setting_group = 'password_policy';"
+            query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
             loaded_settings = {row[0]: row[1] for row in rows}
@@ -1022,7 +1023,7 @@ class SecuritySettingPage(QWidget):
             for setting_name, value in self.password_policy_settings.items():
                 setting_value_str = str(value)
                 query = """
-                    INSERT INTO application_settings (setting_name, setting_value, setting_group)
+                    INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group)
                     VALUES (%s, %s, 'password_policy')
                     ON CONFLICT (setting_name) DO UPDATE
                     SET setting_value = EXCLUDED.setting_value;
@@ -1324,6 +1325,8 @@ class MainWindow(QMainWindow):
                 color: #555;
                 margin-bottom: 10px;
             }
+            #queryTextEdit {
+                background-color: #021052;
         """)
 
 if __name__ == "__main__":
@@ -1347,3 +1350,11 @@ if __name__ == "__main__":
     sys.exit(app.exec())
     
 
+# INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group, description) VALUES
+# ('min_length', '8', 'password_policy', 'Minimum number of characters required for a password.'),
+# ('require_uppercase', 'True', 'password_policy', 'Boolean: Does password require an uppercase letter?'),
+# ('require_lowercase', 'True', 'password_policy', 'Boolean: Does password require a lowercase letter?'),
+# ('require_number', 'True', 'password_policy', 'Boolean: Does password require a number?'),
+# ('require_special', 'True', 'password_policy', 'Boolean: Does password require a special character?'),
+# ('password_expiration_days', '0', 'password_policy', 'Number of days after which password expires (0 for never).'),
+# ('enforce_expiration', 'False', 'password_policy', 'Boolean: Is password expiration enforced?');
