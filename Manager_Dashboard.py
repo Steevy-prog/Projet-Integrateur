@@ -2026,8 +2026,6 @@ class MainWindow(QMainWindow):
     def refresh_data(self):
         print("Refreshing data...")
         self.data.generate_sample_data()
-        if hasattr(self.central_widget, 'init_ui'):
-            self.central_widget.init_ui()
         print("UI update complete.")
 
 if __name__ == '__main__':
