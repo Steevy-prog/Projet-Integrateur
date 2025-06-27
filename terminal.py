@@ -1,19 +1,23 @@
+
 import sys
 from datetime import datetime
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLineEdit, QLabel, QTextEdit, QFileDialog, QMessageBox, QGroupBox, QStackedWidget,
     QFrame, QSizePolicy, QSpacerItem, QScrollArea, QTableWidget, QHeaderView, QTableWidgetItem
 )
-from PyQt5.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtGui import QPalette, QColor
 import psycopg2
 from psycopg2 import Error
+
+
 
 # --- Database Connection (Global for simplicity in mock, could be passed to pages) ---
 # IMPORTANT: For a production app, manage connection lifecycle more carefully
 # (e.g., passing connection pool/manager to pages, or using a singleton pattern).
 # Keeping it global as in your provided code for now.
-    
+
 host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"  # Replace with your database host
 database = "test_bpdd"  # Replace with your database name
 user = "test"  # Replace with your database username
@@ -33,7 +37,7 @@ try:
 
 except Error as e:
     print(f"Error connecting to PostgreSQL database: {e}")
-    
+
 
 # --- Custom Stream for QTextEdit (Our 'Terminal') ---
 class QTextEditLogger(QObject):
@@ -58,10 +62,10 @@ class TerminalPage(QWidget):
     Represents the main automation terminal page with command input and output.
     Contains all the core AA logic.
     """
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # --- CRITICAL FIX: Define command_list and command_description as instance attributes HERE ---
         # This ensures they exist BEFORE init_ui() is called or any initial terminal messages
         # that might indirectly trigger command parsing.
@@ -73,24 +77,24 @@ class TerminalPage(QWidget):
             'list_stock_product': self.list_product,
             'list_user': self.list_user,
             'clear_terminal': self.clear_terminal,
-            # 'set_report_settings': self.set_report_settings,
-            # 'generate_report': self.generate_report,
-            # 'start_backup': self.backup_database,
-            # 'display_logs': self.display_logs,
-            
+            'set_report_settings': self.set_report_settings,
+            'generate_report': self.generate_report,
+            'start_backup': self.backup_database,
+            'display_logs': self.display_logs,
+
         }
         self.command_description = {
             'command_list': 'List of available commands.',
-            'help': 'Indictions on how to use the terminal.',
+            'help': 'Indications on how to use the terminal.',
             'count_product': 'Display the number of products in stock.',
             'count_user': 'Display the number of users.',
             'list_stock_product': 'List of all products in stock.',
             'list_user': 'List of all users.',
             'clear_terminal': 'Clear the terminal output.',
-            # 'set_report_settings': 'Set report generation settings (not implemented).',
-            # 'generate_report': 'Generate a report based on current settings (not implemented).'
-            # 'start_backup': 'Start a database backup.',
-            # 'display_logs': 'Display system logs.'
+            'set_report_settings': 'Set report generation settings (not implemented).',
+            'generate_report': 'Generate a report based on current settings (not implemented).',
+            'start_backup': 'Start a database backup.',
+            'display_logs': 'Display system logs.'
         }
         # --- End of attribute definitions ---
 
@@ -116,7 +120,7 @@ class TerminalPage(QWidget):
         command_group_box = QGroupBox("Command Input")
         command_group_box.setObjectName("commandInputGroupBox") # For QSS
         command_layout = QHBoxLayout(command_group_box) # Layout directly on QGroupBox
-        
+
         self.command_line_edit = QLineEdit()
         self.command_line_edit.setPlaceholderText("Type command (e.g., sac --command_list)")
         self.command_line_edit.setObjectName("commandLineEdit") # For QSS
@@ -127,7 +131,7 @@ class TerminalPage(QWidget):
         execute_button.setObjectName("executeButton") # For QSS
         execute_button.clicked.connect(self.execute_command)
         command_layout.addWidget(execute_button)
-        
+
         page_layout.addWidget(command_group_box)
 
         # --- Terminal Output GroupBox ---
@@ -143,18 +147,18 @@ class TerminalPage(QWidget):
         clear_button = QPushButton("Clear Output")
         clear_button.setObjectName("clearOutputButton") # For QSS
         clear_button.clicked.connect(self.clear_terminal)
-        output_layout.addWidget(clear_button, alignment=Qt.AlignRight)
-        
+        output_layout.addWidget(clear_button, alignment=Qt.AlignmentFlag.AlignRight)
+
         page_layout.addWidget(output_group_box)
-        
+
     # --- Core Automation Application (AA) Logic as methods of TerminalPage ---
-    
+
     def execute_command(self):
         command_line = self.command_line_edit.text().strip()
-        
+
         if not command_line:
             return
-        
+
         self.command_line_edit.clear() # Clear input after execution
         self.terminal_output.append(f"\n> {command_line}") # Echo the command
 
@@ -163,25 +167,25 @@ class TerminalPage(QWidget):
         if len(parts) < 2 or parts[0].strip().lower() != 'sac':
             self.unknown_command()
             return
-        
+
         command = parts[1].strip() # The actual command part after 'sac --'
-        
+
         # Execute the command using the dictionary mapping
         # .get(key, default_value_if_not_found)
         self.command_list.get(command, self.unknown_command)()
-    
+
     def list_command(self):
         self.terminal_output.append("\n--- Available commands: ---")
         # Corrected iteration: iterate over items() to get both key and value
         for cmd, description in self.command_description.items():
             self.terminal_output.append(f"- {cmd}:\t{description}")
         self.terminal_output.append("---------------------------\n")
-            
+
     def unknown_command(self):
         self.terminal_output.append("Unknown command!")
         self.terminal_output.append("Type 'sac --command_list' for a list of available commands.")
         self.terminal_output.append("Type 'sac --help' for instructions on how to use the terminal.")
-        
+
     def display_help(self):
         self.terminal_output.append("\n--- Terminal Usage Help ---")
         self.terminal_output.append("Commands start with 'sac --' followed by the command name.")
@@ -189,11 +193,54 @@ class TerminalPage(QWidget):
         self.terminal_output.append("For commands requiring arguments, specify them after the command name.")
         self.terminal_output.append("---------------------------\n")
 
+    def set_report_settings(self):
+        self.terminal_output.append("Setting report generation settings is not implemented yet.")
+        self.terminal_output.append("This feature will be available in a future update.")
+    
+    def generate_report(self):
+        self.terminal_output.append("Generating report is not implemented yet.")
+        self.terminal_output.append("This feature will be available in a future update.")  
+    
+    def backup_database(self):
+        if db_connection:
+            try:
+                cursor = db_connection.cursor()
+                # Placeholder for actual backup logic
+                cursor.execute("SELECT pg_start_backup('backup');")  # Example command, adjust as needed
+                db_connection.commit()
+                self.terminal_output.append("Database backup started successfully.")
+            except Error as e:
+                self.terminal_output.append(f"Error starting database backup: {e}")
+            finally:
+                if cursor:
+                    cursor.close()
+        else:
+            self.terminal_output.append("Database connection not established. Cannot start backup.")
+            
+    def display_logs(self, log_limit=10):
+        if db_connection:
+            try:
+                cursor = db_connection.cursor()
+                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM Logs ORDER BY timestamp DESC LIMIT {log_limit};")  # Assuming a 'logs' table
+                logs = cursor.fetchall()
+                self.terminal_output.append("\n--- Recent Logs ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
+                else:
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+            except Error as e:
+                self.terminal_output.append(f"Error retrieving logs: {e}")
+            finally:
+                if cursor:
+                    cursor.close()
+        
     def count_product(self):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute("SELECT total();") # Assuming a 'products' table
+                cursor.execute("SELECT \"SCA\".total();") # Assuming a 'products' table
                 count = cursor.fetchone()[0]
                 self.terminal_output.append(f"Number of products in stock: {count}")
             except Error as e:
@@ -271,9 +318,9 @@ class TerminalPage(QWidget):
         """Restore original stdout/stderr when TerminalPage is destroyed."""
         # Check if attributes exist before restoring, for safer shutdown
         if hasattr(self, '_original_stdout') and self._original_stdout is not None:
-             sys.stdout = self._original_stdout
+            sys.stdout = self._original_stdout
         if hasattr(self, '_original_stderr') and self._original_stderr is not None:
-             sys.stderr = self._original_stderr
+            sys.stderr = self._original_stderr
 
 
 # Placeholder Page Classes
@@ -292,17 +339,17 @@ class AutomationPage(QWidget):
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True) # Allow the widget inside to resize with the scroll area
         scroll_area.setObjectName("automationPageScrollArea") # For QSS if needed
-        
+
         # Create a container widget for the scroll area's content
         scroll_content_widget = QWidget()
         scroll_content_layout = QVBoxLayout(scroll_content_widget)
-        scroll_content_layout.setContentsMargins(0, 0, 0, 0) # Control padding via content_area_layout in MainWindow
-        scroll_content_layout.setSpacing(20) # Spacing between elements within the scrollable area
+        scroll_content_layout.setContentsMargins(10, 10, 10, 10) # Control padding via content_area_layout in MainWindow
+        scroll_content_layout.setSpacing(10) # Spacing between elements within the scrollable area
 
         # Title
         title_label = QLabel("<h3>Warehouse Automation Workflows</h3>")
         title_label.setObjectName("sectionTitle") # Reusing QSS ID for a section title
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter) # PyQt6 change: Qt.AlignCenter -> Qt.AlignmentFlag.AlignCenter
         scroll_content_layout.addWidget(title_label)
 
         # Description
@@ -310,7 +357,7 @@ class AutomationPage(QWidget):
             "<p>Manage and initiate automated tasks within the warehouse management system.</p>"
             "<p>Select an automation task below to view its details or trigger its execution.</p>"
         )
-        description_label.setAlignment(Qt.AlignCenter)
+        description_label.setAlignment(Qt.AlignmentFlag.AlignCenter) # PyQt6 change: Qt.AlignCenter -> Qt.AlignmentFlag.AlignCenter
         description_label.setWordWrap(True)
         scroll_content_layout.addWidget(description_label)
 
@@ -330,7 +377,7 @@ class AutomationPage(QWidget):
         self.btn_low_stock_notification.setObjectName("primaryButton")
         self.btn_low_stock_notification.clicked.connect(self._trigger_low_stock_notifications)
         tasks_layout.addWidget(self.btn_low_stock_notification)
-        
+
         # Add a few more placeholder buttons to ensure scrolling is evident
         self.btn_data_backup = QPushButton("Perform Database Backup")
         self.btn_data_backup.setObjectName("primaryButton")
@@ -342,23 +389,23 @@ class AutomationPage(QWidget):
         self.btn_audit_log_cleanup.clicked.connect(lambda: self._log_automation_event("Old audit logs cleanup initiated."))
         tasks_layout.addWidget(self.btn_audit_log_cleanup)
 
-
         scroll_content_layout.addWidget(tasks_group_box)
 
         # Automation Log/Status Area
         log_group_box = QGroupBox("Automation Log")
         log_group_box.setObjectName("automationLogGroupBox")
         log_layout = QVBoxLayout(log_group_box)
-        
+
         self.automation_log_output = QTextEdit()
         self.automation_log_output.setReadOnly(True)
         self.automation_log_output.setObjectName("automationLogTextEdit") # Specific ID for QSS
+        self.automation_log_output.setPlaceholderText("Automation log will appear here...")
         log_layout.addWidget(self.automation_log_output)
 
         clear_log_button = QPushButton("Clear Automation Log")
-        clear_log_button.setObjectName("secondaryButton") # Reusing secondaryButton style
+        clear_log_button.setObjectName("clearOutputButton") # Reusing secondaryButton style
         clear_log_button.clicked.connect(self.automation_log_output.clear)
-        log_layout.addWidget(clear_log_button, alignment=Qt.AlignRight)
+        log_layout.addWidget(clear_log_button, alignment=Qt.AlignmentFlag.AlignRight) # PyQt6 change: Qt.AlignRight -> Qt.AlignmentFlag.AlignRight
 
         scroll_content_layout.addWidget(log_group_box)
 
@@ -366,7 +413,7 @@ class AutomationPage(QWidget):
 
         # Set the content widget for the scroll area
         scroll_area.setWidget(scroll_content_widget)
-        
+
         # Add the scroll area to the main layout of the AutomationPage
         main_layout.addWidget(scroll_area)
 
@@ -388,8 +435,6 @@ class AutomationPage(QWidget):
         QMessageBox.information(self, "Automation Task", "Low Stock Notifications triggered. (Check log for details)")
         # This would typically involve checking inventory levels and sending alerts
         self._log_automation_event("Low stock notifications sent to relevant personnel.")
-
-
 
 # --- Main Application Window ---
 
@@ -422,10 +467,10 @@ class MainWindow(QMainWindow):
 
         self.logged_in_label = QLabel("Logged in as <b>john.smit</b>")
         self.logged_in_label.setObjectName("loggedInLabel")
-        self.logged_in_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.logged_in_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.sidebar_layout.addWidget(self.logged_in_label)
 
-        self.sidebar_layout.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        self.sidebar_layout.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         # Navigation buttons and their corresponding page instances
         self.nav_buttons = {}
@@ -564,6 +609,7 @@ class MainWindow(QMainWindow):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                color: #2c3e50;
             }
             QLineEdit#commandLineEdit:focus {
                 border: 1px solid #3498db;
@@ -576,6 +622,7 @@ class MainWindow(QMainWindow):
                 font-size: 11pt;
                 border-radius: 5px;
                 padding: 10px;
+                
             }
 
             QPushButton#executeButton, QPushButton#clearOutputButton {
@@ -667,12 +714,12 @@ class MainWindow(QMainWindow):
             /* Buttons inside automation page */
             QPushButton#primaryButton { /* Reused from earlier primaryButton, adjust if needed */
                 background-color: #2ecc71; /* Green */
-                color: white;
+                color: #ffffff;
                 border: none;
                 padding: 10px 20px;
-                font-size: 16px;
-                border-radius: 5px;
-                margin-top: 5px; /* Adjust spacing */
+                font-size: 14px;
+                border-radius: 10px;
+                margin-top: 2px; /* Adjust spacing */
                 text-align: center;
             }
             QPushButton#primaryButton:hover {
@@ -717,10 +764,17 @@ class MainWindow(QMainWindow):
         """)
 # --- Main Application Execution ---
 if __name__ == "__main__":
-    # Create sample files if they don't exist for easy testing
-    # These are only needed for the file-based operations in TerminalPage
-
     app = QApplication(sys.argv)
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor("#FFFFFF"))  # Dialog background
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
+    palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
+    palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+    app.setPalette(palette)
     window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

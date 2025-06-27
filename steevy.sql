@@ -243,30 +243,38 @@ CREATE TABLE "SCA".InventaireEmplacement(
     FOREIGN KEY (idlot)REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
 
+-- CREATE TABLE "CREDENTIALS".PasswordPolicies (
+--                                                 id_policy INT GENERATED ALWAYS AS IDENTITY,
+--                                                 nom_policy VARCHAR(100) NOT NULL UNIQUE,
+--                                                 min_length INT NOT NULL DEFAULT 8,
+--                                                 max_length INT DEFAULT 255,
+--                                                 require_uppercase BOOLEAN NOT NULL DEFAULT TRUE,
+--                                                 require_lowercase BOOLEAN NOT NULL DEFAULT TRUE,
+--                                                 require_digit BOOLEAN NOT NULL DEFAULT TRUE,
+--                                                 require_special_char BOOLEAN NOT NULL DEFAULT TRUE,
+--                                                 min_special_chars INT NOT NULL DEFAULT 1,
+--                                                 allowed_special_chars VARCHAR(255), -- Ex: '!@#$%^&*'
+--                                                 disallowed_chars VARCHAR(255), --EX: ' ='
+--                                                 prevent_common_passwords BOOLEAN NOT NULL DEFAULT FALSE,
+--                                                 CONSTRAINT PK_PasswordPolicies PRIMARY KEY (nom_policy)
+-- );
+
 CREATE TABLE "CREDENTIALS".PasswordPolicies (
-                                                id_policy INT GENERATED ALWAYS AS IDENTITY,
-                                                nom_policy VARCHAR(100) NOT NULL UNIQUE,
-                                                min_length INT NOT NULL DEFAULT 8,
-                                                max_length INT DEFAULT 255,
-                                                require_uppercase BOOLEAN NOT NULL DEFAULT TRUE,
-                                                require_lowercase BOOLEAN NOT NULL DEFAULT TRUE,
-                                                require_digit BOOLEAN NOT NULL DEFAULT TRUE,
-                                                require_special_char BOOLEAN NOT NULL DEFAULT TRUE,
-                                                min_special_chars INT NOT NULL DEFAULT 1,
-                                                allowed_special_chars VARCHAR(255), -- Ex: '!@#$%^&*'
-                                                disallowed_chars VARCHAR(255), --EX: ' ='
-                                                prevent_common_passwords BOOLEAN NOT NULL DEFAULT FALSE,
-                                                CONSTRAINT PK_PasswordPolicies PRIMARY KEY (nom_policy)
+                                                setting_name VARCHAR(100) NOT NULL UNIQUE,
+                                                setting_value VARCHAR(100) NOT NULL,
+                                                setting_group VARCHAR(100) NOT NULL,
+                                                description VARCHAR(100) NOT NULL,
+                                                CONSTRAINT PK_PasswordPolicies PRIMARY KEY (setting_name)
 );
 
 CREATE TABLE "CREDENTIALS".Credentials(
     email "SCA".email NOT NULL ,
-    password "SCA".password NOT NULL ,
+    -- password "SCA".password NOT NULL ,
     nom_policy VARCHAR(100),
     idindividu "SCA".IDindividu UNIQUE NOT NULL,
     CONSTRAINT Credentials_CC0 PRIMARY KEY (email),
     CONSTRAINT Credentials_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu,
-    CONSTRAINT Credentials_CR1 FOREIGN KEY (nom_policy) REFERENCES "CREDENTIALS".PasswordPolicies
+    -- CONSTRAINT Credentials_CR1 FOREIGN KEY (nom_policy) REFERENCES "CREDENTIALS".PasswordPolicies
 );
 
 CREATE TABLE "CREDENTIALS".organisation(
