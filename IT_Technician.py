@@ -17,26 +17,28 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal, QDir
 from PyQt6.QtGui import QFont, QColor, QPalette
 
-host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
-database = "test_bpdd"
-user = "test"
-password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"
-port = 5432
+from terminal import TerminalPage, AutomationPage
+from db_connection import db_connection
+# host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
+# database = "test_bpdd"
+# user = "test"
+# password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"
+# port = 5432
 
 
-db_connection = None
-try:
-    db_connection = psycopg2.connect(
-        host=host,
-        database=database,
-        user=user,
-        password=password,
-        port=port
-    )
-    print(f"Successfully connected to PostgreSQL database: {database}")
+# db_connection = None
+# try:
+#     db_connection = psycopg2.connect(
+#         host=host,
+#         database=database,
+#         user=user,
+#         password=password,
+#         port=port
+#     )
+#     print(f"Successfully connected to PostgreSQL database: {database}")
 
-except Error as e:
-    print(f"Error connecting to PostgreSQL database: {e}")
+# except Error as e:
+#     print(f"Error connecting to PostgreSQL database: {e}")
 
 class AccountSettingsPage(QWidget):
     """
@@ -843,11 +845,11 @@ class DatabaseMaintenancePage(QWidget):
         self.results_table.setAlternatingRowColors(True)
         self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.results_message_text = QTextEdit()
-        self.results_message_text.setReadOnly(True)
         self.results_message_text.setPlaceholderText("Results or status messages will appear here.")
+        self.results_message_text.setReadOnly(True)
         self.results_message_text.setMaximumHeight(120)
         self.results_message_text.setFont(QFont("Monospace", 9))
-        self.splitter = QSplitter(Qt.Orientation.Vertical)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.addWidget(query_input_frame)
         self.splitter.addWidget(results_display_frame)
         self.splitter.setSizes([300, 400])
@@ -1073,7 +1075,9 @@ class MainWindow(QMainWindow):
             "ACCOUNT SETTINGS": AccountSettingsPage(),
             "SYSTEM CONFIGURATION": SystemConfigurationPage(),
             "DATABASE MAINTENANCE": DatabaseMaintenancePage(),
-            "SECURITY SETTINGS": SecuritySettingPage()
+            "SECURITY SETTINGS": SecuritySettingPage(),
+            "TERMINAL": TerminalPage(), # Terminal Page
+            "AUTOMATION": AutomationPage(),
         }
         for i, (text, page_widget) in enumerate(nav_items_map.items()):
             self.pages.append(page_widget)
@@ -1153,6 +1157,35 @@ class MainWindow(QMainWindow):
             }
             #accountSettingsPage, #placeholderPage, #databaseMaintenancePage, #securitySettingPage {
                  background-color: transparent;
+            }
+             QTextEdit#terminalOutputTextEdit, QTextEdit#automationLogTextEdit { /* Applied to both terminal and automation log */
+                background-color: #1e1e1e;
+                color: #00ff00;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 11pt;
+                border-radius: 5px;
+                padding: 10px;
+                
+            }
+
+            QPushButton#executeButton, QPushButton#clearOutputButton {
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-size: 14px;
+                border: none;
+            }
+            QPushButton#executeButton {
+                background-color: #008CBA;
+            }
+            QPushButton#executeButton:hover {
+                background-color: #007bb5;
+            }
+            QPushButton#clearOutputButton {
+                background-color: #f44336;
+            }
+            QPushButton#clearOutputButton:hover {
+                background-color: #da190b;
             }
             #mainTitleLabel {
                 font-size: 28px;
@@ -1327,6 +1360,83 @@ class MainWindow(QMainWindow):
             }
             #queryTextEdit {
                 background-color: #021052;
+            }
+            QWidget#AutomationPage #sectionTitle {
+                font-size: 28px; /* Override for specific title */
+                font-weight: bold;
+                color: #2c3e50;
+                margin-bottom: 20px;
+            }
+            QWidget#AutomationPage p {
+                text-align: left; /* Align paragraphs normally */
+                padding: 0 10px; /* Add some horizontal padding for readability */
+            }
+
+
+            /* Table widget styling (if used in future pages) */
+            QTableWidget {
+                background-color: #ffffff;
+                border: 1px solid #ccc;
+                gridline-color: #eee;
+                font-size: 13px;
+                selection-background-color: #d1eaff;
+                selection-color: #333;
+                border-radius: 8px;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+            QTableWidget::item:selected {
+                background-color: #cceeff;
+                color: black;
+            }
+            QHeaderView::section {
+                background-color: #e6e6e6;
+                padding: 5px;
+                border: 1px solid #ccc;
+                font-weight: bold;
+                color: #333;
+            }
+            QHeaderView::section:horizontal {
+                border-bottom: 2px solid #aaa;
+            }
+            QHeaderView::section:vertical {
+                border-right: 2px solid #aaa;
+            }
+            #sectionSubTitle {
+                font-size: 18px;
+                font-weight: bold;
+                color: #555;
+                margin-bottom: 10px;
+            }
+
+            /* Buttons inside automation page */
+            QPushButton#primaryButton { /* Reused from earlier primaryButton, adjust if needed */
+                background-color: #2ecc71; /* Green */
+                color: #ffffff;
+                border: none;
+                padding: 10px 20px;
+                font-size: 14px;
+                border-radius: 10px;
+                margin-top: 2px; /* Adjust spacing */
+                text-align: center;
+            }
+            QPushButton#primaryButton:hover {
+                background-color: #27ae60;
+            }
+            QPushButton#secondaryButton {
+                background-color: #95a5a6; /* Gray */
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                font-size: 14px;
+                border-radius: 5px;
+                margin-top: 10px;
+                text-align: center;
+            }
+            QPushButton#secondaryButton:hover {
+                background-color: #7f8c8d;
+            }
         """)
 
 if __name__ == "__main__":
@@ -1343,6 +1453,7 @@ if __name__ == "__main__":
     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
     palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#49F2B4FF"))
     app.setPalette(palette)
     
     window = MainWindow()
