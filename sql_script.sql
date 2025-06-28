@@ -2503,3 +2503,42 @@ end; $$ language plpgsql;
 
 -- Exemple 8: Voir les colis en cours d'expédition
 -- SELECT * FROM "SCA".ColisEnExpedition;
+
+create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
+returns table(
+    id int,
+    _timestamp timestamp,
+    level varchar(10),
+    message text,
+    extra jsonb
+     )
+as $$
+begin
+return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Logs_gethigher(_date timestamp)
+returns table(
+    id int,
+    _timestamp timestamp,
+    level varchar(10),
+    message text,
+    extra jsonb
+     )
+as $$
+begin
+return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Logs_getlower(_date timestamp)
+returns table(
+    id int,
+    _timestamp timestamp,
+    level varchar(10),
+    message text,
+    extra jsonb
+     )
+as $$
+begin
+return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp <= _date;
+end; $$ language plpgsql;
