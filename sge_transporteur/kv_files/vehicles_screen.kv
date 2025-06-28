@@ -1,0 +1,284 @@
+# sge_transporteur/kv_files/vehicle_screen.kv
+
+# Définition du template pour chaque ligne de véhicule dans le RecycleView
+<VehicleListItem>: # Référence directe à la classe Python screens.vehicle_screen.VehicleListItem
+    # Les propriétés définies ici sont mappées aux propriétés de la classe Python VehicleListItem
+    
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(150) # Une hauteur un peu plus grande pour les véhicules
+    padding: root.padding_small
+    spacing: root.spacing_small
+
+    canvas.before:
+        Color:
+            rgba: root.background_card_color # Fond blanc pour chaque carte de véhicule
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [root.corner_radius_sm] * 4
+        Color: # Bordure supérieure accentuée (couleur calculée en Python)
+            rgba: root.item_border_color 
+        RoundedRectangle:
+            pos: self.x, self.y + self.height - dp(3) # Bordure en haut
+            size: self.width, dp(3)
+            radius: [root.corner_radius_sm, root.corner_radius_sm, 0, 0]
+
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(30)
+        spacing: root.spacing_small
+
+        Label:
+            text: root.id_text
+            font_size: root.font_size_md
+            color: root.text_dark_color
+            bold: True
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.width, None
+            size_hint_x: 0.3
+
+        Label:
+            text: root.status_text
+            font_size: root.font_size_md
+            color: root.item_status_color # La couleur change en fonction du statut (calculée en Python)
+            bold: True
+            halign: 'right'
+            valign: 'middle'
+            text_size: self.width, None
+            size_hint_x: 0.7
+
+
+    Label:
+        text: root.plate_text
+        font_size: root.font_size_sm
+        color: root.text_muted_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+
+
+    Label:
+        text: root.type_text
+        font_size: root.font_size_sm
+        color: root.text_muted_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+
+
+    Label:
+        text: root.capacity_text
+        font_size: root.font_size_sm
+        color: root.text_muted_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+
+    Label:
+        text: root.driver_text
+        font_size: root.font_size_sm
+        color: root.text_muted_color
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.width, None
+        size_hint_y: None
+        height: self.texture_size[1]
+
+
+# Définition de l'écran principal des Véhicules
+<VehicleScreen>:
+    name: 'vehicle'
+    BoxLayout:
+        orientation: 'horizontal'
+        padding: app.app_config.PADDING_MEDIUM
+        spacing: app.app_config.SPACING_MEDIUM
+
+        # Sidebar (réutilise la structure du dashboard)
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.20
+            padding: app.app_config.PADDING_MEDIUM
+            spacing: app.app_config.SPACING_MEDIUM
+            canvas.before:
+                Color:
+                    rgba: app.app_config.COLOR_SECONDARY
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            Image:
+                source: 'assets/icon.png'
+                size_hint_y: None
+                height: dp(80)
+                allow_stretch: True
+                keep_ratio: True
+                color: app.app_config.COLOR_PRIMARY
+
+            Label:
+                text: "Menu"
+                font_size: app.app_config.FONT_SIZE_LG
+                color: app.app_config.COLOR_TEXT_LIGHT
+                size_hint_y: None
+                height: self.texture_size[1] + app.app_config.SPACING_MEDIUM
+                halign: 'center'
+                valign: 'middle'
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 1
+                spacing: app.app_config.SPACING_SMALL
+
+                Button:
+                    text: "Tableau de Bord"
+                    font_size: app.app_config.FONT_SIZE_MD
+                    background_normal: ''
+                    background_color: app.app_config.COLOR_PRIMARY if root.name == 'dashboard' else app.app_config.COLOR_BUTTON_NORMAL
+                    color: app.app_config.COLOR_TEXT_LIGHT
+                    size_hint_y: None
+                    height: dp(50)
+                    on_release: app.change_screen('dashboard')
+                    canvas.before:
+                        Color:
+                            rgba: self.background_color
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [app.app_config.CORNER_RADIUS_SM] * 4
+
+                Button:
+                    text: "Livraisons"
+                    font_size: app.app_config.FONT_SIZE_MD
+                    background_normal: ''
+                    background_color: app.app_config.COLOR_PRIMARY if root.name == 'delivery' else app.app_config.COLOR_BUTTON_NORMAL
+                    color: app.app_config.COLOR_TEXT_LIGHT
+                    size_hint_y: None
+                    height: dp(50)
+                    on_release: app.change_screen('delivery')
+                    canvas.before:
+                        Color:
+                            rgba: self.background_color
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [app.app_config.CORNER_RADIUS_SM] * 4
+
+                Button:
+                    text: "Conducteurs"
+                    font_size: app.app_config.FONT_SIZE_MD
+                    background_normal: ''
+                    background_color: app.app_config.COLOR_PRIMARY if root.name == 'driver' else app.app_config.COLOR_BUTTON_NORMAL
+                    color: app.app_config.COLOR_TEXT_LIGHT
+                    size_hint_y: None
+                    height: dp(50)
+                    on_release: app.change_screen('driver')
+                    canvas.before:
+                        Color:
+                            rgba: self.background_color
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [app.app_config.CORNER_RADIUS_SM] * 4
+
+                Button:
+                    text: "Véhicules"
+                    font_size: app.app_config.FONT_SIZE_MD
+                    background_normal: ''
+                    background_color: app.app_config.COLOR_PRIMARY if root.name == 'vehicle' else app.app_config.COLOR_BUTTON_NORMAL
+                    color: app.app_config.COLOR_TEXT_LIGHT
+                    size_hint_y: None
+                    height: dp(50)
+                    on_release: app.change_screen('vehicle')
+                    canvas.before:
+                        Color:
+                            rgba: self.background_color
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [app.app_config.CORNER_RADIUS_SM] * 4
+                
+                Widget:
+                    size_hint_y: 1
+
+                Button:
+                    text: "Déconnexion"
+                    font_size: app.app_config.FONT_SIZE_MD
+                    background_normal: ''
+                    background_color: app.app_config.COLOR_ERROR
+                    color: app.app_config.COLOR_TEXT_LIGHT
+                    size_hint_y: None
+                    height: dp(50)
+                    on_release: app.root.get_screen('dashboard').show_logout_dialog()
+                    canvas.before:
+                        Color:
+                            rgba: self.background_color
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [app.app_config.CORNER_RADIUS_SM] * 4
+
+        # Contenu principal de l'écran des Véhicules
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.80
+            padding: app.app_config.PADDING_LARGE
+            spacing: app.app_config.SPACING_MEDIUM
+            canvas.before:
+                Color:
+                    rgba: app.app_config.COLOR_BACKGROUND_DARK
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            # En-tête de la section Véhicules
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: dp(80)
+                padding: app.app_config.PADDING_SMALL
+                spacing: app.app_config.SPACING_XS
+
+                Label:
+                    text: "Liste des Véhicules"
+                    font_size: app.app_config.FONT_SIZE_XL
+                    color: app.app_config.COLOR_TEXT_LIGHT
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    halign: 'left'
+                    text_size: self.width, None
+
+                Label:
+                    id: vehicle_status_label
+                    text: root.vehicle_status_message
+                    font_size: app.app_config.FONT_SIZE_SM
+                    color: root.vehicle_status_color
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    halign: 'left'
+                    text_size: self.width, None
+
+            # RecycleView pour afficher la liste des véhicules
+            RecycleView:
+                id: vehicles_rv
+                viewclass: 'VehicleListItem' # Le template visuel pour chaque élément de la liste
+                scroll_type: ['bars', 'content']
+                bar_width: dp(10)
+                data: root.vehicles_data 
+
+                RecycleBoxLayout:
+                    default_size: 0, dp(150) # Hauteur fixe pour les éléments des véhicules
+                    default_size_hint: 1, None 
+                    size_hint_y: None
+                    height: self.minimum_height 
+                    orientation: 'vertical'
+                    padding: app.app_config.PADDING_SMALL
+                    spacing: app.app_config.SPACING_SMALL

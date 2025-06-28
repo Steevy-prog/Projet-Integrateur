@@ -1,0 +1,52 @@
+# C:\Users\MESSIE KARLONE\Documents\Project Folder\Projet Integrateur PY\sge_transporteur\kv_files\settings_screen.kv
+
+<SettingsScreen>:
+    name: "settings"
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: app.app_config.COLOR_BACKGROUND_LIGHT
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        BoxLayout:
+            size_hint_y: None
+            height: dp(60)
+            padding: app.app_config.PADDING_SMALL
+            spacing: app.app_config.SPACING_SMALL
+            canvas.before:
+                Color:
+                    rgba: app.app_config.COLOR_PRIMARY
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: "⚙️ Écran des Paramètres"
+                font_size: app.app_config.FONT_SIZE_LG
+                bold: True
+                color: app.app_config.WHITE
+                halign: 'left'
+                text_size: self.size
+            Widget:
+                size_hint_x: 1
+            Button:
+                text: "Retour"
+                size_hint_x: None
+                width: dp(80)
+                background_normal: ''
+                background_color: app.app_config.COLOR_ACCENT
+                color: app.app_config.WHITE
+                font_size: app.app_config.FONT_SIZE_SM
+                on_release: app.change_screen("dashboard")
+        BoxLayout:
+            orientation: 'vertical'
+            padding: app.app_config.PADDING_LARGE
+            spacing: app.app_config.SPACING_MD
+            Label:
+                text: "Paramètres de l'Application (à construire)"
+                font_size: app.app_config.FONT_SIZE_XL
+                color: app.app_config.COLOR_TEXT_DARK
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.size

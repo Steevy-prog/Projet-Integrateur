@@ -1,0 +1,86 @@
+# sge_transporteur/kv_files/login_screen.kv
+
+<LoginScreen>:
+    name: 'login'
+    BoxLayout:
+        orientation: 'vertical'
+        padding: app.app_config.PADDING_LARGE # Rembourrage autour du contenu
+        spacing: app.app_config.SPACING_MEDIUM # Espacement entre les widgets enfants
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5} # Centrer le BoxLayout
+        size_hint: 0.8, 0.8 # Taille du BoxLayout du formulaire
+
+        canvas.before:
+            Color:
+                rgba: app.app_config.COLOR_BACKGROUND_DARK # Fond blanc pour la carte de connexion
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [app.app_config.CORNER_RADIUS_LG] * 4 # Coins arrondis
+
+        # MODIFICATION ICI : Titre "SGE TRANSPORT" en grand et majuscules
+        Label:
+            text: "SGE TRANSPORT" # Texte mis à jour
+            font_size: app.app_config.FONT_SIZE_XXL # Utilise une taille de police plus grande
+            bold: True # Pour le rendre gras
+            color: app.app_config.COLOR_PRIMARY # Couleur primaire pour le titre
+            size_hint_y: None
+            height: dp(80) # Augmente la hauteur pour accueillir la grande police
+            halign: 'center' # Centre le texte
+            valign: 'middle'
+
+        TextInput:
+            id: username_input
+            hint_text: "Nom d'utilisateur"
+            multiline: False
+            font_size: app.app_config.FONT_SIZE_MD
+            size_hint_y: None
+            height: dp(50)
+            padding: dp(10)
+            background_normal: ''
+            background_color: [0.95, 0.95, 0.95, 1] # Fond clair pour le champ
+            foreground_color: app.app_config.COLOR_TEXT_DARK
+            cursor_color: app.app_config.COLOR_PRIMARY
+            on_text_validate: password_input.focus = True
+
+        TextInput:
+            id: password_input
+            hint_text: "Mot de passe"
+            password: True
+            multiline: False
+            font_size: app.app_config.FONT_SIZE_MD
+            size_hint_y: None
+            height: dp(50)
+            padding: dp(10)
+            background_normal: ''
+            background_color: [0.95, 0.95, 0.95, 1] # Fond clair pour le champ
+            foreground_color: app.app_config.COLOR_TEXT_DARK
+            cursor_color: app.app_config.COLOR_PRIMARY
+            on_text_validate: root.attempt_login(username_input.text, self.text)
+
+        Button:
+            text: "Se connecter"
+            font_size: app.app_config.FONT_SIZE_LG
+            background_normal: ''
+            background_color: app.app_config.COLOR_PRIMARY # Couleur primaire pour le bouton
+            color: app.app_config.WHITE
+            size_hint_y: None
+            height: dp(60)
+            on_release: root.attempt_login(username_input.text, password_input.text)
+            canvas.before:
+                Color:
+                    rgba: self.background_color
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [app.app_config.CORNER_RADIUS_SM] * 4
+
+        Label:
+            id: login_status_label
+            text: root.login_status_message
+            font_size: app.app_config.FONT_SIZE_SM
+            color: root.login_status_color
+            size_hint_y: None
+            height: dp(30)
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.width, None
