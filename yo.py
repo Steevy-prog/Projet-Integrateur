@@ -1,11 +1,5 @@
 from abc import ABC, abstractmethod
 import sys
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QColor
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtWidgets import QFrame, QStackedLayout, QWidget
-from PyQt5.QtGui import QPainter, QPixmap
 from Worker_Dashboard import MainWindow as window1
 from Client_Dashboard import MainWindow as window2
 from IT_Technician import MainWindow as window3
@@ -268,10 +262,3 @@ class interface:
             return window4()
         else:
             raise ValueError("Unknown interface number. Use 1 for Worker, 2 for Client, 3 for IT Technician.")
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion") # A modern style
-    main_window = interface.create_interface(2)
-    main_window.showMaximized() # Start maximized for a better experience
-    sys.exit(app.exec_())
