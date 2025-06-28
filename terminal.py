@@ -240,7 +240,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute("SELECT \"SCA\".total();") # Assuming a 'products' table
+                cursor.execute("SELECT \"EMIR\".produitsnum();") # Assuming a 'products' table
                 count = cursor.fetchone()[0]
                 self.terminal_output.append(f"Number of products in stock: {count}")
             except Error as e:
