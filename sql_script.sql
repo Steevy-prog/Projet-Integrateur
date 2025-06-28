@@ -29,7 +29,7 @@ CREATE DOMAIN "SCA".Idrapport TEXT CHECK (
     );
 CREATE DOMAIN "SCA".email TEXT CHECK(
     VALUE~ '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
-);
+    );
 CREATE DOMAIN "SCA".password TEXT;
 
 CREATE DOMAIN "SCA".dims DOUBLE PRECISION CHECK (
@@ -72,6 +72,9 @@ CREATE DOMAIN "SCA".Idproduitmateriel TEXT CHECK(
 CREATE DOMAIN "SCA".Idproduitlogiciel TEXT CHECK(
     VALUE ~ '^PL[A-Z0-9]{4}$'
     );
+CREATE DOMAIN "SCA".idtache TEXT CHECK (
+    VALUE~ '^T[A-Z0-9]{5}$'
+    );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -87,160 +90,176 @@ CREATE TYPE "SCA".categorie_produit AS ENUM (
     'materiel d''emballage'
     );
 CREATE TABLE "SCA".Organisation(
-    idorganisation "SCA".idOrg NOT NULL ,
-    nom "SCA".Nom NOT NULL ,
-    telephone "SCA".Numero NOT NULL ,
-    type "SCA".typeOrg NOT NULL ,
-    CONSTRAINT ORG_CC0 PRIMARY KEY (idorganisation)
+                                   idorganisation "SCA".idOrg NOT NULL ,
+                                   nom "SCA".Nom NOT NULL ,
+                                   telephone "SCA".Numero NOT NULL ,
+                                   type "SCA".typeOrg NOT NULL ,
+                                   CONSTRAINT ORG_CC0 PRIMARY KEY (idorganisation)
 );
 
 CREATE TABLE "SCA".Cellule(
-    idcellule "SCA".Idcellule NOT NULL ,
-    longueur "SCA".dims NOT NULL ,
-    largeur "SCA".dims NOT NULL ,
-    hauteur "SCA".dims NOT NULL ,
-    masse_maximale "SCA".dims NOT NULL ,
-    CONSTRAINT Cellule_CC0 PRIMARY KEY (idcellule)
+                              idcellule "SCA".Idcellule NOT NULL ,
+                              longueur "SCA".dims NOT NULL ,
+                              largeur "SCA".dims NOT NULL ,
+                              hauteur "SCA".dims NOT NULL ,
+                              masse_maximale "SCA".dims NOT NULL ,
+                              CONSTRAINT Cellule_CC0 PRIMARY KEY (idcellule)
 );
 CREATE TABLE "SCA".Colis(
-    idcolis "SCA".Idcolis NOT NULL ,
-    date_creation date NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
+                            idcolis "SCA".Idcolis NOT NULL ,
+                            date_creation date NOT NULL ,
+                            statut "SCA".etat NOT NULL ,
+                            CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
 );
 CREATE TABLE "SCA".Zone(
-    idzone "SCA".Idzone NOT NULL ,
-    nom "SCA".Nom NOT NULL ,
-    CONSTRAINT Zone_CC0 PRIMARY KEY (idzone)
+                           idzone "SCA".Idzone NOT NULL ,
+                           nom "SCA".Nom NOT NULL ,
+                           CONSTRAINT Zone_CC0 PRIMARY KEY (idzone)
 );
 CREATE TABLE "SCA".individu(
-    idindividu "SCA".IDindividu NOT NULL ,
-    nom "SCA".Nom NOT NULL ,
-    adresse "SCA".Adresse NOT NULL ,
-    telephone "SCA".Numero NOT NULL ,
-    CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
+                               idindividu "SCA".IDindividu NOT NULL ,
+                               nom "SCA".Nom NOT NULL ,
+                               adresse "SCA".Adresse NOT NULL ,
+                               telephone "SCA".Numero NOT NULL ,
+                               CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
 );
 CREATE TABLE "SCA".Bonreception(
-    idbonreception "SCA".Bonrecep NOT NULL ,
-    idcolis "SCA".Idcolis NOT NULL ,
-    idtransporteur "SCA".idindividu NOT NULL ,
-    date_creation DATE NOT NULL ,
-    idfournisseur "SCA".idorg NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    remarques TEXT NOT NULL ,
-    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
-    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-    FOREIGN KEY (idtransporteur)REFERENCES "SCA".Organisation(idindividu)ON DELETE CASCADE,
-    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
+                                   idbonreception "SCA".Bonrecep NOT NULL ,
+                                   idcolis "SCA".Idcolis NOT NULL ,
+                                   idtransporteur "SCA".idindividu NOT NULL ,
+                                   date_creation DATE NOT NULL ,
+                                   idfournisseur "SCA".idorg NOT NULL ,
+                                   statut "SCA".etat NOT NULL ,
+                                   remarques TEXT NOT NULL ,
+                                   CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
+                                   FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
+                                   FOREIGN KEY (idtransporteur)REFERENCES "SCA".individu(idindividu)ON DELETE CASCADE,
+                                   FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Bonexpedition(
-    idbonexpedition "SCA".Bonexped NOT NULL ,
-    idcolis "SCA".Idcolis NOT NULL ,
-    idtransporteur "SCA".idindividu NOT NULL ,
-    date_creation DATE NOT NULL ,
-    iddestinataire "SCA".idorg NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    remarques TEXT NOT NULL ,
-    CONSTRAINT Bonexpedition_CC0 PRIMARY KEY(idbonexpedition),
-    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-    FOREIGN KEY (idtransporteur)REFERENCES "SCA".Organisation(idindividu) ON DELETE CASCADE,
-    FOREIGN KEY (iddestinataire)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
+                                    idbonexpedition "SCA".Bonexped NOT NULL ,
+                                    idcolis "SCA".Idcolis NOT NULL ,
+                                    idtransporteur "SCA".idindividu NOT NULL ,
+                                    date_creation DATE NOT NULL ,
+                                    iddestinataire "SCA".idorg NOT NULL ,
+                                    statut "SCA".etat NOT NULL ,
+                                    remarques TEXT NOT NULL ,
+                                    CONSTRAINT Bonexpedition_CC0 PRIMARY KEY(idbonexpedition),
+                                    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
+                                    FOREIGN KEY (idtransporteur)REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
+                                    FOREIGN KEY (iddestinataire)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Repertoire(
-    idindividu "SCA".IDindividu NOT NULL ,
-    idorganisation "SCA".idOrg NOT NULL ,
-    role "SCA".roles NOT NULL ,
-    CONSTRAINT Repertoire_pk PRIMARY KEY (idindividu,idorganisation,role),
-    CONSTRAINT Repertoire_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
-    FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
+                                 idindividu "SCA".IDindividu NOT NULL ,
+                                 idorganisation "SCA".idOrg NOT NULL ,
+                                 role "SCA".roles NOT NULL ,
+                                 CONSTRAINT Repertoire_pk PRIMARY KEY (idindividu,idorganisation,role),
+                                 CONSTRAINT Repertoire_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
+                                 FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Produit(
-    idproduit "SCA".Idproduit NOT NULL ,
-    idfournisseur "SCA".idorg NOT NULL ,
-    nom "SCA".Nom NOT NULL ,
-    description text NOT NULL ,
-    prix_unitaire float NOT NULL ,
-    marque "SCA".Nom NOT NULL ,
-    modele "SCA".Nom NOT NULL ,
-    categorie "SCA".categorie_produit DEFAULT 'produit de vente',
-    CONSTRAINT Produit_CC0 PRIMARY KEY (idproduit),
-    FOREIGN KEY(idfournisseur)REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
+                              idproduit "SCA".Idproduit NOT NULL ,
+                              idfournisseur "SCA".idorg NOT NULL ,
+                              nom "SCA".Nom NOT NULL ,
+                              description text NOT NULL ,
+                              prix_unitaire float NOT NULL ,
+                              marque "SCA".Nom NOT NULL ,
+                              modele "SCA".Nom NOT NULL ,
+                              categorie "SCA".categorie_produit DEFAULT 'produit de vente',
+                              CONSTRAINT Produit_CC0 PRIMARY KEY (idproduit),
+                              FOREIGN KEY(idfournisseur)REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
 CREATE TABLE "SCA".ProduitMateriel(
-    idproduit "SCA".Idproduit NOT NULL ,
-    longueur "SCA".dims NOT NULL ,
-    largeur "SCA".dims NOT NULL ,
-    hauteur "SCA".dims NOT NULL ,
-    masse "SCA".dims NOT NULL ,
-    CONSTRAINT ProduitMateriel_CC0 PRIMARY KEY (idproduit),
-    CONSTRAINT ProduitMateriel_cr0 FOREIGN KEY (idproduit)REFERENCES "SCA".produit(idproduit) ON DELETE CASCADE
+                                      idproduit "SCA".Idproduit NOT NULL ,
+                                      longueur "SCA".dims NOT NULL ,
+                                      largeur "SCA".dims NOT NULL ,
+                                      hauteur "SCA".dims NOT NULL ,
+                                      masse "SCA".dims NOT NULL ,
+                                      CONSTRAINT ProduitMateriel_CC0 PRIMARY KEY (idproduit),
+                                      CONSTRAINT ProduitMateriel_cr0 FOREIGN KEY (idproduit)REFERENCES "SCA".produit(idproduit) ON DELETE CASCADE
 );
 CREATE TABLE "SCA".ProduitLogiciel(
-    idproduit "SCA".Idproduit NOT NULL ,
-    version "SCA".Nom NOT NULL ,
-    license "SCA".Nom NOT NULL ,
-    CONSTRAINT ProduitLogiciel_CC0 PRIMARY KEY(idproduit),
-    FOREIGN KEY (idproduit)REFERENCES "SCA".Produit(idproduit) ON DELETE CASCADE
+                                      idproduit "SCA".Idproduit NOT NULL ,
+                                      version "SCA".Nom NOT NULL ,
+                                      license "SCA".Nom NOT NULL ,
+                                      CONSTRAINT ProduitLogiciel_CC0 PRIMARY KEY(idproduit),
+                                      FOREIGN KEY (idproduit)REFERENCES "SCA".Produit(idproduit) ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Lot(
-    idlot "SCA".idlot NOT NULL ,
-    idproduit "SCA".Idproduit NOT NULL ,
-    quantite "SCA".dims NOT NULL ,
-    date_creation date NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    origine "SCA".etat_lot DEFAULT 'standard',
-    nombre_utilisations INTEGER DEFAULT 0,
-    condition "SCA".condition_materiel DEFAULT 'utilisable',
-    CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
-    FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
-    ON DELETE CASCADE
+                          idlot "SCA".idlot NOT NULL ,
+                          idproduit "SCA".Idproduit NOT NULL ,
+                          quantite "SCA".dims NOT NULL ,
+                          date_creation date NOT NULL ,
+                          statut "SCA".etat NOT NULL ,
+                          origine "SCA".etat_lot DEFAULT 'standard',
+                          nombre_utilisations INTEGER DEFAULT 0,
+                          condition "SCA".condition_materiel DEFAULT 'utilisable',
+                          CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
+                          FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
+                              ON DELETE CASCADE
 );
 
 CREATE TABLE "SCA".ContenuColis(
-    idcolis "SCA".Idcolis NOT NULL ,
-    idlot "SCA".Idlot NOT NULL ,
-    quantite "SCA".dims NOT NULL ,
-    date_MAJ date NOT NULL ,
-    CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot,quantite),
-    CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE,
-    FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot)
-    ON DELETE CASCADE
+                                   idcolis "SCA".Idcolis NOT NULL ,
+                                   idlot "SCA".Idlot NOT NULL ,
+                                   quantite "SCA".dims NOT NULL ,
+                                   date_MAJ date NOT NULL ,
+                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot,quantite),
+                                   CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE,
+                                   FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot)
+                                       ON DELETE CASCADE
 );
 
 CREATE TABLE "SCA".entrepot(
-    idcellule "SCA".Idcellule NOT NULL ,
-    position "SCA".idzone NOT NULL ,
-    CONSTRAINT entrepot_CC0 PRIMARY KEY (idcellule,position),
-    CONSTRAINT entrepot_CR0 FOREIGN KEY (idcellule)REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE ,
-    FOREIGN KEY (position) REFERENCES "SCA".Zone(idzone)  ON DELETE CASCADE
+                               idcellule "SCA".Idcellule NOT NULL ,
+                               position "SCA".idzone NOT NULL ,
+                               CONSTRAINT entrepot_CC0 PRIMARY KEY (idcellule,position),
+                               CONSTRAINT entrepot_CR0 FOREIGN KEY (idcellule)REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE ,
+                               FOREIGN KEY (position) REFERENCES "SCA".Zone(idzone)  ON DELETE CASCADE
 );
 
 CREATE TABLE "SCA".RapportException(
-    idrapport "SCA".Idrapport NOT NULL ,
-    idcolis "SCA".Idcolis NOT NULL ,
-    type "SCA".rapports NOT NULL ,
-    date_creation date NOT NULL ,
-    description text NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    CONSTRAINT RapportException_CC0 PRIMARY KEY (idrapport),
-    FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE
+                                       idrapport "SCA".Idrapport NOT NULL ,
+                                       idcolis "SCA".Idcolis NOT NULL ,
+                                       type "SCA".rapports NOT NULL ,
+                                       date_creation date NOT NULL ,
+                                       description text NOT NULL ,
+                                       statut "SCA".etat NOT NULL ,
+                                       CONSTRAINT RapportException_CC0 PRIMARY KEY (idrapport),
+                                       FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE
 );
 
 CREATE TABLE "CREDENTIALS".application_theme(
-    theme_name TEXT,
-    interface TEXT,
-    theme_qss TEXT,
-    CONSTRAINT application_theme_CC0 PRIMARY KEY (theme_name, interface)
+                                                theme_name TEXT,
+                                                interface TEXT,
+                                                theme_qss TEXT,
+                                                CONSTRAINT application_theme_CC0 PRIMARY KEY (theme_name, interface)
 );
 
 CREATE TABLE "SCA".InventaireEmplacement(
+                                            idcellule "SCA".Idcellule NOT NULL ,
+                                            idlot "SCA".Idlot NOT NULL ,
+                                            quantite "SCA".dims NOT NULL ,
+                                            datemaj date NOT NULL ,
+                                            CONSTRAINT InventaireEmplacement_CC0 PRIMARY KEY (idcellule, idlot,quantite),
+                                            CONSTRAINT InventaireEmplacement_CR0 FOREIGN KEY (idcellule)REFERENCES "SCA".cellule(idcellule) ON DELETE CASCADE,
+                                            FOREIGN KEY (idlot)REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
+);
+
+CREATE TABLE "SCA".Tache(
+    idtache "SCA".idtache NOT NULL ,
+    idindividu "SCA".IDindividu NOT NULL ,
     idcellule "SCA".Idcellule NOT NULL ,
     idlot "SCA".Idlot NOT NULL ,
-    quantite "SCA".dims NOT NULL ,
-    datemaj date NOT NULL ,
-    CONSTRAINT InventaireEmplacement_CC0 PRIMARY KEY (idcellule, idlot,quantite),
-    CONSTRAINT InventaireEmplacement_CR0 FOREIGN KEY (idcellule)REFERENCES "SCA".cellule(idcellule) ON DELETE CASCADE,
-    FOREIGN KEY (idlot)REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
+    date_creation DATE NOT NULL ,
+    description TEXT NOT NULL ,
+    priority text not null,
+    statut text NOT NULL DEFAULT 'en cours',
+    type text not null,
+    CONSTRAINT Tache_CC0 PRIMARY KEY (idtache),
+    CONSTRAINT Tache_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
+    FOREIGN KEY (idcellule) REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE,
+    FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
 
 -- CREATE TABLE "CREDENTIALS".PasswordPolicies (
@@ -268,38 +287,38 @@ CREATE TABLE "CREDENTIALS".PasswordPolicies (
 );
 
 CREATE TABLE "CREDENTIALS".Credentials(
-    email "SCA".email NOT NULL ,
+                                          email "SCA".email NOT NULL ,
     -- password "SCA".password NOT NULL ,
-    nom_policy VARCHAR(100),
-    idindividu "SCA".IDindividu UNIQUE NOT NULL,
-    CONSTRAINT Credentials_CC0 PRIMARY KEY (email),
-    CONSTRAINT Credentials_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu
+                                          nom_policy VARCHAR(100),
+                                          idindividu "SCA".IDindividu UNIQUE NOT NULL,
+                                          CONSTRAINT Credentials_CC0 PRIMARY KEY (email),
+                                          CONSTRAINT Credentials_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu
     -- CONSTRAINT Credentials_CR1 FOREIGN KEY (nom_policy) REFERENCES "CREDENTIALS".PasswordPolicies
 );
 
 CREATE TABLE "CREDENTIALS".organisation(
-    idorganisation "SCA".idOrg NOT NULL ,
-    mdpOrg TEXT
+                                           idorganisation "SCA".idOrg NOT NULL ,
+                                           mdpOrg TEXT
 );
 
 CREATE TABLE "SCA".Logs (
-    id SERIAL PRIMARY KEY,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    level VARCHAR(10),            -- e.g. 'INFO', 'ERROR', 'DEBUG'
-    message TEXT,
-    extra JSONB                   -- pour des infos supplémentaires optionnelles
+                            id SERIAL PRIMARY KEY,
+                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            level VARCHAR(10),            -- e.g. 'INFO', 'ERROR', 'DEBUG'
+                            message TEXT,
+                            extra JSONB                   -- pour des infos supplémentaires optionnelles
 );
 CREATE TABLE "SCA".LocalisationOrganisation (
-    idlocalisation SERIAL PRIMARY KEY,
-    idorganisation "SCA".idOrg NOT NULL,
-    adresse "SCA".Adresse NOT NULL ,
-    ville VARCHAR(60),
-    region VARCHAR(60),
-    pays VARCHAR(60) DEFAULT 'Cameroun',
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
-    date_ajout DATE DEFAULT CURRENT_DATE,
-    CONSTRAINT LocalisationOrganisation_CR0 FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
+                                                idlocalisation SERIAL PRIMARY KEY,
+                                                idorganisation "SCA".idOrg NOT NULL,
+                                                adresse "SCA".Adresse NOT NULL ,
+                                                ville VARCHAR(60),
+                                                region VARCHAR(60),
+                                                pays VARCHAR(60) DEFAULT 'Cameroun',
+                                                latitude DOUBLE PRECISION,
+                                                longitude DOUBLE PRECISION,
+                                                date_ajout DATE DEFAULT CURRENT_DATE,
+                                                CONSTRAINT LocalisationOrganisation_CR0 FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
 
 
@@ -375,19 +394,19 @@ ORDER BY
     be.date_creation DESC);
 
 CREATE OR REPLACE VIEW "SCA".inventaire AS (
-    SELECT p.idproduit,p.nom,SUM(l.quantite) AS quantity
-    FROM "SCA".Produit p
-    JOIN "SCA".Lot l ON p.idproduit = l.idproduit
-    JOIN "SCA".InventaireEmplacement ie ON l.idlot = ie.idlot
-    WHERE l.idlot NOT IN (
-        -- Exclure les lots des colis livrés
-        SELECT DISTINCT cc.idlot
-        FROM "SCA".ContenuColis cc
-        JOIN "SCA".Colis c ON cc.idcolis = c.idcolis
-        WHERE c.statut = 'livre'
-    )
-    GROUP BY p.idproduit, p.nom
-);
+                                           SELECT p.idproduit,p.nom,SUM(l.quantite) AS quantity
+                                           FROM "SCA".Produit p
+                                                    JOIN "SCA".Lot l ON p.idproduit = l.idproduit
+                                                    JOIN "SCA".InventaireEmplacement ie ON l.idlot = ie.idlot
+                                           WHERE l.idlot NOT IN (
+                                               -- Exclure les lots des colis livrés
+                                               SELECT DISTINCT cc.idlot
+                                               FROM "SCA".ContenuColis cc
+                                                        JOIN "SCA".Colis c ON cc.idcolis = c.idcolis
+                                               WHERE c.statut = 'livre'
+                                           )
+                                           GROUP BY p.idproduit, p.nom
+                                               );
 
 -- Vue pour les colis en cours d'expédition (non livrés)
 CREATE OR REPLACE VIEW "SCA".ColisEnExpedition AS
@@ -1917,63 +1936,63 @@ end; $$ language plpgsql;
 --routines équivalentes à des sélections
 
 CREATE OR REPLACE FUNCTION "EMIR".valeur()
-RETURNS FLOAT AS $$
+    RETURNS FLOAT AS $$
 BEGIN
-RETURN (select sum(quantite*prix_unitaire) from "SCA".lot  NATURAL JOIN "SCA".Produit);
+    RETURN (select sum(quantite*prix_unitaire) from "SCA".lot  NATURAL JOIN "SCA".Produit);
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION "EMIR".total()
-RETURNS INT AS $$
+    RETURNS INT AS $$
 BEGIN
-RETURN  (select sum(quantite) from "SCA".lot  NATURAL JOIN "SCA".Produit);
+    RETURN  (select sum(quantite) from "SCA".lot  NATURAL JOIN "SCA".Produit);
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".numcellules()
-RETURNS INT AS $$
+    RETURNS INT AS $$
 BEGIN
-RETURN (select count(*) from "SCA".Cellule);
+    RETURN (select count(*) from "SCA".Cellule);
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".numcolis( idorganisation "SCA".idOrg )
-RETURNS INT AS $$
+    RETURNS INT AS $$
 BEGIN
-RETURN (select count(*) from "SCA".Colis where idOrganisation = idorganisation);
+    RETURN (select count(*) from "SCA".Colis where idOrganisation = idorganisation);
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".produitsnum()
-RETURNS INT AS $$
+    RETURNS INT AS $$
 BEGIN
-  RETURN (
-    SELECT COUNT(DISTINCT "SCA".Produit.idproduit)
-    FROM "SCA".Produit
-    JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
-  );
+    RETURN (
+        SELECT COUNT(DISTINCT "SCA".Produit.idproduit)
+        FROM "SCA".Produit
+                 JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
+    );
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".numzones()
-RETURNS INT AS $$
+    RETURNS INT AS $$
 BEGIN
-RETURN (select count(*) from "SCA".Zone);
+    RETURN (select count(*) from "SCA".Zone);
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION "EMIR".available_cells()
-RETURNS INT AS $$
+    RETURNS INT AS $$
 BEGIN
-  RETURN (
-    SELECT COUNT(*)
-    FROM "SCA".Cellule
-    WHERE idcellule NOT IN (
-      SELECT idcellule FROM "SCA".InventaireEmplacement
-    )
-  );
+    RETURN (
+        SELECT COUNT(*)
+        FROM "SCA".Cellule
+        WHERE idcellule NOT IN (
+            SELECT idcellule FROM "SCA".InventaireEmplacement
+        )
+    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1987,7 +2006,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION colis_entrants_jour(_date TEXT)
+CREATE OR REPLACE FUNCTION "EMIR".colis_entrants_date(_date TEXT)
     RETURNS INT AS $$
 BEGIN
     RETURN (
@@ -1997,7 +2016,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION colis_sortants_jour()
+CREATE OR REPLACE FUNCTION "EMIR".colis_sortants_jour()
     RETURNS INT AS $$
 BEGIN
     RETURN (
@@ -2007,7 +2026,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION colis_sortants_jour(_date TEXT)
+CREATE OR REPLACE FUNCTION "EMIR".colis_sortants_date(_date TEXT)
     RETURNS SETOF "SCA".ColisSortants AS $$
 BEGIN
     RETURN QUERY
@@ -2051,15 +2070,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".findzone(id "SCA".idproduit)
-RETURNS TEXT AS $$
+    RETURNS TEXT AS $$
 BEGIN
     RETURN (
         SELECT "SCA".zone.nom
         FROM "SCA".Produit
-        JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
-        JOIN "SCA".InventaireEmplacement ON "SCA".InventaireEmplacement.idlot = "SCA".Lot.idlot
-        JOIN "SCA".Entrepot ON "SCA".InventaireEmplacement.idcellule = entrepot.idcellule
-        JOIN "SCA".Zone on "SCA".zone.idzone = "SCA".entrepot.position
+                 JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
+                 JOIN "SCA".InventaireEmplacement ON "SCA".InventaireEmplacement.idlot = "SCA".Lot.idlot
+                 JOIN "SCA".Entrepot ON "SCA".InventaireEmplacement.idcellule = entrepot.idcellule
+                 JOIN "SCA".Zone on "SCA".zone.idzone = "SCA".entrepot.position
         WHERE "SCA".Produit.idproduit = id
         LIMIT 1
     );
@@ -2067,14 +2086,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".cellutilisation()
-RETURNS FLOAT AS $$
+    RETURNS FLOAT AS $$
 DECLARE
     a INT;
     b INT;
 BEGIN
     SELECT COUNT(DISTINCT "SCA".InventaireEmplacement.idcellule) INTO a
     FROM "SCA".Cellule
-    JOIN "SCA".InventaireEmplacement ON "SCA".Cellule.idcellule = "SCA".InventaireEmplacement.idcellule;
+             JOIN "SCA".InventaireEmplacement ON "SCA".Cellule.idcellule = "SCA".InventaireEmplacement.idcellule;
 
     SELECT COUNT(*) INTO b FROM "SCA".Cellule;
 
@@ -2083,9 +2102,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".getorganisationname(id "SCA".idorg)
-RETURNS TEXT AS $$
+    RETURNS TEXT AS $$
 BEGIN
-RETURN(select nom from "SCA".Organisation where idorganisation=id);
+    RETURN(select nom from "SCA".Organisation where idorganisation=id);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -2254,16 +2273,16 @@ SELECT 'Test 11 Passed: Bonexpedition inserted successfully with valid date.' AS
 -- \set QUIET off
 
 create or replace function "EMIR".valuereception()
-returns float as $$
+    returns float as $$
 declare
     total_value float;
 begin
 
     select sum("SCA".Produit.prix_unitaire * "SCA".Lot.quantite) into total_value
     from "SCA".Lot
-    join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
-    join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
-    join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
+             join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+             join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
     where "SCA".BonReception.date_creation = current_date;
 
     return total_value;
@@ -2271,13 +2290,13 @@ end;
 $$ LANGUAGE plpgsql;
 
 create or replace function "EMIR".avgitemsreception()
-returns float as $$
+    returns float as $$
 declare
     avg_value float;
 begin
     select avg("SCA".ContenuColis.quantite) into avg_value
     from "SCA".ContenuColis
-    join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
+             join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
     where "SCA".BonReception.date_creation = current_date;
 
     return avg_value;
@@ -2285,16 +2304,16 @@ end;
 $$ LANGUAGE plpgsql;
 
 create or replace function "EMIR".valueexpedition()
-returns float as $$
+    returns float as $$
 declare
     total_value float;
 begin
 
     select sum("SCA".Produit.prix_unitaire * "SCA".Lot.quantite) into total_value
     from "SCA".Lot
-    join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
-    join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
-    join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
+             join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+             join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
     where "SCA".Bonexpedition.date_creation = current_date;
 
     return total_value;
@@ -2303,18 +2322,33 @@ $$ LANGUAGE plpgsql;
 
 
 create or replace function "EMIR".avgitemsexpedition()
-returns float as $$
+    returns float as $$
 declare
     avg_value float;
 begin
     select avg("SCA".ContenuColis.quantite) into avg_value
     from "SCA".ContenuColis
-    join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
+             join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
     where "SCA".Bonexpedition.date_creation = current_date;
 
     return avg_value;
 end;
 $$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".Tache_EVA(idindividu "SCA".idindividu)
+returns table(
+    _idtache "SCA".idtache,
+    _idcellule "SCA".idcellule,
+    _idlot "SCA".idlot,
+    _date_creation date,
+    _description text,
+    _statut text,
+    _type text
+)
+as $$
+begin
+return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache;
+end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
 
@@ -2323,7 +2357,7 @@ CREATE OR REPLACE FUNCTION "EMIR".confirmer_livraison_colis(
     _idcolis "SCA".Idcolis,
     _date_livraison DATE DEFAULT CURRENT_DATE
 )
-RETURNS VOID AS $$
+    RETURNS VOID AS $$
 DECLARE
     colis_exists BOOLEAN;
     colis_expedition_exists BOOLEAN;
@@ -2333,29 +2367,29 @@ BEGIN
     IF NOT colis_exists THEN
         RAISE EXCEPTION 'Le colis % n''existe pas', _idcolis;
     END IF;
-    
+
     -- Vérifier que le colis a un bon d'expédition
     SELECT EXISTS(SELECT 1 FROM "SCA".Bonexpedition WHERE idcolis = _idcolis) INTO colis_expedition_exists;
     IF NOT colis_expedition_exists THEN
         RAISE EXCEPTION 'Le colis % n''a pas de bon d''expédition associé', _idcolis;
     END IF;
-    
+
     -- Mettre à jour le statut du colis à "livre"
-    UPDATE "SCA".Colis 
+    UPDATE "SCA".Colis
     SET statut = 'livre'::"SCA".etat
     WHERE idcolis = _idcolis;
-    
+
     -- Mettre à jour le statut du bon d'expédition à "livre"
-    UPDATE "SCA".Bonexpedition 
+    UPDATE "SCA".Bonexpedition
     SET statut = 'livre'::"SCA".etat,
         remarques = remarques || ' - Livré le ' || _date_livraison::TEXT
     WHERE idcolis = _idcolis;
-    
+
     -- Insérer un log de livraison
     INSERT INTO "SCA".Logs (level, message, extra)
-    VALUES ('INFO', 'Colis livré avec succès', 
+    VALUES ('INFO', 'Colis livré avec succès',
             jsonb_build_object('idcolis', _idcolis, 'date_livraison', _date_livraison));
-    
+
     RAISE NOTICE 'Livraison du colis % confirmée pour le %', _idcolis, _date_livraison;
 END;
 $$ LANGUAGE plpgsql;
@@ -2365,31 +2399,31 @@ CREATE OR REPLACE FUNCTION "EMIR".colis_livres(
     _date_debut DATE DEFAULT NULL,
     _date_fin DATE DEFAULT NULL
 )
-RETURNS TABLE (
-    idcolis "SCA".Idcolis,
-    date_creation DATE,
-    date_livraison DATE,
-    destinataire TEXT,
-    transporteur TEXT,
-    statut "SCA".etat
-) AS $$
+    RETURNS TABLE (
+                      idcolis "SCA".Idcolis,
+                      date_creation DATE,
+                      date_livraison DATE,
+                      destinataire TEXT,
+                      transporteur TEXT,
+                      statut "SCA".etat
+                  ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
-        c.idcolis,
-        c.date_creation,
-        be.date_creation as date_livraison,
-        o_dest.nom as destinataire,
-        o_trans.nom as transporteur,
-        c.statut
-    FROM "SCA".Colis c
-    JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
-    JOIN "SCA".Organisation o_dest ON be.iddestinataire = o_dest.idorganisation
-    JOIN "SCA".Organisation o_trans ON be.idtransporteur = o_trans.idorganisation
-    WHERE c.statut = 'livre'::"SCA".etat
-    AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
-    AND (_date_fin IS NULL OR be.date_creation <= _date_fin)
-    ORDER BY be.date_creation DESC;
+        SELECT
+            c.idcolis,
+            c.date_creation,
+            be.date_creation as date_livraison,
+            o_dest.nom as destinataire,
+            o_trans.nom as transporteur,
+            c.statut
+        FROM "SCA".Colis c
+                 JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+                 JOIN "SCA".Organisation o_dest ON be.iddestinataire = o_dest.idorganisation
+                 JOIN "SCA".Organisation o_trans ON be.idtransporteur = o_trans.idorganisation
+        WHERE c.statut = 'livre'::"SCA".etat
+          AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+          AND (_date_fin IS NULL OR be.date_creation <= _date_fin)
+        ORDER BY be.date_creation DESC;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -2398,12 +2432,12 @@ CREATE OR REPLACE FUNCTION "EMIR".statistiques_livraison(
     _date_debut DATE DEFAULT NULL,
     _date_fin DATE DEFAULT NULL
 )
-RETURNS TABLE (
-    total_colis_livres BIGINT,
-    total_colis_expedies BIGINT,
-    taux_livraison NUMERIC,
-    valeur_totale_livree NUMERIC
-) AS $$
+    RETURNS TABLE (
+                      total_colis_livres BIGINT,
+                      total_colis_expedies BIGINT,
+                      taux_livraison NUMERIC,
+                      valeur_totale_livree NUMERIC
+                  ) AS $$
 DECLARE
     colis_livres BIGINT;
     colis_expedies BIGINT;
@@ -2412,37 +2446,37 @@ BEGIN
     -- Compter les colis livrés
     SELECT COUNT(*) INTO colis_livres
     FROM "SCA".Colis c
-    JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+             JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
     WHERE c.statut = 'livre'::"SCA".etat
-    AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
-    AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
-    
+      AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+
     -- Compter les colis expédiés (tous statuts)
     SELECT COUNT(*) INTO colis_expedies
     FROM "SCA".Bonexpedition be
     WHERE (_date_debut IS NULL OR be.date_creation >= _date_debut)
-    AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
-    
+      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+
     -- Calculer la valeur totale livrée
     SELECT COALESCE(SUM(p.prix_unitaire * cc.quantite), 0) INTO valeur_livree
     FROM "SCA".Colis c
-    JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
-    JOIN "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
-    JOIN "SCA".Lot l ON cc.idlot = l.idlot
-    JOIN "SCA".Produit p ON l.idproduit = p.idproduit
+             JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+             JOIN "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
+             JOIN "SCA".Lot l ON cc.idlot = l.idlot
+             JOIN "SCA".Produit p ON l.idproduit = p.idproduit
     WHERE c.statut = 'livre'::"SCA".etat
-    AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
-    AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
-    
+      AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+
     RETURN QUERY
-    SELECT 
-        colis_livres,
-        colis_expedies,
-        CASE 
-            WHEN colis_expedies > 0 THEN ROUND((colis_livres::NUMERIC / colis_expedies::NUMERIC) * 100, 2)
-            ELSE 0
-        END as taux_livraison,
-        valeur_livree;
+        SELECT
+            colis_livres,
+            colis_expedies,
+            CASE
+                WHEN colis_expedies > 0 THEN ROUND((colis_livres::NUMERIC / colis_expedies::NUMERIC) * 100, 2)
+                ELSE 0
+                END as taux_livraison,
+            valeur_livree;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -2461,7 +2495,7 @@ begin
     else
         date_livraison := _date_livraison::date;
     end if;
-    
+
     -- Appeler la fonction de confirmation de livraison
     perform "EMIR".confirmer_livraison_colis("SCA".idcolis_conv(_idcolis), date_livraison);
 end; $$ language plpgsql;
