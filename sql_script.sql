@@ -2895,3 +2895,4 @@ as $$
 begin
 return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp <= _date;
 end; $$ language plpgsql;
+*
