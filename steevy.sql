@@ -72,6 +72,9 @@ CREATE DOMAIN "SCA".Idproduitmateriel TEXT CHECK(
 CREATE DOMAIN "SCA".Idproduitlogiciel TEXT CHECK(
     VALUE ~ '^PL[A-Z0-9]{4}$'
     );
+CREATE DOMAIN "SCA".idtache TEXT CHECK (
+    VALUE~ '^T[A-Z0-9]{5}$'
+    );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -241,6 +244,22 @@ CREATE TABLE "SCA".InventaireEmplacement(
                                             CONSTRAINT InventaireEmplacement_CC0 PRIMARY KEY (idcellule, idlot,quantite),
                                             CONSTRAINT InventaireEmplacement_CR0 FOREIGN KEY (idcellule)REFERENCES "SCA".cellule(idcellule) ON DELETE CASCADE,
                                             FOREIGN KEY (idlot)REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
+);
+
+CREATE TABLE "SCA".Tache(
+    idtache "SCA".idtache NOT NULL ,
+    idindividu "SCA".IDindividu NOT NULL ,
+    idcellule "SCA".Idcellule NOT NULL ,
+    idlot "SCA".Idlot NOT NULL ,
+    date_creation DATE NOT NULL ,
+    description TEXT NOT NULL ,
+    priority text not null,
+    statut text NOT NULL DEFAULT 'en cours',
+    type text not null,
+    CONSTRAINT Tache_CC0 PRIMARY KEY (idtache),
+    CONSTRAINT Tache_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
+    FOREIGN KEY (idcellule) REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE,
+    FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
 
 -- CREATE TABLE "CREDENTIALS".PasswordPolicies (
@@ -2315,6 +2334,21 @@ begin
     return avg_value;
 end;
 $$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".Tache_EVA(idindividu "SCA".idindividu)
+returns table(
+    _idtache "SCA".idtache,
+    _idcellule "SCA".idcellule,
+    _idlot "SCA".idlot,
+    _date_creation date,
+    _description text,
+    _statut text,
+    _type text
+)
+as $$
+begin
+return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache;
+end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
 
