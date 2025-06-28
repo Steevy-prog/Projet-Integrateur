@@ -1918,4 +1918,980 @@ BEGIN
     -- Get the product ID from the Lot being referenced in ContenuColis
     -- This trigger fires BEFORE INSERT on ContenuColis when a colis is being assembled for expedition.
     -- It assumes that NEW.idcolis is for an outgoing colis.
-    -- We need to check if the product
+    -- We need to check if the product in the lot is available in InventaireEmplacement.
+
+    -- First, check if the colis is part of an expedition process
+    IF EXISTS (SELECT 1 FROM "SCA".Bonexpedition WHERE idcolis = NEW.idcolis) THEN
+        -- Sum up all quantities for this lot across all cells in InventaireEmplacement
+        SELECT COALESCE(SUM(quantite), 0) INTO available_quantity
+        FROM "SCA".InventaireEmplacement
+        WHERE idlot = NEW.idlot;
+
+        -- If the quantity being added to the outgoing colis is greater than available stock
+        IF NEW.quantite > available_quantity THEN
+            RAISE EXCEPTION 'Insufficient stock for lot % (Product ID: %) for expedition. Available: %, Requested: %',
+                NEW.idlot,
+                (SELECT idproduit FROM "SCA".Lot WHERE idlot = NEW.idlot),
+                available_quantity,
+                NEW.quantite;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to enforce product availability for expedition during colis content insertion
+CREATE TRIGGER trg_check_expedition_availability
+    BEFORE INSERT ON "SCA".ContenuColis
+    FOR EACH ROW
+EXECUTE FUNCTION "SCA".check_expedition_availability();
+
+
+-- Trigger function to ensure expedition date is not earlier than reception date
+CREATE OR REPLACE FUNCTION "SCA".check_expedition_date()
+    RETURNS TRIGGER AS $$
+DECLARE
+    reception_date DATE;
+BEGIN
+    -- Get the reception date for the colis associated with the new expedition bon
+    SELECT br.date_creation INTO reception_date
+    FROM "SCA".Bonreception br
+    WHERE br.idcolis = NEW.idcolis;
+
+    -- If a reception record exists for this colis and its date is after the proposed expedition date
+    IF reception_date IS NOT NULL AND NEW.date_creation < reception_date THEN
+        RAISE EXCEPTION 'Expedition date (%) for colis % cannot be earlier than its reception date (%).',
+            NEW.date_creation, NEW.idcolis, reception_date;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to enforce expedition date validity
+CREATE TRIGGER trg_check_expedition_date
+    BEFORE INSERT OR UPDATE ON "SCA".Bonexpedition
+    FOR EACH ROW
+EXECUTE FUNCTION "SCA".check_expedition_date();
+
+--script pour les traitements proposés
+-- routines équivalentes à des mises à jour
+
+-- Routines de MODIFICATION (_MOD)
+
+-- 1. ORGANISATION
+create or replace procedure "EMIR".Organisation_MOD(
+    _idorganisation "SCA".idOrg,
+    _nom "SCA".Nom,
+    _telephone "SCA".Numero,
+    _adresse "SCA".Adresse,
+    _type "SCA".typeOrg
+)
+as $$
+begin
+    update "SCA".Organisation
+    set nom = "SCA".nom_conv(_nom),
+        telephone = "SCA".Numero_CONV(_telephone),
+        adresse = "SCA".adresse_conv(_adresse),
+        type = _type::"SCA".typeOrg
+    where idorganisation = "SCA".idorg_conv(_idorganisation);
+end; $$ language plpgsql;
+
+-- 2. CELLULE
+create or replace procedure "EMIR".Cellule_MOD(
+    _idcellule "SCA".Idcellule,
+    _longueur "SCA".dims,
+    _largeur "SCA".dims,
+    _hauteur "SCA".dims,
+    _masse_maximale "SCA".dims
+)
+as $$
+begin
+    update "SCA".Cellule
+    set longueur = "SCA".dims_conv(_longueur),
+        largeur = "SCA".dims_conv(_largeur),
+        hauteur = "SCA".dims_conv(_hauteur),
+        masse_maximale = "SCA".dims_conv(_masse_maximale)
+    where idcellule = "SCA".idcellule_conv(_idcellule);
+end; $$ language plpgsql;
+
+-- 3. COLIS
+create or replace procedure "EMIR".Colis_MOD(
+    _idcolis "SCA".Idcolis,
+    _date_creation date,
+    _statut "SCA".etat
+)
+as $$
+begin
+    update "SCA".Colis
+    set date_creation = _date_creation::date,
+        statut = _statut::"SCA".etat
+    where idcolis = "SCA".idcolis_conv(_idcolis);
+end; $$ language plpgsql;
+
+-- 4. ZONE
+create or replace procedure "EMIR".Zone_MOD(
+    _idzone "SCA".Idzone,
+    _nom "SCA".Nom
+)
+as $$
+begin
+    update "SCA".Zone
+    set nom = "SCA".nom_conv(_nom)
+    where idzone = "SCA".idzone_conv(_idzone);
+end; $$ language plpgsql;
+
+-- 5. BONRECEPTION
+create or replace procedure "EMIR".Bonreception_MOD(
+    _idbonreception "SCA".Bonrecep,
+    _idcolis "SCA".Idcolis,
+    _idtransporteur "SCA".idOrg,
+    _date_creation date,
+    _idfournisseur "SCA".idOrg,
+    _statut "SCA".etat,
+    _remarques text
+)
+as $$
+begin
+    update "SCA".Bonreception
+    SET idcolis = "SCA".Idcolis_CONV(_idcolis),
+        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
+        date_creation = _date_creation::date,
+        idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
+        statut = _statut::"SCA".etat,
+        remarques = _remarques
+    WHERE idbonreception = "SCA".Bonrecep_CONV(_idbonreception);
+end; $$ language plpgsql;
+
+-- 6. BONEXPEDITION
+create or replace procedure "EMIR".Bonexpedition_MOD(
+    _idbonexpedition "SCA".Bonexped,
+    _idcolis "SCA".Idcolis,
+    _idtransporteur "SCA".idOrg,
+    _date_creation date,
+    _iddestinataire "SCA".idOrg,
+    _statut "SCA".etat,
+    _remarques text
+)
+as $$
+begin
+    update "SCA".Bonexpedition
+    SET idcolis = "SCA".Idcolis_CONV(_idcolis),
+        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
+        date_creation = _date_creation::date,
+        iddestinataire = "SCA".idOrg_CONV(_iddestinataire),
+        statut = _statut::"SCA".etat,
+        remarques = _remarques
+    WHERE idbonexpedition = "SCA".Bonexped_CONV(_idbonexpedition);
+end; $$ language plpgsql;
+
+-- 7. INDIVIDU
+create or replace procedure "EMIR".Individu_MOD(
+    _idindividu "SCA".IDindividu,
+    _nom "SCA".Nom,
+    _adresse "SCA".Adresse,
+    _telephone "SCA".Numero
+)
+as $$
+begin
+    update "SCA".Individu
+    SET nom = "SCA".Nom_CONV(_nom),
+        adresse = "SCA".Adresse_CONV(_adresse),
+        telephone = "SCA".Numero_CONV(_telephone)
+    WHERE idindividu = "SCA".IDindividu_CONV(_idindividu);
+end; $$ language plpgsql;
+
+-- 8. REPERTOIRE
+create or replace procedure "EMIR".Repertoire_MOD(
+    _idindividu "SCA".IDindividu,
+    _idorganisation "SCA".idOrg,
+    _role "SCA".roles
+)
+as $$
+begin
+    update "SCA".Repertoire
+    SET role = _role::"SCA".roles
+    WHERE idindividu = "SCA".IDindividu_CONV(_idindividu)
+      AND idorganisation = "SCA".idOrg_CONV(_idorganisation);
+end; $$ language plpgsql;
+
+-- 9. PRODUIT
+create or replace procedure "EMIR".Produit_MOD(
+    _idproduit "SCA".Idproduit,
+    _idfournisseur "SCA".idOrg,
+    _nom "SCA".Nom,
+    _description text,
+    _marque "SCA".Nom,
+    _modele "SCA".Nom
+)
+as $$
+begin
+    update "SCA".Produit
+    SET idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
+        nom = "SCA".Nom_CONV(_nom),
+        description = _description,
+        marque = "SCA".Nom_CONV(_marque),
+        modele = "SCA".Nom_CONV(_modele)
+    WHERE idproduit = "SCA".Idproduit_CONV(_idproduit);
+end; $$ language plpgsql;
+
+-- 10. PRODUITMATERIEL
+create or replace procedure "EMIR".ProduitMateriel_MOD(
+    _idproduit "SCA".Idproduit,
+    _longueur "SCA".dims,
+    _largeur "SCA".dims,
+    _hauteur "SCA".dims,
+    _masse "SCA".dims
+)
+as $$
+begin
+    update "SCA".ProduitMateriel
+    SET longueur = "SCA".dims_CONV(_longueur),
+        largeur = "SCA".dims_CONV(_largeur),
+        hauteur = "SCA".dims_CONV(_hauteur),
+        masse = "SCA".dims_CONV(_masse)
+    WHERE idproduit = "SCA".Idproduit_CONV(_idproduit);
+end; $$ language plpgsql;
+
+-- 11. PRODUITLOGICIEL
+create or replace procedure "EMIR".ProduitLogiciel_MOD(
+    _idproduit "SCA".Idproduit,
+    _version "SCA".Nom,
+    _license "SCA".Nom
+)
+as $$
+begin
+    update "SCA".ProduitLogiciel
+    SET version = "SCA".Nom_CONV(_version),
+        license = "SCA".Nom_CONV(_license)
+    WHERE idproduit = "SCA".Idproduit_CONV(_idproduit);
+end; $$ language plpgsql;
+
+-- 12. LOT
+create or replace procedure "EMIR".Lot_MOD(
+    _idlot "SCA".idlot,
+    _idproduit "SCA".Idproduit,
+    _quantite "SCA".dims,
+    _date_creation date,
+    _statut "SCA".etat
+)
+as $$
+begin
+    update "SCA".Lot
+    SET idproduit = "SCA".Idproduit_CONV(_idproduit),
+        quantite = "SCA".dims_CONV(_quantite),
+        date_creation = _date_creation::date,
+        statut = _statut::"SCA".etat
+    WHERE idlot = "SCA".Idlot_CONV(_idlot);
+end; $$ language plpgsql;
+
+-- 13. CONTENUCOLIS
+create or replace procedure "EMIR".ContenuColis_MOD(
+    _idcolis "SCA".Idcolis,
+    _idlot "SCA".Idlot,
+    _quantite "SCA".dims,
+    _date_MAJ date
+)
+as $$
+begin
+    update "SCA".ContenuColis
+    SET quantite = "SCA".dims_CONV(_quantite),
+        date_MAJ = _date_MAJ::date
+    WHERE idcolis = "SCA".Idcolis_CONV(_idcolis)
+      AND idlot = "SCA".Idlot_CONV(_idlot);
+end; $$ language plpgsql;
+
+-- 14. ENTREPOT
+create or replace procedure "EMIR".Entrepot_MOD(
+    _idcellule "SCA".Idcellule,
+    _position "SCA".Nom
+)
+as $$
+begin
+    update "SCA".Entrepot
+    SET position = "SCA".Idzone_CONV(_position)
+    WHERE idcellule = "SCA".Idcellule_CONV(_idcellule);
+end; $$ language plpgsql;
+
+-- 16. RAPPORTEXCEPTION
+create or replace procedure "EMIR".RapportException_MOD(
+    _idrapport "SCA".Idrapport,
+    _idcolis "SCA".Idcolis,
+    _type "SCA".rapports,
+    _date_creation date,
+    _description text,
+    _statut "SCA".etat
+)
+as $$
+begin
+    update "SCA".RapportException
+    SET idcolis = "SCA".Idcolis_CONV(_idcolis),
+        type = _type::"SCA".rapports,
+        date_creation = _date_creation::date,
+        description = _description,
+        statut = _statut::"SCA".etat
+    WHERE idrapport = "SCA".Idrapport_CONV(_idrapport);
+end; $$ language plpgsql;
+
+-- 17. INVENTAIREEMPLACEMENT
+create or replace procedure "EMIR".InventaireEmplacement_MOD(
+    _idcellule "SCA".Idcellule,
+    _idlot "SCA".Idlot,
+    _quantite "SCA".dims,
+    _datemaj date
+)
+as $$
+begin
+    update "SCA".InventaireEmplacement
+    SET quantite = "SCA".dims_CONV(_quantite),
+        datemaj = _datemaj::date
+    WHERE idcellule = "SCA".Idcellule_CONV(_idcellule)
+      AND idlot = "SCA".Idlot_CONV(_idlot);
+end; $$ language plpgsql;
+
+
+--script pour les requetes proposées
+--routines équivalentes à des sélections
+
+CREATE OR REPLACE FUNCTION "EMIR".valeur()
+    RETURNS FLOAT AS $$
+BEGIN
+    RETURN (select sum(quantite*prix_unitaire) from "SCA".lot  NATURAL JOIN "SCA".Produit);
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION "EMIR".total()
+    RETURNS INT AS $$
+BEGIN
+    RETURN  (select sum(quantite) from "SCA".lot  NATURAL JOIN "SCA".Produit);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".numcellules()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (select count(*) from "SCA".Cellule);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".numcolis( idorganisation "SCA".idOrg )
+    RETURNS INT AS $$
+BEGIN
+    RETURN (select count(*) from "SCA".Colis where idOrganisation = idorganisation);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".produitsnum()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT COUNT(DISTINCT "SCA".Produit.idproduit)
+        FROM "SCA".Produit
+                 JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".numzones()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (select count(*) from "SCA".Zone);
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION "EMIR".available_cells()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT COUNT(*)
+        FROM "SCA".Cellule
+        WHERE idcellule NOT IN (
+            SELECT idcellule FROM "SCA".InventaireEmplacement
+        )
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".colis_entrants_jour()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT *
+        FROM "SCA".Bonreception
+        WHERE date_creation = current_date);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".colis_entrants_date(_date TEXT)
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT *
+        FROM "SCA".Bonreception
+        WHERE date_creation = _date::date);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".colis_sortants_jour()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT *
+        FROM "SCA".Bonexpedition
+        WHERE date_creation = current_date);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".colis_sortants_date(_date TEXT)
+    RETURNS SETOF "SCA".ColisSortants AS $$
+BEGIN
+    RETURN QUERY
+        SELECT *
+        FROM "SCA".ColisSortants
+        WHERE "Date expédition" = _date::date;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".colis_entrants_jour_count()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT COUNT(*)
+        FROM "SCA".ColisEntrants
+        WHERE "Date réception" = current_date
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".colis_sortants_jour_count()
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT COUNT(*)
+        FROM "SCA".ColisSortants
+        WHERE "Date expédition" = current_date
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".quantityproduct(id "SCA".idproduit)
+    RETURNS INT AS $$
+BEGIN
+    RETURN (
+        SELECT SUM(quantite)
+        FROM "SCA".Lot
+        WHERE idproduit = id::text
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".findzone(id "SCA".idproduit)
+    RETURNS TEXT AS $$
+BEGIN
+    RETURN (
+        SELECT "SCA".zone.nom
+        FROM "SCA".Produit
+                 JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
+                 JOIN "SCA".InventaireEmplacement ON "SCA".InventaireEmplacement.idlot = "SCA".Lot.idlot
+                 JOIN "SCA".Entrepot ON "SCA".InventaireEmplacement.idcellule = entrepot.idcellule
+                 JOIN "SCA".Zone on "SCA".zone.idzone = "SCA".entrepot.position
+        WHERE "SCA".Produit.idproduit = id
+        LIMIT 1
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".cellutilisation()
+    RETURNS FLOAT AS $$
+DECLARE
+    a INT;
+    b INT;
+BEGIN
+    SELECT COUNT(DISTINCT "SCA".InventaireEmplacement.idcellule) INTO a
+    FROM "SCA".Cellule
+             JOIN "SCA".InventaireEmplacement ON "SCA".Cellule.idcellule = "SCA".InventaireEmplacement.idcellule;
+
+    SELECT COUNT(*) INTO b FROM "SCA".Cellule;
+
+    RETURN (a::FLOAT / b) * 100;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".getorganisationname(id "SCA".idorg)
+    RETURNS TEXT AS $$
+BEGIN
+    RETURN(select nom from "SCA".Organisation where idorganisation=id);
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- SGE_test-pos.sql
+-- Script SQL pour les tests unitaires positifs
+
+-- Désactiver les messages pour des sorties plus propres (optionnel, dépend du client SQL)
+-- \set QUIET on
+
+-- Démarrer une transaction pour chaque bloc de test afin de pouvoir faire un ROLLBACK
+-- et maintenir l'état de la base de données propre entre les tests.
+
+-- =============================================================================
+-- Test 1: Insertion réussie d'une Organisation
+-- =============================================================================
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OABCDE', 'TestOrg1', '678901234', 'fournisseur');
+SELECT 'Test 1 Passed: Organisation inserted successfully.' AS TestStatus;
+-- =============================================================================
+-- Test 2: Insertion réussie d'une Cellule
+-- =============================================================================
+INSERT INTO "SCA".Cellule (idcellule, longueur, largeur, hauteur, masse_maximale)
+VALUES ('C00001', 10.0, 5.0, 3.0, 1000.0);
+SELECT 'Test 2 Passed: Cellule inserted successfully.' AS TestStatus;
+
+-- =============================================================================
+-- Test 3: Insertion réussie d'un Colis
+-- =============================================================================
+
+INSERT INTO "SCA".Colis (idcolis, date_creation, statut)
+VALUES ('CO00001', '2025-06-20', 'bon etat');
+SELECT 'Test 3 Passed: Colis inserted successfully.' AS TestStatus;
+
+
+-- =============================================================================
+-- Test 4: Insertion réussie d'une Zone
+-- =============================================================================
+
+INSERT INTO "SCA".Zone (idzone, nom)
+VALUES ('ZREC01', 'Zone de Reception 1');
+SELECT 'Test 4 Passed: Zone inserted successfully.' AS TestStatus;
+-- =============================================================================
+-- Test 5: Insertion réussie d'un Individu et d'un Repertoire
+-- =============================================================================
+INSERT INTO "SCA".individu (idindividu, nom, adresse, telephone)
+VALUES ('I00001', 'John Doe', '456 Av. Test', '698765432');
+
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OTRANA', 'Transporteur XYZ', '612345678', 'transporteur');
+
+INSERT INTO "SCA".Repertoire (idindividu, idorganisation, role)
+VALUES ('I00001', 'OTRANA', 'conducteur');
+SELECT 'Test 5 Passed: Individu and Repertoire inserted successfully.' AS TestStatus;
+
+-- =============================================================================
+-- Test 6: Insertion réussie d'un Produit Materiel
+-- =============================================================================
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OFOURA', 'Fournisseur ABC', '654321098', 'fournisseur');
+
+INSERT INTO "SCA".Produit (idproduit, idfournisseur, nom, description, prix_unitaire, marque, modele, categorie)
+VALUES ('P00001', 'OFOURA', 'Boite Carton', 'Grande boite pour emballage', 5.0, 'PackCorp', 'XL-Box', 'materiel d''emballage');
+
+INSERT INTO "SCA".ProduitMateriel (idproduit, longueur, largeur, hauteur, masse)
+VALUES ('P00001', 50.0, 40.0, 30.0, 2.0);
+SELECT 'Test 6 Passed: Produit Materiel inserted successfully.' AS TestStatus;
+
+-- =============================================================================
+-- Test 7: Insertion réussie d'un Lot
+-- =============================================================================
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OFOURB', 'Fournisseur DEF', '666555444', 'fournisseur');
+
+INSERT INTO "SCA".Produit (idproduit, idfournisseur, nom, description, prix_unitaire, marque, modele, categorie)
+VALUES ('P00002', 'OFOURB', 'SmartPhone X', 'Dernier modele de smartphone', 500.0, 'TechGiant', 'ModelX', 'produit de vente');
+
+INSERT INTO "SCA".Lot (idlot, idproduit, quantite, date_creation, statut, origine, nombre_utilisations, condition)
+VALUES ('L00001', 'P00002', 100, '2025-06-15', 'bon etat', 'neuf', 0, 'utilisable');
+SELECT 'Test 7 Passed: Lot inserted successfully.' AS TestStatus;
+
+
+-- =============================================================================
+-- Test 8: Insertion réussie d'un Bon de Réception (avec colis et transporteur existants)
+-- =============================================================================
+
+INSERT INTO "SCA".Colis (idcolis, date_creation, statut)
+VALUES ('CO00002', '2025-06-19', 'bon etat');
+
+
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OTRANB', 'Express Log', '622334455', 'transporteur');
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OFOURC', 'Global Prod', '699887766', 'fournisseur');
+
+INSERT INTO "SCA".Bonreception (idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques)
+VALUES ('R00001', 'CO00002', 'OTRANB', '2025-06-20', 'OFOURC', 'bon etat', 'Aucune');
+SELECT 'Test 8 Passed: Bonreception inserted successfully.' AS TestStatus;
+
+-- =============================================================================
+-- Test 9: Insertion réussie de ContenuColis (réception)
+--         Cela devrait passer le trigger `trg_check_reception_consistency`
+--         (même si la vérification est limitée sans une table de détails de bon de réception).
+-- =============================================================================
+
+INSERT INTO "SCA".Colis (idcolis, date_creation, statut)
+VALUES ('CO00003', '2025-06-20', 'bon etat');
+
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OTRANC', 'Speedy Cargo', '611223344', 'transporteur');
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type)
+VALUES ('OFOURD', 'Tech Supplies', '633445566', 'fournisseur');
+
+INSERT INTO "SCA".Bonreception (idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques)
+VALUES ('R00002', 'CO00003', 'OTRANC', '2025-06-20', 'OFOURD', 'bon etat', 'Marchandise conforme');
+
+INSERT INTO "SCA".Produit (idproduit, idfournisseur, nom, description, prix_unitaire, marque, modele, categorie)
+VALUES ('P00003', 'OFOURD', 'Souris sans fil', 'Souris optique', 15.0, 'Logi', 'M185', 'produit de vente');
+
+INSERT INTO "SCA".Lot (idlot, idproduit, quantite, date_creation, statut, origine, nombre_utilisations, condition)
+VALUES ('L00002', 'P00003', 50, '2025-06-20', 'bon etat', 'neuf', 0, 'utilisable');
+
+INSERT INTO "SCA".ContenuColis (idcolis, idlot, quantite, date_MAJ)
+VALUES ('CO00003', 'L00002', 20, '2025-06-21');
+SELECT 'Test 9 Passed: ContenuColis (reception) inserted successfully.' AS TestStatus;
+
+-- =============================================================================
+-- Test 10: Insertion réussie de ContenuColis (expédition) avec stock suffisant
+--          Cela devrait passer le trigger `trg_check_expedition_availability`.
+-- =============================================================================
+-- Préparer les données nécessaires: Produit, Lot, Cellule, InventaireEmplacement, Colis
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type) VALUES ('OFOURE', 'ElectroInc', '677889900', 'fournisseur');
+INSERT INTO "SCA".Produit (idproduit, idfournisseur, nom, description, prix_unitaire, marque, modele, categorie) VALUES ('P00004', 'OFOURE', 'Clavier RGB', 'Clavier mecanique gaming', 80.0, 'GamersBrand', 'K100', 'produit de vente');
+INSERT INTO "SCA".Lot (idlot, idproduit, quantite, date_creation, statut, origine, nombre_utilisations, condition) VALUES ('L00003', 'P00004', 100, '2025-06-18', 'bon etat', 'neuf', 0, 'utilisable');
+INSERT INTO "SCA".Cellule (idcellule, longueur, largeur, hauteur, masse_maximale) VALUES ('C00002', 5.0, 5.0, 5.0, 500.0);
+INSERT INTO "SCA".InventaireEmplacement (idcellule, idlot, quantite, datemaj) VALUES ('C00002', 'L00003', 50, '2025-06-20'); -- Stock de 50 claviers
+
+INSERT INTO "SCA".Colis (idcolis, date_creation, statut) VALUES ('COEXP01', '2025-06-21', 'bon etat');
+
+-- Simuler l'ajout au colis d'expédition
+INSERT INTO "SCA".ContenuColis (idcolis, idlot, quantite, date_MAJ)
+VALUES ('COEXP01', 'L00003', 10, '2025-06-21'); -- Demande 10, stock 50, devrait passer
+SELECT 'Test 10 Passed: ContenuColis (expedition) inserted successfully with sufficient stock.' AS TestStatus;
+
+-- =============================================================================
+-- Test 11: Insertion réussie d'un Bon d'Expédition (date après réception)
+--          Cela devrait passer le trigger `trg_check_expedition_date`.
+-- =============================================================================
+-- Créer un colis et son bon de réception
+INSERT INTO "SCA".Colis (idcolis, date_creation, statut) VALUES ('COEXP02', '2025-06-10', 'bon etat');
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone,  type) VALUES ('OTRAND', 'Fast Courier', '655443322', 'transporteur');
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone,  type) VALUES ('OFOURF', 'Supplier A', '610203040', 'fournisseur');
+INSERT INTO "SCA".Bonreception (idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques)
+VALUES ('R00003', 'COEXP02', 'OTRAND', '2025-06-12', 'OFOURF', 'bon etat', 'OK');
+
+-- Créer une organisation destinataire
+INSERT INTO "SCA".Organisation (idorganisation, nom, telephone, type) VALUES ('ODESTA', 'Client Alpha', '601020304', 'destinataire');
+
+-- Insérer le bon d'expédition avec une date postérieure à la réception
+INSERT INTO "SCA".Bonexpedition (idbonexpedition, idcolis, idtransporteur, date_creation, iddestinataire, statut, remarques)
+VALUES ('E00001', 'COEXP02', 'OTRAND', '2025-06-15', 'ODESTA', 'bon etat', 'Pret pour envoi');
+SELECT 'Test 11 Passed: Bonexpedition inserted successfully with valid date.' AS TestStatus;
+
+-- Réactiver les messages (optionnel)
+-- \set QUIET off
+
+create or replace function "EMIR".valuereception()
+    returns float as $$
+declare
+    total_value float;
+begin
+
+    select sum("SCA".Produit.prix_unitaire * "SCA".Lot.quantite) into total_value
+    from "SCA".Lot
+             join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+             join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
+    where "SCA".BonReception.date_creation = current_date;
+
+    return total_value;
+end;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".avgitemsreception()
+    returns float as $$
+declare
+    avg_value float;
+begin
+    select avg("SCA".ContenuColis.quantite) into avg_value
+    from "SCA".ContenuColis
+             join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
+    where "SCA".BonReception.date_creation = current_date;
+
+    return avg_value;
+end;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".valueexpedition()
+    returns float as $$
+declare
+    total_value float;
+begin
+
+    select sum("SCA".Produit.prix_unitaire * "SCA".Lot.quantite) into total_value
+    from "SCA".Lot
+             join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+             join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
+    where "SCA".Bonexpedition.date_creation = current_date;
+
+    return total_value;
+end;
+$$ LANGUAGE plpgsql;
+
+
+create or replace function "EMIR".avgitemsexpedition()
+    returns float as $$
+declare
+    avg_value float;
+begin
+    select avg("SCA".ContenuColis.quantite) into avg_value
+    from "SCA".ContenuColis
+             join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
+    where "SCA".Bonexpedition.date_creation = current_date;
+
+    return avg_value;
+end;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".Tache_EVA(idindividu "SCA".idindividu)
+returns table(
+    _idtache "SCA".idtache,
+    _idcellule "SCA".idcellule,
+    _idlot "SCA".idlot,
+    _date_creation date,
+    _description text,
+    _statut text,
+    _type text
+)
+as $$
+begin
+return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache;
+end; $$ language plpgsql;
+
+SELECT "EMIR".colis_entrants_jour_count();
+
+-- Fonction pour confirmer la livraison d'un colis
+CREATE OR REPLACE FUNCTION "EMIR".confirmer_livraison_colis(
+    _idcolis "SCA".Idcolis,
+    _date_livraison DATE DEFAULT CURRENT_DATE
+)
+    RETURNS VOID AS $$
+DECLARE
+    colis_exists BOOLEAN;
+    colis_expedition_exists BOOLEAN;
+BEGIN
+    -- Vérifier que le colis existe
+    SELECT EXISTS(SELECT 1 FROM "SCA".Colis WHERE idcolis = _idcolis) INTO colis_exists;
+    IF NOT colis_exists THEN
+        RAISE EXCEPTION 'Le colis % n''existe pas', _idcolis;
+    END IF;
+
+    -- Vérifier que le colis a un bon d'expédition
+    SELECT EXISTS(SELECT 1 FROM "SCA".Bonexpedition WHERE idcolis = _idcolis) INTO colis_expedition_exists;
+    IF NOT colis_expedition_exists THEN
+        RAISE EXCEPTION 'Le colis % n''a pas de bon d''expédition associé', _idcolis;
+    END IF;
+
+    -- Mettre à jour le statut du colis à "livre"
+    UPDATE "SCA".Colis
+    SET statut = 'livre'::"SCA".etat
+    WHERE idcolis = _idcolis;
+
+    -- Mettre à jour le statut du bon d'expédition à "livre"
+    UPDATE "SCA".Bonexpedition
+    SET statut = 'livre'::"SCA".etat,
+        remarques = remarques || ' - Livré le ' || _date_livraison::TEXT
+    WHERE idcolis = _idcolis;
+
+    -- Insérer un log de livraison
+    INSERT INTO "SCA".Logs (level, message, extra)
+    VALUES ('INFO', 'Colis livré avec succès',
+            jsonb_build_object('idcolis', _idcolis, 'date_livraison', _date_livraison));
+
+    RAISE NOTICE 'Livraison du colis % confirmée pour le %', _idcolis, _date_livraison;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les colis livrés
+CREATE OR REPLACE FUNCTION "EMIR".colis_livres(
+    _date_debut DATE DEFAULT NULL,
+    _date_fin DATE DEFAULT NULL
+)
+    RETURNS TABLE (
+                      idcolis "SCA".Idcolis,
+                      date_creation DATE,
+                      date_livraison DATE,
+                      destinataire TEXT,
+                      transporteur TEXT,
+                      statut "SCA".etat
+                  ) AS $$
+BEGIN
+    RETURN QUERY
+        SELECT
+            c.idcolis,
+            c.date_creation,
+            be.date_creation as date_livraison,
+            o_dest.nom as destinataire,
+            o_trans.nom as transporteur,
+            c.statut
+        FROM "SCA".Colis c
+                 JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+                 JOIN "SCA".Organisation o_dest ON be.iddestinataire = o_dest.idorganisation
+                 JOIN "SCA".Organisation o_trans ON be.idtransporteur = o_trans.idorganisation
+        WHERE c.statut = 'livre'::"SCA".etat
+          AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+          AND (_date_fin IS NULL OR be.date_creation <= _date_fin)
+        ORDER BY be.date_creation DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les statistiques de livraison
+CREATE OR REPLACE FUNCTION "EMIR".statistiques_livraison(
+    _date_debut DATE DEFAULT NULL,
+    _date_fin DATE DEFAULT NULL
+)
+    RETURNS TABLE (
+                      total_colis_livres BIGINT,
+                      total_colis_expedies BIGINT,
+                      taux_livraison NUMERIC,
+                      valeur_totale_livree NUMERIC
+                  ) AS $$
+DECLARE
+    colis_livres BIGINT;
+    colis_expedies BIGINT;
+    valeur_livree NUMERIC;
+BEGIN
+    -- Compter les colis livrés
+    SELECT COUNT(*) INTO colis_livres
+    FROM "SCA".Colis c
+             JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+    WHERE c.statut = 'livre'::"SCA".etat
+      AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+
+    -- Compter les colis expédiés (tous statuts)
+    SELECT COUNT(*) INTO colis_expedies
+    FROM "SCA".Bonexpedition be
+    WHERE (_date_debut IS NULL OR be.date_creation >= _date_debut)
+      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+
+    -- Calculer la valeur totale livrée
+    SELECT COALESCE(SUM(p.prix_unitaire * cc.quantite), 0) INTO valeur_livree
+    FROM "SCA".Colis c
+             JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+             JOIN "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
+             JOIN "SCA".Lot l ON cc.idlot = l.idlot
+             JOIN "SCA".Produit p ON l.idproduit = p.idproduit
+    WHERE c.statut = 'livre'::"SCA".etat
+      AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+
+    RETURN QUERY
+        SELECT
+            colis_livres,
+            colis_expedies,
+            CASE
+                WHEN colis_expedies > 0 THEN ROUND((colis_livres::NUMERIC / colis_expedies::NUMERIC) * 100, 2)
+                ELSE 0
+                END as taux_livraison,
+            valeur_livree;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Procédure EMIR pour confirmer la livraison
+create or replace procedure "EMIR".ConfirmerLivraison_INS(
+    _idcolis text,
+    _date_livraison text DEFAULT NULL
+)
+as $$
+declare
+    date_livraison date;
+begin
+    -- Si aucune date n'est fournie, utiliser la date actuelle
+    if _date_livraison is null then
+        date_livraison := current_date;
+    else
+        date_livraison := _date_livraison::date;
+    end if;
+
+    -- Appeler la fonction de confirmation de livraison
+    perform "EMIR".confirmer_livraison_colis("SCA".idcolis_conv(_idcolis), date_livraison);
+end; $$ language plpgsql;
+
+-- =============================================================================
+-- Tests pour la fonctionnalité de livraison
+-- =============================================================================
+
+-- Test 12: Confirmation de livraison d'un colis
+-- Prérequis: Utiliser un colis existant avec bon d'expédition
+-- Exemple d'utilisation:
+-- CALL "EMIR".ConfirmerLivraison_INS('COEXP02', '2025-06-16');
+-- SELECT 'Test 12 Passed: Livraison confirmée avec succès.' AS TestStatus;
+
+-- =============================================================================
+-- Exemples d'utilisation des nouvelles fonctionnalités
+-- =============================================================================
+
+-- Exemple 1: Confirmer la livraison d'un colis (date actuelle)
+-- CALL "EMIR".ConfirmerLivraison_INS('COEXP02');
+
+-- Exemple 2: Confirmer la livraison d'un colis avec une date spécifique
+-- CALL "EMIR".ConfirmerLivraison_INS('COEXP02', '2025-06-16');
+
+-- Exemple 3: Voir tous les colis livrés
+-- SELECT * FROM "EMIR".colis_livres();
+
+-- Exemple 4: Voir les colis livrés entre deux dates
+-- SELECT * FROM "EMIR".colis_livres('2025-06-01', '2025-06-30');
+
+-- Exemple 5: Voir les statistiques de livraison
+-- SELECT * FROM "EMIR".statistiques_livraison();
+
+-- Exemple 6: Voir les statistiques de livraison pour un mois
+-- SELECT * FROM "EMIR".statistiques_livraison('2025-06-01', '2025-06-30');
+
+-- Exemple 7: Voir l'inventaire (excluant les colis livrés)
+-- SELECT * FROM "SCA".inventaire;
+
+-- Exemple 8: Voir les colis en cours d'expédition
+-- SELECT * FROM "SCA".ColisEnExpedition;
+
+create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
+returns table(
+    id int,
+    _timestamp timestamp,
+    level varchar(10),
+    message text,
+    extra jsonb
+     )
+as $$
+begin
+return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Logs_gethigher(_date timestamp)
+returns table(
+    id int,
+    _timestamp timestamp,
+    level varchar(10),
+    message text,
+    extra jsonb
+     )
+as $$
+begin
+return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Logs_getlower(_date timestamp)
+returns table(
+    id int,
+    _timestamp timestamp,
+    level varchar(10),
+    message text,
+    extra jsonb
+     )
+as $$
+begin
+return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp <= _date;
+end; $$ language plpgsql;
