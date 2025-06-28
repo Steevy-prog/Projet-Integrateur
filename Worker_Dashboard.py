@@ -15,6 +15,18 @@ from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
+import psycopg2
+
+worker_id = 'I34569'
+
+conn = psycopg2.connect(
+    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+    database="projet_integrateur",
+    user="group13",
+    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+    port=5432
+)
+cur = conn.cursor()
 
 class WorkerData:
     """Data generator and manager for warehouse worker operations"""
@@ -25,94 +37,89 @@ class WorkerData:
 
     def generate_sample_data(self):
         # Products data
-        products = [
-            ("P001", "Laptop Dell XPS", "Electronics", "Dell", 1500, "A1-15", 45),
-            ("P002", "Office Chair", "Furniture", "Herman Miller", 350, "B2-08", 12),
-            ("P003", "Smartphone iPhone", "Electronics", "Apple", 800, "A2-22", 78),
-            ("P004", "Desk Lamp", "Furniture", "IKEA", 45, "C1-05", 156),
-            ("P005", "Wireless Mouse", "Electronics", "Logitech", 25, "A1-33", 234),
-            ("P006", "Monitor 24\"", "Electronics", "Samsung", 250, "A2-18", 67),
-            ("P007", "Standing Desk", "Furniture", "FlexiSpot", 400, "B3-01", 30),
-            ("P008", "Bluetooth Speaker", "Electronics", "JBL", 120, "A1-10", 89),
-            ("P009", "Ergonomic Keyboard", "Electronics", "Logitech", 75, "A1-07", 112),
-            ("P010", "Webcam HD", "Electronics", "Logitech", 60, "A2-05", 55),
-        ]
-        self.products = pd.DataFrame(products, columns=['Product_ID', 'Product_Name', 'Category', 'Brand', 'Value', 'Location', 'Stock'])
+        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+        products = cur.fetchall()
+        if len(products) == 0:
+            # Handle case where no products are loaded, e.g., create dummy data or log
+            print("No products loaded from the database. Generating dummy product data.")
+            self.products_df = pd.DataFrame(
+                [
+                    ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
+                    ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
+                ],
+                columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
+            )
+        else:
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
 
         # Expedition Tasks data
         task_statuses = ['Pending', 'In Progress', 'Completed', 'Cancelled']
         task_priorities = ['Low', 'Medium', 'High']
         expedition_tasks_data = []
-        for i in range(1, 21):
-            product = self.products.sample(1).iloc[0]
-            items_count = random.randint(1, 10)
-            estimated_time = random.randint(10, 60)
-            status = random.choice(task_statuses)
-            priority = random.choice(task_priorities)
-            order_id = f"ORD{i:04d}"
-            due_time = datetime.datetime.now() + datetime.timedelta(hours=random.randint(-24, 48))
-            assigned_worker = random.choice(['Current Worker', 'Worker A', 'Worker B'])
+        cur.execute("SELECT (p).* FROM \"EMIR\".Tache_EVA(%s) AS p;", (worker_id,))
+        tasks = cur.fetchall()
+        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date','description','priority','status','type'])
+        for i in self.expedition_tasks.itertuples():
             expedition_tasks_data.append({
-                'Order_ID': order_id,
-                'Product_ID': product['Product_ID'],
-                'Product_Name': product['Product_Name'],
-                'Items_Count': items_count,
-                'Estimated_Time': estimated_time,
-                'Status': status,
-                'Priority': priority,
-                'Due_Time': due_time,
-                'Assigned_Worker': assigned_worker
+                'Order_ID': i['Task_id'],
+                'Product_ID': i['Lot'],
+                'Cell': i['Cell'],
+                'Date': i['date'],
+                'Description': i['description'],
+                'Status': i['status'],
+                'Priority': i['priority'],
+                'Type': i['type']
             })
-        self.expedition_tasks = pd.DataFrame(expedition_tasks_data)
+
 
         # Product Movement History
         movement_types = ['Pick', 'Pack', 'Move', 'Count']
         # locations = ['A1-15', 'B2-08', 'A2-22', 'C1-05', 'A1-33', 'A2-18', 'B3-01', 'A1-10', 'A1-07', 'A2-05', 'D1-01', 'Loading Dock', 'Shipping']
         movement_history_data = []
-        for i in range(1, 51):
-            product = self.products.sample(1).iloc[0]
-            movement_type = random.choice(movement_types)
-            quantity = random.randint(1, product['Stock'] // 2 if product['Stock'] > 1 else 1)
-            from_loc = random.choice(self.products['Location'].unique().tolist() + ['Loading Dock'])
-            to_loc = random.choice(self.products['Location'].unique().tolist() + ['Shipping'])
-            timestamp = datetime.datetime.now() - datetime.timedelta(minutes=random.randint(1, 1440))
-            worker = random.choice(['Current Worker', 'Worker A', 'Worker B'])
-            movement_history_data.append({
-                'Movement_ID': f"MOV{i:05d}",
-                'Product_ID': product['Product_ID'],
-                'Product_Name': product['Product_Name'],
-                'Movement_Type': movement_type,
-                'Quantity': quantity,
-                'From_Location': from_loc,
-                'To_Location': to_loc,
-                'Timestamp': timestamp,
-                'Worker': worker
-            })
-        self.movement_history = pd.DataFrame(movement_history_data)
+        #for i in range(1, 51):
+        #    product = self.products_df.sample(1).iloc[0]
+        #    movement_type = random.choice(movement_types)
+        #    quantity = random.randint(1, product['Stock'] // 2 if product['Stock'] > 1 else 1)
+        #    from_loc = random.choice(self.products['Location'].unique().tolist() + ['Loading Dock'])
+        #    to_loc = random.choice(self.products['Location'].unique().tolist() + ['Shipping'])
+        #    timestamp = datetime.datetime.now() - datetime.timedelta(minutes=random.randint(1, 1440))
+        #    worker = random.choice(['Current Worker', 'Worker A', 'Worker B'])
+        #    movement_history_data.append({
+        #        'Movement_ID': f"MOV{i:05d}",
+        #        'Product_ID': product['Product_ID'],
+        #        'Product_Name': product['Product_Name'],
+        #        'Movement_Type': movement_type,
+        #        'Quantity': quantity,
+        #        'From_Location': from_loc,
+        #        'To_Location': to_loc,
+        #        'Timestamp': timestamp,
+        #        'Worker': worker
+        #    })
+        #self.movement_history = pd.DataFrame(movement_history_data)
 
         # Exceptions
-        exception_types = ['Damaged Product', 'Missing Item', 'Location Error', 'Quantity Mismatch', 'System Error']
-        exception_statuses = ['Open', 'In Review', 'Resolved']
-        exceptions_data = []
-        for i in range(1, 11):
-            product = self.products.sample(1).iloc[0]
-            exception_type = random.choice(exception_types)
-            reported_time = datetime.datetime.now() - datetime.timedelta(hours=random.randint(1, 72))
-            status = random.choice(exception_statuses)
-            reported_by = random.choice(['Current Worker', 'Supervisor X', 'Worker B'])
-            description = f"Detailed description for {exception_type} concerning {product['Product_Name']}."
-            exceptions_data.append({
-                'ID': f"EXC{i:03d}",
-                'Type': exception_type,
-                'Product_ID': product['Product_ID'],
-                'Product_Name': product['Product_Name'],
-                'Location': product['Location'],
-                'Reported_Time': reported_time,
-                'Status': status,
-                'Reported_By': reported_by,
-                'Description': description
-            })
-        self.exceptions = pd.DataFrame(exceptions_data)
+        #exception_types = ['Damaged Product', 'Missing Item', 'Location Error', 'Quantity Mismatch', 'System Error']
+        #exception_statuses = ['Open', 'In Review', 'Resolved']
+        #exceptions_data = []
+        #for i in range(1, 11):
+        #    product = self.products_df.sample(1).iloc[0]
+        #    exception_type = random.choice(exception_types)
+        #    reported_time = datetime.datetime.now() - datetime.timedelta(hours=random.randint(1, 72))
+        #    status = random.choice(exception_statuses)
+        #    reported_by = random.choice(['Current Worker', 'Supervisor X', 'Worker B'])
+        #    description = f"Detailed description for {exception_type} concerning {product['Product_Name']}."
+        #    exceptions_data.append({
+        #        'ID': f"EXC{i:03d}",
+        #        'Type': exception_type,
+        #        'Product_ID': product['Product_ID'],
+        #        'Product_Name': product['Product_Name'],
+        #        'Location': product['Location'],
+        #        'Reported_Time': reported_time,
+        #        'Status': status,
+        #        'Reported_By': reported_by,
+        #        'Description': description
+        #    })
+        #self.exceptions = pd.DataFrame(exceptions_data)
 
     def initialize_storage_cells(self):
         # Create a dictionary to hold the state of each storage cell
@@ -134,11 +141,17 @@ class WorkerData:
                     cell_counter += 1
 
         # Distribute some products into cells initially for demonstration
-        for _, product in self.products.iterrows():
-            product_id = product['Product_ID']
-            product_name = product['Product_Name']
-            stock = product['Stock']
-            initial_location = product['Location']
+        for _, product in self.products_df.iterrows():
+            cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
+            zone = cur.fetchone()[0]
+            cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
+            quantity = cur.fetchone()[0]
+            product_id = product['ID']
+            product_name = product['Name']
+            stock = quantity
+            if stock is None:
+                stock = 0
+            initial_location = zone
 
             if initial_location in self.storage_cells:
                 # Add product to its initial specified location
@@ -183,7 +196,7 @@ class WorkerData:
         to_cell['status'] = 'Occupied'
 
         # Log this as a movement in movement_history
-        product_name = self.products[self.products['Product_ID'] == product_id]['Product_Name'].iloc[0] if product_id in self.products['Product_ID'].values else "Unknown Product"
+        product_name = self.products_df[self.products_df['Product_ID'] == product_id]['Product_Name'].iloc[0] if product_id in self.products_df['Product_ID'].values else "Unknown Product"
         self.add_movement(product_id, product_name, "Move", quantity, from_cell_id, to_cell_id)
 
         return True, "Product moved successfully."
@@ -821,13 +834,13 @@ class WorkerMainDashboard(QWidget):
 
         my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Pending'])
         completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Check if completed today
-        my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
-        open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
+        #my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
+        #open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
 
         dashboard_stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#FFC107", "Tasks assigned to me"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#4CAF50", "Tasks finished today"))
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#6C63FF", "Product movements logged"))
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#F44336", "Issues requiring attention"))
+        #dashboard_stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#6C63FF", "Product movements logged"))
+        #dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#F44336", "Issues requiring attention"))
 
         hero_layout.addLayout(dashboard_stats_layout)
         layout.addWidget(hero_frame)
@@ -887,7 +900,7 @@ class WorkerMainDashboard(QWidget):
 
         report_exception_btn = QPushButton("Report an Exception")
         report_exception_btn.setStyleSheet(button_style)
-        report_exception_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.exception_widget))
+        #report_exception_btn.clicked.connect(lambda: self.main_window.navigate_to_widget(self.main_window.exception_widget))
 
         quick_actions_layout.addWidget(pick_pack_btn)
         quick_actions_layout.addWidget(record_movement_btn)
@@ -920,17 +933,16 @@ class WorkerMainDashboard(QWidget):
         recent_activity_layout.setContentsMargins(20, 25, 20, 20)
         recent_activity_layout.setSpacing(10)
 
-        latest_movements = sorted(self.data.movement_history.to_dict('records'), key=lambda x: x['Timestamp'], reverse=True)[:5]
-        if latest_movements:
-            for movement in latest_movements:
-                activity_label = QLabel(f"<span style='font-weight:bold;'>{movement['Timestamp'].strftime('%H:%M')}</span> | {movement['Movement_Type']} of <span style='font-weight:bold;'>{movement['Quantity']}x</span> {movement['Product_Name']} by {movement['Worker']}")
-                activity_label.setStyleSheet("font-size: 14px; color: #444; padding: 2px 0;")
-                activity_label.setTextFormat(Qt.TextFormat.RichText)
-                recent_activity_layout.addWidget(activity_label)
-        else:
-            no_activity_label = QLabel("No recent activities to display.")
-            no_activity_label.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
-            recent_activity_layout.addWidget(no_activity_label)
+        #latest_movements = sorted(self.data.movement_history.to_dict('records'), key=lambda x: x['Timestamp'], reverse=True)[:5]
+        #if latest_movements:
+        #    for movement in latest_movements:
+        #        activity_label = QLabel(f"<span style='font-weight:bold;'>{movement['Timestamp'].strftime('%H:%M')}</span> | {movement['Movement_Type']} of <span style='font-weight:bold;'>{movement['Quantity']}x</span> {movement['Product_Name']} by {movement['Worker']}")
+        #        activity_label.setStyleSheet("font-size: 14px; color: #444; padding: 2px 0;")
+        #        activity_label.setTextFormat(Qt.TextFormat.RichText)
+        #        recent_activity_layout.addWidget(activity_label)
+        no_activity_label = QLabel("No recent activities to display.")
+        no_activity_label.setStyleSheet("color: #999; font-style: italic; padding: 20px;")
+        recent_activity_layout.addWidget(no_activity_label)
 
         recent_activity_group.setLayout(recent_activity_layout)
         layout.addWidget(recent_activity_group)
@@ -1274,7 +1286,7 @@ class ProductMovementTrackingWidget(QWidget):
         """)
 
         self.movements_table = table  # <-- Assign before update
-        self.update_movements_table(self.data.movement_history.to_dict('records'))
+        #self.update_movements_table(self.data.movement_history.to_dict('records'))
 
         table.setAlternatingRowColors(True)
         table.horizontalHeader().setStretchLastSection(True) # Make last column stretch
@@ -1287,12 +1299,12 @@ class ProductMovementTrackingWidget(QWidget):
         movement_type = self.type_combo.currentText()
 
         filtered_movements = []
-        for movement in self.data.movement_history.to_dict('records'):
-            if search_text and search_text not in movement['Product_Name'].lower() and search_text not in movement['Product_ID'].lower():
-                continue
-            if movement_type != 'All' and movement['Movement_Type'] != movement_type:
-                continue
-            filtered_movements.append(movement)
+        #for movement in self.data.movement_history.to_dict('records'):
+        #    if search_text and search_text not in movement['Product_Name'].lower() and search_text not in movement['Product_ID'].lower():
+        #        continue
+        #    if movement_type != 'All' and movement['Movement_Type'] != movement_type:
+        #        continue
+        #    filtered_movements.append(movement)
 
         self.update_movements_table(filtered_movements)
 
@@ -1365,24 +1377,24 @@ class ExceptionReportsWidget(QWidget):
                 transform: translateY(-2px);
             }
         """)
-        report_exception_btn.clicked.connect(self.report_new_exception)
+        #report_exception_btn.clicked.connect(self.report_new_exception)
 
         header_layout.addWidget(title)
         header_layout.addStretch()
-        header_layout.addWidget(report_exception_btn)
+        #header_layout.addWidget(report_exception_btn)
         layout.addLayout(header_layout)
 
         # Exception stats
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
-        open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
-        in_review = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'In Review'])
-        resolved_today = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Resolved' and (datetime.datetime.now() - e['Reported_Time']).total_seconds() < 86400])
+        #open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
+        #in_review = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'In Review'])
+        #resolved_today = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Resolved' and (datetime.datetime.now() - e['Reported_Time']).total_seconds() < 86400])
 
-        stats_layout.addWidget(self.create_exception_stat_card("Open Reports", open_exceptions, "#F44336"))
-        stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#FFC107"))
-        stats_layout.addWidget(self.create_exception_stat_card("Resolved Today", resolved_today, "#4CAF50"))
+        #stats_layout.addWidget(self.create_exception_stat_card("Open Reports", open_exceptions, "#F44336"))
+        #stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#FFC107"))
+        #stats_layout.addWidget(self.create_exception_stat_card("Resolved Today", resolved_today, "#4CAF50"))
         layout.addLayout(stats_layout)
 
         # Exceptions table
@@ -1462,13 +1474,13 @@ class ExceptionReportsWidget(QWidget):
         """)
 
         self.exceptions_table = table  # <-- Assign before update
-        self.update_exceptions_table(self.data.exceptions.to_dict('records'))
+        #self.update_exceptions_table(self.data.exceptions.to_dict('records'))
 
         table.setAlternatingRowColors(True)
         table.horizontalHeader().setStretchLastSection(True)
         table.verticalHeader().setVisible(False)
         table.resizeColumnsToContents()
-        table.cellDoubleClicked.connect(self.view_exception_details)
+        #table.cellDoubleClicked.connect(self.view_exception_details)
 
         return table
 
@@ -1495,20 +1507,20 @@ class ExceptionReportsWidget(QWidget):
                 status_item.setForeground(QColor('#333333')) # Darker text for Amber background
             self.exceptions_table.setItem(i, 5, status_item)
 
-    def view_exception_details(self, row, column):
-        exception_id = self.exceptions_table.item(row, 0).text()
-        # Find the full exception data from the original DataFrame using the ID
-        exception_data = self.data.exceptions[self.data.exceptions['ID'] == exception_id].iloc[0]
+    #def view_exception_details(self, row, column):
+    #    exception_id = self.exceptions_table.item(row, 0).text()
+    #    # Find the full exception data from the original DataFrame using the ID
+    #    exception_data = self.data.exceptions[self.data.exceptions['ID'] == exception_id].iloc[0]
 
-        if exception_data is not None:
-            dialog = ExceptionDetailDialog(exception_data, self)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table if status changed
+    #    if exception_data is not None:
+    #        dialog = ExceptionDetailDialog(exception_data, self)
+    #        if dialog.exec() == QDialog.DialogCode.Accepted:
+    #            self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table if status changed
 
-    def report_new_exception(self):
-        dialog = NewExceptionDialog(self.data, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table after new entry
+    #def report_new_exception(self):
+    #    dialog = NewExceptionDialog(self.data, self)
+    #    if dialog.exec() == QDialog.DialogCode.Accepted:
+    #        self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table after new entry
 
 class StorageCellWidget(QWidget):
     """Widget for viewing and managing storage cells in a 2D grid."""
