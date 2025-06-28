@@ -12,7 +12,7 @@ REVOKE ALL ON SCHEMA "CREDENTIALS" FROM PUBLIC;
 -- Créer un nouveau rôle
 CREATE ROLE ITAdmin LOGIN PASSWORD 'hungry';
 
--- Accorder l’usage du schéma SCA au rôle
+-- Accorder l'usage du schéma SCA au rôle
 GRANT USAGE ON SCHEMA "SCA" TO ITAdmin ;
 GRANT USAGE ON SCHEMA "CREDENTIALS" TO ITAdmin ;
 -- Accorder les droits sur les tables existantes dans SCA
@@ -73,7 +73,7 @@ CREATE DOMAIN "SCA".Idproduitlogiciel TEXT CHECK(
     VALUE ~ '^PL[A-Z0-9]{4}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
-CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore');
+CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
 CREATE TYPE "SCA".rapports AS ENUM('lors de la verification avant expedition','lors du destockage et assemblage du colis'
     ,'lors de la preparation du colis pour expedition','lors de la confirmation du stockage','lors de la reception du colis');
@@ -113,38 +113,38 @@ CREATE TABLE "SCA".Zone(
     nom "SCA".Nom NOT NULL ,
     CONSTRAINT Zone_CC0 PRIMARY KEY (idzone)
 );
-CREATE TABLE "SCA".Bonreception(
-    idbonreception "SCA".Bonrecep NOT NULL ,
-    idcolis "SCA".Idcolis NOT NULL ,
-    idtransporteur "SCA".idorg NOT NULL ,
-    date_creation DATE NOT NULL ,
-    idfournisseur "SCA".idorg NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    remarques TEXT NOT NULL ,
-    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
-    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-    FOREIGN KEY (idtransporteur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE,
-    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
-);
-CREATE TABLE "SCA".Bonexpedition(
-    idbonexpedition "SCA".Bonexped NOT NULL ,
-    idcolis "SCA".Idcolis NOT NULL ,
-    idtransporteur "SCA".idorg NOT NULL ,
-    date_creation DATE NOT NULL ,
-    iddestinataire "SCA".idorg NOT NULL ,
-    statut "SCA".etat NOT NULL ,
-    remarques TEXT NOT NULL ,
-    CONSTRAINT Bonexpedition_CC0 PRIMARY KEY(idbonexpedition),
-    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-    FOREIGN KEY (idtransporteur)REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE,
-    FOREIGN KEY (iddestinataire)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
-);
 CREATE TABLE "SCA".individu(
     idindividu "SCA".IDindividu NOT NULL ,
     nom "SCA".Nom NOT NULL ,
     adresse "SCA".Adresse NOT NULL ,
     telephone "SCA".Numero NOT NULL ,
     CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
+);
+CREATE TABLE "SCA".Bonreception(
+    idbonreception "SCA".Bonrecep NOT NULL ,
+    idcolis "SCA".Idcolis NOT NULL ,
+    idtransporteur "SCA".idindividu NOT NULL ,
+    date_creation DATE NOT NULL ,
+    idfournisseur "SCA".idorg NOT NULL ,
+    statut "SCA".etat NOT NULL ,
+    remarques TEXT NOT NULL ,
+    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
+    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
+    FOREIGN KEY (idtransporteur)REFERENCES "SCA".Organisation(idindividu)ON DELETE CASCADE,
+    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
+);
+CREATE TABLE "SCA".Bonexpedition(
+    idbonexpedition "SCA".Bonexped NOT NULL ,
+    idcolis "SCA".Idcolis NOT NULL ,
+    idtransporteur "SCA".idindividu NOT NULL ,
+    date_creation DATE NOT NULL ,
+    iddestinataire "SCA".idorg NOT NULL ,
+    statut "SCA".etat NOT NULL ,
+    remarques TEXT NOT NULL ,
+    CONSTRAINT Bonexpedition_CC0 PRIMARY KEY(idbonexpedition),
+    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
+    FOREIGN KEY (idtransporteur)REFERENCES "SCA".Organisation(idindividu) ON DELETE CASCADE,
+    FOREIGN KEY (iddestinataire)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Repertoire(
     idindividu "SCA".IDindividu NOT NULL ,
@@ -379,9 +379,55 @@ CREATE OR REPLACE VIEW "SCA".inventaire AS (
     FROM "SCA".Produit p
     JOIN "SCA".Lot l ON p.idproduit = l.idproduit
     JOIN "SCA".InventaireEmplacement ie ON l.idlot = ie.idlot
+    WHERE l.idlot NOT IN (
+        -- Exclure les lots des colis livrés
+        SELECT DISTINCT cc.idlot
+        FROM "SCA".ContenuColis cc
+        JOIN "SCA".Colis c ON cc.idcolis = c.idcolis
+        WHERE c.statut = 'livre'
+    )
     GROUP BY p.idproduit, p.nom
 );
 
+-- Vue pour les colis en cours d'expédition (non livrés)
+CREATE OR REPLACE VIEW "SCA".ColisEnExpedition AS
+(SELECT
+     be.idbonexpedition AS "Numéro bon expédition",
+     be.date_creation AS "Date expédition",
+     c.idcolis AS "Référence colis",
+     c.statut AS "État colis",
+     o_destinataire.nom AS "Destinataire",
+     o_transporteur.nom AS "Transporteur",
+     COUNT(cc.idlot) AS "Nombre de lots",
+     SUM(l.quantite) AS "Quantité totale",
+     STRING_AGG(p.nom, ', ' ORDER BY p.nom) AS "Produits",
+     be.remarques AS "Remarques",
+     CASE
+         WHEN c.statut = 'livre' THEN 'Livré'
+         WHEN c.statut = 'bon etat' THEN 'En transit'
+         WHEN c.statut = 'mauvais etat' THEN 'Problème détecté'
+         WHEN c.statut = 'deteriore' THEN 'Endommagé'
+         ELSE 'Statut inconnu'
+         END AS "Statut livraison"
+FROM
+    "SCA".Bonexpedition be
+        JOIN
+    "SCA".Colis c ON be.idcolis = c.idcolis
+        JOIN
+    "SCA".Organisation o_destinataire ON be.iddestinataire = o_destinataire.idorganisation
+        JOIN
+    "SCA".Organisation o_transporteur ON be.idtransporteur = o_transporteur.idorganisation
+        LEFT JOIN
+    "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
+        LEFT JOIN
+    "SCA".Lot l ON cc.idlot = l.idlot
+        LEFT JOIN
+    "SCA".Produit p ON l.idproduit = p.idproduit
+GROUP BY
+    be.idbonexpedition, be.date_creation, c.idcolis, c.statut,
+    o_destinataire.nom, o_transporteur.nom, be.remarques
+ORDER BY
+    be.date_creation DESC);
 
 -- Functions for domain idOrg
 
@@ -2271,3 +2317,189 @@ end;
 $$ LANGUAGE plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
+
+-- Fonction pour confirmer la livraison d'un colis
+CREATE OR REPLACE FUNCTION "EMIR".confirmer_livraison_colis(
+    _idcolis "SCA".Idcolis,
+    _date_livraison DATE DEFAULT CURRENT_DATE
+)
+RETURNS VOID AS $$
+DECLARE
+    colis_exists BOOLEAN;
+    colis_expedition_exists BOOLEAN;
+BEGIN
+    -- Vérifier que le colis existe
+    SELECT EXISTS(SELECT 1 FROM "SCA".Colis WHERE idcolis = _idcolis) INTO colis_exists;
+    IF NOT colis_exists THEN
+        RAISE EXCEPTION 'Le colis % n''existe pas', _idcolis;
+    END IF;
+    
+    -- Vérifier que le colis a un bon d'expédition
+    SELECT EXISTS(SELECT 1 FROM "SCA".Bonexpedition WHERE idcolis = _idcolis) INTO colis_expedition_exists;
+    IF NOT colis_expedition_exists THEN
+        RAISE EXCEPTION 'Le colis % n''a pas de bon d''expédition associé', _idcolis;
+    END IF;
+    
+    -- Mettre à jour le statut du colis à "livre"
+    UPDATE "SCA".Colis 
+    SET statut = 'livre'::"SCA".etat
+    WHERE idcolis = _idcolis;
+    
+    -- Mettre à jour le statut du bon d'expédition à "livre"
+    UPDATE "SCA".Bonexpedition 
+    SET statut = 'livre'::"SCA".etat,
+        remarques = remarques || ' - Livré le ' || _date_livraison::TEXT
+    WHERE idcolis = _idcolis;
+    
+    -- Insérer un log de livraison
+    INSERT INTO "SCA".Logs (level, message, extra)
+    VALUES ('INFO', 'Colis livré avec succès', 
+            jsonb_build_object('idcolis', _idcolis, 'date_livraison', _date_livraison));
+    
+    RAISE NOTICE 'Livraison du colis % confirmée pour le %', _idcolis, _date_livraison;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les colis livrés
+CREATE OR REPLACE FUNCTION "EMIR".colis_livres(
+    _date_debut DATE DEFAULT NULL,
+    _date_fin DATE DEFAULT NULL
+)
+RETURNS TABLE (
+    idcolis "SCA".Idcolis,
+    date_creation DATE,
+    date_livraison DATE,
+    destinataire TEXT,
+    transporteur TEXT,
+    statut "SCA".etat
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        c.idcolis,
+        c.date_creation,
+        be.date_creation as date_livraison,
+        o_dest.nom as destinataire,
+        o_trans.nom as transporteur,
+        c.statut
+    FROM "SCA".Colis c
+    JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+    JOIN "SCA".Organisation o_dest ON be.iddestinataire = o_dest.idorganisation
+    JOIN "SCA".Organisation o_trans ON be.idtransporteur = o_trans.idorganisation
+    WHERE c.statut = 'livre'::"SCA".etat
+    AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+    AND (_date_fin IS NULL OR be.date_creation <= _date_fin)
+    ORDER BY be.date_creation DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir les statistiques de livraison
+CREATE OR REPLACE FUNCTION "EMIR".statistiques_livraison(
+    _date_debut DATE DEFAULT NULL,
+    _date_fin DATE DEFAULT NULL
+)
+RETURNS TABLE (
+    total_colis_livres BIGINT,
+    total_colis_expedies BIGINT,
+    taux_livraison NUMERIC,
+    valeur_totale_livree NUMERIC
+) AS $$
+DECLARE
+    colis_livres BIGINT;
+    colis_expedies BIGINT;
+    valeur_livree NUMERIC;
+BEGIN
+    -- Compter les colis livrés
+    SELECT COUNT(*) INTO colis_livres
+    FROM "SCA".Colis c
+    JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+    WHERE c.statut = 'livre'::"SCA".etat
+    AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+    AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+    
+    -- Compter les colis expédiés (tous statuts)
+    SELECT COUNT(*) INTO colis_expedies
+    FROM "SCA".Bonexpedition be
+    WHERE (_date_debut IS NULL OR be.date_creation >= _date_debut)
+    AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+    
+    -- Calculer la valeur totale livrée
+    SELECT COALESCE(SUM(p.prix_unitaire * cc.quantite), 0) INTO valeur_livree
+    FROM "SCA".Colis c
+    JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
+    JOIN "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
+    JOIN "SCA".Lot l ON cc.idlot = l.idlot
+    JOIN "SCA".Produit p ON l.idproduit = p.idproduit
+    WHERE c.statut = 'livre'::"SCA".etat
+    AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
+    AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
+    
+    RETURN QUERY
+    SELECT 
+        colis_livres,
+        colis_expedies,
+        CASE 
+            WHEN colis_expedies > 0 THEN ROUND((colis_livres::NUMERIC / colis_expedies::NUMERIC) * 100, 2)
+            ELSE 0
+        END as taux_livraison,
+        valeur_livree;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Procédure EMIR pour confirmer la livraison
+create or replace procedure "EMIR".ConfirmerLivraison_INS(
+    _idcolis text,
+    _date_livraison text DEFAULT NULL
+)
+as $$
+declare
+    date_livraison date;
+begin
+    -- Si aucune date n'est fournie, utiliser la date actuelle
+    if _date_livraison is null then
+        date_livraison := current_date;
+    else
+        date_livraison := _date_livraison::date;
+    end if;
+    
+    -- Appeler la fonction de confirmation de livraison
+    perform "EMIR".confirmer_livraison_colis("SCA".idcolis_conv(_idcolis), date_livraison);
+end; $$ language plpgsql;
+
+-- =============================================================================
+-- Tests pour la fonctionnalité de livraison
+-- =============================================================================
+
+-- Test 12: Confirmation de livraison d'un colis
+-- Prérequis: Utiliser un colis existant avec bon d'expédition
+-- Exemple d'utilisation:
+-- CALL "EMIR".ConfirmerLivraison_INS('COEXP02', '2025-06-16');
+-- SELECT 'Test 12 Passed: Livraison confirmée avec succès.' AS TestStatus;
+
+-- =============================================================================
+-- Exemples d'utilisation des nouvelles fonctionnalités
+-- =============================================================================
+
+-- Exemple 1: Confirmer la livraison d'un colis (date actuelle)
+-- CALL "EMIR".ConfirmerLivraison_INS('COEXP02');
+
+-- Exemple 2: Confirmer la livraison d'un colis avec une date spécifique
+-- CALL "EMIR".ConfirmerLivraison_INS('COEXP02', '2025-06-16');
+
+-- Exemple 3: Voir tous les colis livrés
+-- SELECT * FROM "EMIR".colis_livres();
+
+-- Exemple 4: Voir les colis livrés entre deux dates
+-- SELECT * FROM "EMIR".colis_livres('2025-06-01', '2025-06-30');
+
+-- Exemple 5: Voir les statistiques de livraison
+-- SELECT * FROM "EMIR".statistiques_livraison();
+
+-- Exemple 6: Voir les statistiques de livraison pour un mois
+-- SELECT * FROM "EMIR".statistiques_livraison('2025-06-01', '2025-06-30');
+
+-- Exemple 7: Voir l'inventaire (excluant les colis livrés)
+-- SELECT * FROM "SCA".inventaire;
+
+-- Exemple 8: Voir les colis en cours d'expédition
+-- SELECT * FROM "SCA".ColisEnExpedition;
