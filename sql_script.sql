@@ -273,7 +273,7 @@ CREATE TABLE "CREDENTIALS".Credentials(
     nom_policy VARCHAR(100),
     idindividu "SCA".IDindividu UNIQUE NOT NULL,
     CONSTRAINT Credentials_CC0 PRIMARY KEY (email),
-    CONSTRAINT Credentials_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu,
+    CONSTRAINT Credentials_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu
     -- CONSTRAINT Credentials_CR1 FOREIGN KEY (nom_policy) REFERENCES "CREDENTIALS".PasswordPolicies
 );
 

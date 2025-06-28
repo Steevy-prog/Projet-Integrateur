@@ -11,32 +11,32 @@ from PyQt6.QtGui import QPalette, QColor
 import psycopg2
 from psycopg2 import Error
 
-
+from db_connection import db_connection
 
 # --- Database Connection (Global for simplicity in mock, could be passed to pages) ---
 # IMPORTANT: For a production app, manage connection lifecycle more carefully
 # (e.g., passing connection pool/manager to pages, or using a singleton pattern).
 # Keeping it global as in your provided code for now.
 
-host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"  # Replace with your database host
-database = "test_bpdd"  # Replace with your database name
-user = "test"  # Replace with your database username
-password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"  # Replace with your database password
-port = 5432  # Default PostgreSQL port, change if necessary
+# host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"  # Replace with your database host
+# database = "test_bpdd"  # Replace with your database name
+# user = "test"  # Replace with your database username
+# password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"  # Replace with your database password
+# port = 5432  # Default PostgreSQL port, change if necessary
 
-db_connection = None
-try:
-    db_connection = psycopg2.connect(
-        host=host,
-        database=database,
-        user=user,
-        password=password,
-        port=port
-    )
-    print(f"Successfully connected to PostgreSQL database: {database}")
+# db_connection = None
+# try:
+#     db_connection = psycopg2.connect(
+#         host=host,
+#         database=database,
+#         user=user,
+#         password=password,
+#         port=port
+#     )
+#     print(f"Successfully connected to PostgreSQL database: {database}")
 
-except Error as e:
-    print(f"Error connecting to PostgreSQL database: {e}")
+# except Error as e:
+#     print(f"Error connecting to PostgreSQL database: {e}")
 
 
 # --- Custom Stream for QTextEdit (Our 'Terminal') ---
@@ -108,7 +108,7 @@ class TerminalPage(QWidget):
         sys.stderr = self.text_edit_logger
 
         self.terminal_output.append("Welcome to SGE Warehouse Automation Terminal!")
-        self.terminal_output.append("Type 'A --command_list' in the command input to see available commands.")
+        self.terminal_output.append("Type 'sac --command_list' in the command input to see available commands.")
 
 
     def init_ui(self):
@@ -255,7 +255,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute("SELECT COUNT(*) FROM users;") # Assuming a 'users' table
+                cursor.execute("SELECT COUNT(*) FROM \"SCA\".individu;") # Assuming a 'users' table
                 count = cursor.fetchone()[0]
                 self.terminal_output.append(f"Number of users: {count}")
             except Error as e:
@@ -270,12 +270,17 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute("SELECT product_id, name, quantity FROM products;") # Assuming 'products' table
+                cursor.execute("SELECT idproduit, nom, prix_unitaire FROM \"SCA\".Produit;") # Assuming 'products' table
                 products = cursor.fetchall()
                 self.terminal_output.append("\n--- Products in Stock ---")
                 if products:
                     for product in products:
-                        self.terminal_output.append(f"ID: {product[0]}, Name: {product[1]}, Quantity: {product[2]}")
+                        self.terminal_output.append(f"""
+ID: {product[0]},
+Name: {product[1]},
+Unit Price: {product[2]}
+{'*' * 100}
+""")
                 else:
                     self.terminal_output.append("No products found.")
                 self.terminal_output.append("---------------------------\n")
@@ -291,12 +296,17 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute("SELECT username, email FROM users;") # Assuming 'users' table
+                cursor.execute("SELECT nom, adresse, telephone FROM \"SCA\".individu;") # Assuming 'users' table
                 users = cursor.fetchall()
                 self.terminal_output.append("\n--- Users List ---")
                 if users:
                     for user_data in users:
-                        self.terminal_output.append(f"Username: {user_data[0]}, Email: {user_data[1]}")
+                        self.terminal_output.append(f"""
+Name: {user_data[0]}, 
+Email: {user_data[1]},
+Phone: {user_data[2]}
+{'*' * 100}
+""")
                 else:
                     self.terminal_output.append("No users found.")
                 self.terminal_output.append("-------------------\n")
@@ -438,343 +448,343 @@ class AutomationPage(QWidget):
 
 # --- Main Application Window ---
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Automation Dashboard")
-        self.setGeometry(100, 100, 1200, 800)
+# class MainWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("Automation Dashboard")
+#         self.setGeometry(100, 100, 1200, 800)
 
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.main_layout = QHBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(20, 20, 20, 20)
-        self.main_layout.setSpacing(15)
+#         self.central_widget = QWidget()
+#         self.setCentralWidget(self.central_widget)
+#         self.main_layout = QHBoxLayout(self.central_widget)
+#         self.main_layout.setContentsMargins(20, 20, 20, 20)
+#         self.main_layout.setSpacing(15)
 
-        self._setup_ui()
-        self._apply_styles()
+#         self._setup_ui()
+#         self._apply_styles()
 
-    def _setup_ui(self):
-        """
-        Sets up the main window's layout, sidebar, and stacked widget for content.
-        """
-        # 1. Left Sidebar
-        self.sidebar_frame = QFrame()
-        self.sidebar_frame.setObjectName("sidebarFrame")
-        self.sidebar_frame.setFixedWidth(250)
-        self.sidebar_layout = QVBoxLayout(self.sidebar_frame)
-        self.sidebar_layout.setContentsMargins(20, 20, 20, 20)
-        self.sidebar_layout.setSpacing(15)
+#     def _setup_ui(self):
+#         """
+#         Sets up the main window's layout, sidebar, and stacked widget for content.
+#         """
+#         # 1. Left Sidebar
+#         self.sidebar_frame = QFrame()
+#         self.sidebar_frame.setObjectName("sidebarFrame")
+#         self.sidebar_frame.setFixedWidth(250)
+#         self.sidebar_layout = QVBoxLayout(self.sidebar_frame)
+#         self.sidebar_layout.setContentsMargins(20, 20, 20, 20)
+#         self.sidebar_layout.setSpacing(15)
 
-        self.logged_in_label = QLabel("Logged in as <b>john.smit</b>")
-        self.logged_in_label.setObjectName("loggedInLabel")
-        self.logged_in_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.sidebar_layout.addWidget(self.logged_in_label)
+#         self.logged_in_label = QLabel("Logged in as <b>john.smit</b>")
+#         self.logged_in_label.setObjectName("loggedInLabel")
+#         self.logged_in_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+#         self.sidebar_layout.addWidget(self.logged_in_label)
 
-        self.sidebar_layout.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+#         self.sidebar_layout.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
-        # Navigation buttons and their corresponding page instances
-        self.nav_buttons = {}
-        self.pages = [] # List to hold instances of QWidget pages (matched to stacked_content_widget indices)
+#         # Navigation buttons and their corresponding page instances
+#         self.nav_buttons = {}
+#         self.pages = [] # List to hold instances of QWidget pages (matched to stacked_content_widget indices)
 
-        self.stacked_content_widget = QStackedWidget()
+#         self.stacked_content_widget = QStackedWidget()
 
-        # Define navigation items and create their pages
-        nav_items_map = {
-            "TERMINAL": TerminalPage(), # Terminal Page
-            "AUTOMATION": AutomationPage(),
-        }
+#         # Define navigation items and create their pages
+#         nav_items_map = {
+#             "TERMINAL": TerminalPage(), # Terminal Page
+#             "AUTOMATION": AutomationPage(),
+#         }
 
-        for i, (text, page_widget) in enumerate(nav_items_map.items()):
-            self.pages.append(page_widget)
-            self.stacked_content_widget.addWidget(page_widget)
+#         for i, (text, page_widget) in enumerate(nav_items_map.items()):
+#             self.pages.append(page_widget)
+#             self.stacked_content_widget.addWidget(page_widget)
 
-            btn = QPushButton(text)
-            btn.setObjectName(f"navButton_{text.replace(' ', '')}")
-            btn.clicked.connect(lambda checked, idx=i, b=btn: self._on_nav_button_clicked(idx, b))
-            self.nav_buttons[text] = btn
-            self.sidebar_layout.addWidget(btn)
+#             btn = QPushButton(text)
+#             btn.setObjectName(f"navButton_{text.replace(' ', '')}")
+#             btn.clicked.connect(lambda checked, idx=i, b=btn: self._on_nav_button_clicked(idx, b))
+#             self.nav_buttons[text] = btn
+#             self.sidebar_layout.addWidget(btn)
 
-        self.sidebar_layout.addStretch()
+#         self.sidebar_layout.addStretch()
 
-        # 2. Main Content Area
-        self.content_area_container = QWidget()
-        self.content_area_container.setObjectName("contentAreaContainer")
-        self.content_area_layout = QVBoxLayout(self.content_area_container)
-        self.content_area_layout.setContentsMargins(40, 30, 40, 30)
-        self.content_area_layout.setSpacing(25)
+#         # 2. Main Content Area
+#         self.content_area_container = QWidget()
+#         self.content_area_container.setObjectName("contentAreaContainer")
+#         self.content_area_layout = QVBoxLayout(self.content_area_container)
+#         self.content_area_layout.setContentsMargins(40, 30, 40, 30)
+#         self.content_area_layout.setSpacing(25)
 
-        self.main_title_label = QLabel("Account Settings")
-        self.main_title_label.setObjectName("mainTitleLabel")
-        self.content_area_layout.addWidget(self.main_title_label)
+#         self.main_title_label = QLabel("Account Settings")
+#         self.main_title_label.setObjectName("mainTitleLabel")
+#         self.content_area_layout.addWidget(self.main_title_label)
 
-        self.content_area_layout.addWidget(self.stacked_content_widget)
+#         self.content_area_layout.addWidget(self.stacked_content_widget)
 
-        # Set initial page and active button
-        self.stacked_content_widget.setCurrentIndex(0)
-        initial_nav_button_text = list(nav_items_map.keys())[0]
-        self.nav_buttons[initial_nav_button_text].setProperty("active", True)
-        self.nav_buttons[initial_nav_button_text].style().polish(self.nav_buttons[initial_nav_button_text])
-        self.main_title_label.setText(initial_nav_button_text)
+#         # Set initial page and active button
+#         self.stacked_content_widget.setCurrentIndex(0)
+#         initial_nav_button_text = list(nav_items_map.keys())[0]
+#         self.nav_buttons[initial_nav_button_text].setProperty("active", True)
+#         self.nav_buttons[initial_nav_button_text].style().polish(self.nav_buttons[initial_nav_button_text])
+#         self.main_title_label.setText(initial_nav_button_text)
 
-        self.main_layout.addWidget(self.sidebar_frame)
-        self.main_layout.addWidget(self.content_area_container)
+#         self.main_layout.addWidget(self.sidebar_frame)
+#         self.main_layout.addWidget(self.content_area_container)
 
-    def _on_nav_button_clicked(self, index, clicked_button):
-        """
-        Handles navigation button clicks, switching the QStackedWidget page
-        and updating button active states.
-        """
-        self.main_title_label.setText(clicked_button.text())
-        self.stacked_content_widget.setCurrentIndex(index)
+#     def _on_nav_button_clicked(self, index, clicked_button):
+#         """
+#         Handles navigation button clicks, switching the QStackedWidget page
+#         and updating button active states.
+#         """
+#         self.main_title_label.setText(clicked_button.text())
+#         self.stacked_content_widget.setCurrentIndex(index)
 
-        for text, btn_widget in self.nav_buttons.items():
-            if btn_widget == clicked_button:
-                btn_widget.setProperty("active", True)
-            else:
-                btn_widget.setProperty("active", False)
-            btn_widget.style().polish(btn_widget)
+#         for text, btn_widget in self.nav_buttons.items():
+#             if btn_widget == clicked_button:
+#                 btn_widget.setProperty("active", True)
+#             else:
+#                 btn_widget.setProperty("active", False)
+#             btn_widget.style().polish(btn_widget)
 
-    def _apply_styles(self):
-        """
-        Applies Qt Style Sheets (QSS) for the application's look and feel.
-        """
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #f0f2f5;
-            }
+#     def _apply_styles(self):
+#         """
+#         Applies Qt Style Sheets (QSS) for the application's look and feel.
+#         """
+#         self.setStyleSheet("""
+#             QMainWindow {
+#                 background-color: #f0f2f5;
+#             }
 
-            #sidebarFrame {
-                background-color: #2c3e50;
-                border-right: 1px solid #34495e;
-            }
+#             #sidebarFrame {
+#                 background-color: #2c3e50;
+#                 border-right: 1px solid #34495e;
+#             }
 
-            #loggedInLabel {
-                color: #ecf0f1;
-                font-size: 16px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid #34495e;
-            }
+#             #loggedInLabel {
+#                 color: #ecf0f1;
+#                 font-size: 16px;
+#                 padding-bottom: 10px;
+#                 border-bottom: 1px solid #34495e;
+#             }
 
-            /* General QPushButton styles for navigation buttons */
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                text-align: left;
-                font-size: 14px;
-                border-radius: 5px;
-                min-width: 150px;
-            }
+#             /* General QPushButton styles for navigation buttons */
+#             QPushButton {
+#                 background-color: #3498db;
+#                 color: white;
+#                 border: none;
+#                 padding: 10px 15px;
+#                 text-align: left;
+#                 font-size: 14px;
+#                 border-radius: 5px;
+#                 min-width: 150px;
+#             }
 
-            QPushButton:hover {
-                background-color: #2980b9;
-                color: white;
-            }
+#             QPushButton:hover {
+#                 background-color: #2980b9;
+#                 color: white;
+#             }
 
-            QPushButton[active="true"] {
-                background-color: #f39c12;
-                color: #2c3e50;
-                font-weight: bold;
-                border-left: 5px solid #e67e22;
-            }
-            QPushButton[active="true"]:hover {
-                background-color: #e67e22;
-            }
+#             QPushButton[active="true"] {
+#                 background-color: #f39c12;
+#                 color: #2c3e50;
+#                 font-weight: bold;
+#                 border-left: 5px solid #e67e22;
+#             }
+#             QPushButton[active="true"]:hover {
+#                 background-color: #e67e22;
+#             }
 
-            #mainTitleLabel {
-                font-size: 28px;
-                font-weight: bold;
-                color: #2c3e50;
-                margin-bottom: 20px;
-            }
+#             #mainTitleLabel {
+#                 font-size: 28px;
+#                 font-weight: bold;
+#                 color: #2c3e50;
+#                 margin-bottom: 20px;
+#             }
 
-            QGroupBox {
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                margin-top: 1.5em;
-                font-size: 16px;
-                font-weight: bold;
-                color: #34495e;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 15px;
-                padding: 0 5px;
-            }
+#             QGroupBox {
+#                 border: 1px solid #ccc;
+#                 border-radius: 8px;
+#                 margin-top: 1.5em;
+#                 font-size: 16px;
+#                 font-weight: bold;
+#                 color: #34495e;
+#             }
+#             QGroupBox::title {
+#                 subcontrol-origin: margin;
+#                 left: 15px;
+#                 padding: 0 5px;
+#             }
 
-            QLineEdit#commandLineEdit {
-                background-color: #ffffff;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 14px;
-                color: #2c3e50;
-            }
-            QLineEdit#commandLineEdit:focus {
-                border: 1px solid #3498db;
-            }
+#             QLineEdit#commandLineEdit {
+#                 background-color: #ffffff;
+#                 border: 1px solid #ccc;
+#                 border-radius: 5px;
+#                 padding: 10px;
+#                 font-size: 14px;
+#                 color: #2c3e50;
+#             }
+#             QLineEdit#commandLineEdit:focus {
+#                 border: 1px solid #3498db;
+#             }
 
-            QTextEdit#terminalOutputTextEdit, QTextEdit#automationLogTextEdit { /* Applied to both terminal and automation log */
-                background-color: #1e1e1e;
-                color: #00ff00;
-                font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 11pt;
-                border-radius: 5px;
-                padding: 10px;
+            # QTextEdit#terminalOutputTextEdit, QTextEdit#automationLogTextEdit { /* Applied to both terminal and automation log */
+            #     background-color: #1e1e1e;
+            #     color: #00ff00;
+            #     font-family: 'Consolas', 'Monaco', monospace;
+            #     font-size: 11pt;
+            #     border-radius: 5px;
+            #     padding: 10px;
                 
-            }
+            # }
 
-            QPushButton#executeButton, QPushButton#clearOutputButton {
-                color: white;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-size: 14px;
-                border: none;
-            }
-            QPushButton#executeButton {
-                background-color: #008CBA;
-            }
-            QPushButton#executeButton:hover {
-                background-color: #007bb5;
-            }
-            QPushButton#clearOutputButton {
-                background-color: #f44336;
-            }
-            QPushButton#clearOutputButton:hover {
-                background-color: #da190b;
-            }
+            # QPushButton#executeButton, QPushButton#clearOutputButton {
+            #     color: white;
+            #     padding: 10px 20px;
+            #     border-radius: 5px;
+            #     font-size: 14px;
+            #     border: none;
+            # }
+            # QPushButton#executeButton {
+            #     background-color: #008CBA;
+            # }
+            # QPushButton#executeButton:hover {
+            #     background-color: #007bb5;
+            # }
+            # QPushButton#clearOutputButton {
+            #     background-color: #f44336;
+            # }
+            # QPushButton#clearOutputButton:hover {
+            #     background-color: #da190b;
+            # }
 
-            /* Placeholder Page Content Styling */
-            QWidget#systemConfigurationPage QLabel,
-            QWidget#databaseMaintenancePage QLabel,
-            QWidget#securitySettingPage QLabel {
-                font-size: 24px;
-                color: #555;
-                text-align: center;
-                padding-top: 50px;
-            }
-            QWidget#systemConfigurationPage p,
-            QWidget#databaseMaintenancePage p,
-            QWidget#securitySettingPage p {
-                font-size: 16px;
-                color: #777;
-                text-align: center;
-            }
-            /* Specific adjustments for AutomationPage's new title/description */
-            QWidget#AutomationPage #sectionTitle {
-                font-size: 28px; /* Override for specific title */
-                font-weight: bold;
-                color: #2c3e50;
-                margin-bottom: 20px;
-            }
-            QWidget#AutomationPage p {
-                text-align: left; /* Align paragraphs normally */
-                padding: 0 10px; /* Add some horizontal padding for readability */
-            }
-
-
-            /* Table widget styling (if used in future pages) */
-            QTableWidget {
-                background-color: #ffffff;
-                border: 1px solid #ccc;
-                gridline-color: #eee;
-                font-size: 13px;
-                selection-background-color: #d1eaff;
-                selection-color: #333;
-                border-radius: 8px;
-            }
-            QTableWidget::item {
-                padding: 5px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cceeff;
-                color: black;
-            }
-            QHeaderView::section {
-                background-color: #e6e6e6;
-                padding: 5px;
-                border: 1px solid #ccc;
-                font-weight: bold;
-                color: #333;
-            }
-            QHeaderView::section:horizontal {
-                border-bottom: 2px solid #aaa;
-            }
-            QHeaderView::section:vertical {
-                border-right: 2px solid #aaa;
-            }
-            #sectionSubTitle {
-                font-size: 18px;
-                font-weight: bold;
-                color: #555;
-                margin-bottom: 10px;
-            }
-
-            /* Buttons inside automation page */
-            QPushButton#primaryButton { /* Reused from earlier primaryButton, adjust if needed */
-                background-color: #2ecc71; /* Green */
-                color: #ffffff;
-                border: none;
-                padding: 10px 20px;
-                font-size: 14px;
-                border-radius: 10px;
-                margin-top: 2px; /* Adjust spacing */
-                text-align: center;
-            }
-            QPushButton#primaryButton:hover {
-                background-color: #27ae60;
-            }
-            QPushButton#secondaryButton {
-                background-color: #95a5a6; /* Gray */
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                font-size: 14px;
-                border-radius: 5px;
-                margin-top: 10px;
-                text-align: center;
-            }
-            QPushButton#secondaryButton:hover {
-                background-color: #7f8c8d;
-            }
+#             /* Placeholder Page Content Styling */
+#             QWidget#systemConfigurationPage QLabel,
+#             QWidget#databaseMaintenancePage QLabel,
+#             QWidget#securitySettingPage QLabel {
+#                 font-size: 24px;
+#                 color: #555;
+#                 text-align: center;
+#                 padding-top: 50px;
+#             }
+#             QWidget#systemConfigurationPage p,
+#             QWidget#databaseMaintenancePage p,
+#             QWidget#securitySettingPage p {
+#                 font-size: 16px;
+#                 color: #777;
+#                 text-align: center;
+#             }
+#             /* Specific adjustments for AutomationPage's new title/description */
+#             QWidget#AutomationPage #sectionTitle {
+#                 font-size: 28px; /* Override for specific title */
+#                 font-weight: bold;
+#                 color: #2c3e50;
+#                 margin-bottom: 20px;
+#             }
+#             QWidget#AutomationPage p {
+#                 text-align: left; /* Align paragraphs normally */
+#                 padding: 0 10px; /* Add some horizontal padding for readability */
+#             }
 
 
-            /* Scrollbar styling */
-            QScrollBar:vertical {
-                border: 1px solid #999;
-                background: #f0f0f0;
-                width: 10px;
-                margin: 0px 0px 0px 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: #c0c0c0;
-                min-height: 20px;
-                border-radius: 4px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                background: none;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
-            #automationPageScrollArea{
-                border: none;
-            }
-        """)
-# --- Main Application Execution ---
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor("#FFFFFF"))  # Dialog background
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
-    palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
-    palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
-    app.setPalette(palette)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+#             /* Table widget styling (if used in future pages) */
+#             QTableWidget {
+#                 background-color: #ffffff;
+#                 border: 1px solid #ccc;
+#                 gridline-color: #eee;
+#                 font-size: 13px;
+#                 selection-background-color: #d1eaff;
+#                 selection-color: #333;
+#                 border-radius: 8px;
+#             }
+#             QTableWidget::item {
+#                 padding: 5px;
+#             }
+#             QTableWidget::item:selected {
+#                 background-color: #cceeff;
+#                 color: black;
+#             }
+#             QHeaderView::section {
+#                 background-color: #e6e6e6;
+#                 padding: 5px;
+#                 border: 1px solid #ccc;
+#                 font-weight: bold;
+#                 color: #333;
+#             }
+#             QHeaderView::section:horizontal {
+#                 border-bottom: 2px solid #aaa;
+#             }
+#             QHeaderView::section:vertical {
+#                 border-right: 2px solid #aaa;
+#             }
+#             #sectionSubTitle {
+#                 font-size: 18px;
+#                 font-weight: bold;
+#                 color: #555;
+#                 margin-bottom: 10px;
+#             }
+
+#             /* Buttons inside automation page */
+#             QPushButton#primaryButton { /* Reused from earlier primaryButton, adjust if needed */
+#                 background-color: #2ecc71; /* Green */
+#                 color: #ffffff;
+#                 border: none;
+#                 padding: 10px 20px;
+#                 font-size: 14px;
+#                 border-radius: 10px;
+#                 margin-top: 2px; /* Adjust spacing */
+#                 text-align: center;
+#             }
+#             QPushButton#primaryButton:hover {
+#                 background-color: #27ae60;
+#             }
+#             QPushButton#secondaryButton {
+#                 background-color: #95a5a6; /* Gray */
+#                 color: white;
+#                 border: none;
+#                 padding: 8px 15px;
+#                 font-size: 14px;
+#                 border-radius: 5px;
+#                 margin-top: 10px;
+#                 text-align: center;
+#             }
+#             QPushButton#secondaryButton:hover {
+#                 background-color: #7f8c8d;
+#             }
+
+
+#             /* Scrollbar styling */
+#             QScrollBar:vertical {
+#                 border: 1px solid #999;
+#                 background: #f0f0f0;
+#                 width: 10px;
+#                 margin: 0px 0px 0px 0px;
+#             }
+#             QScrollBar::handle:vertical {
+#                 background: #c0c0c0;
+#                 min-height: 20px;
+#                 border-radius: 4px;
+#             }
+#             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+#                 background: none;
+#             }
+#             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+#                 background: none;
+#             }
+#             #automationPageScrollArea{
+#                 border: none;
+#             }
+#         """)
+# # --- Main Application Execution ---
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     palette = QPalette()
+#     palette.setColor(QPalette.ColorRole.Window, QColor("#FFFFFF"))  # Dialog background
+#     palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
+#     palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
+#     palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
+#     palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
+#     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
+#     palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
+#     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+#     app.setPalette(palette)
+#     window = MainWindow()
+#     window.show()
+#     sys.exit(app.exec())
