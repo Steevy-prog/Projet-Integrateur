@@ -72,7 +72,7 @@ CREATE DOMAIN "SCA".Idproduitmateriel TEXT CHECK(
 CREATE DOMAIN "SCA".Idproduitlogiciel TEXT CHECK(
     VALUE ~ '^PL[A-Z0-9]{4}$'
     );
-CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','transporteur','destinataire','SAC');
+CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
 CREATE TYPE "SCA".rapports AS ENUM('lors de la verification avant expedition','lors du destockage et assemblage du colis'
