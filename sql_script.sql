@@ -2548,7 +2548,7 @@ returns table(
      )
 as $$
 begin
-return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_gethigher(_date timestamp)
@@ -2561,7 +2561,7 @@ returns table(
      )
 as $$
 begin
-return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_getlower(_date timestamp)
@@ -2574,5 +2574,5 @@ returns table(
      )
 as $$
 begin
-return query select id, timestamp,level,message,extra from "SCA".Tache where _timestamp <= _date;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp <= _date;
 end; $$ language plpgsql;
