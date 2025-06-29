@@ -75,6 +75,15 @@ CREATE DOMAIN "SCA".Idproduitlogiciel TEXT CHECK(
 CREATE DOMAIN "SCA".idtache TEXT CHECK (
     VALUE~ '^T[A-Z0-9]{5}$'
     );
+CREATE DOMAIN "SCA".idtravailleur TEXT CHECK (
+    VALUE~ '^TR[A-Z0-9]{4}$'
+    );
+CREATE DOMAIN "SCA".idvehicule TEXT CHECK (
+    VALUE~ '^V[A-Z0-9]{5}$'
+    );
+CREATE DOMAIN "SCA".idconducteur TEXT CHECK (
+    VALUE~ '^CD[A-Z0-9]{4}$'
+    );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -88,6 +97,30 @@ CREATE TYPE "SCA".condition_materiel AS ENUM (
 CREATE TYPE "SCA".categorie_produit AS ENUM (
     'produit de vente',
     'materiel d''emballage'
+    );
+CREATE TYPE "SCA".statut_travailleur AS ENUM (
+    'actif',
+    'inactif',
+    'en congé',
+    'en formation'
+    );
+CREATE TYPE "SCA".type_vehicule AS ENUM (
+    'camion',
+    'fourgon',
+    'camionnette',
+    'remorque'
+    );
+CREATE TYPE "SCA".statut_vehicule AS ENUM (
+    'disponible',
+    'en maintenance',
+    'en livraison',
+    'hors service'
+    );
+CREATE TYPE "SCA".statut_conducteur AS ENUM (
+    'disponible',
+    'en livraison',
+    'en congé',
+    'en formation'
     );
 CREATE TABLE "SCA".Organisation(
                                    idorganisation "SCA".idOrg NOT NULL ,
@@ -248,7 +281,7 @@ CREATE TABLE "SCA".InventaireEmplacement(
 
 CREATE TABLE "SCA".Tache(
     idtache "SCA".idtache NOT NULL ,
-    idindividu "SCA".IDindividu NOT NULL ,
+    idtravailleur "SCA".idtravailleur NOT NULL ,
     idcellule "SCA".Idcellule NOT NULL ,
     idlot "SCA".Idlot NOT NULL ,
     date_creation DATE NOT NULL ,
@@ -257,11 +290,10 @@ CREATE TABLE "SCA".Tache(
     statut text NOT NULL DEFAULT 'en cours',
     type text not null,
     CONSTRAINT Tache_CC0 PRIMARY KEY (idtache),
-    CONSTRAINT Tache_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
+    CONSTRAINT Tache_CR0 FOREIGN KEY (idtravailleur) REFERENCES "SCA".Travailleur(idtravailleur) ON DELETE CASCADE,
     FOREIGN KEY (idcellule) REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE,
     FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
-
 -- CREATE TABLE "CREDENTIALS".PasswordPolicies (
 --                                                 id_policy INT GENERATED ALWAYS AS IDENTITY,
 --                                                 nom_policy VARCHAR(100) NOT NULL UNIQUE,
@@ -277,6 +309,55 @@ CREATE TABLE "SCA".Tache(
 --                                                 prevent_common_passwords BOOLEAN NOT NULL DEFAULT FALSE,
 --                                                 CONSTRAINT PK_PasswordPolicies PRIMARY KEY (nom_policy)
 -- );
+
+CREATE TABLE "SCA".Travailleur(
+    idtravailleur "SCA".idtravailleur NOT NULL,
+    idindividu "SCA".IDindividu NOT NULL,
+    date_embauche DATE NOT NULL,
+    poste "SCA".Nom NOT NULL,
+    departement "SCA".Nom NOT NULL,
+    salaire_horaire DECIMAL(10,2) NOT NULL,
+    statut "SCA".statut_travailleur DEFAULT 'actif',
+    competences TEXT,
+    date_derniere_evaluation DATE,
+    CONSTRAINT Travailleur_CC0 PRIMARY KEY (idtravailleur),
+    CONSTRAINT Travailleur_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE
+);
+
+CREATE TABLE "SCA".Vehicule(
+    idvehicule "SCA".idvehicule NOT NULL,
+    immatriculation "SCA".Nom NOT NULL UNIQUE,
+    marque "SCA".Nom NOT NULL,
+    modele "SCA".Nom NOT NULL,
+    annee_fabrication INTEGER NOT NULL,
+    types "SCA".type_vehicule NOT NULL,
+    capacite_charge "SCA".dims NOT NULL,
+    capacite_volume "SCA".dims NOT NULL,
+    date_acquisition DATE NOT NULL,
+    statut "SCA".statut_vehicule DEFAULT 'disponible',
+    kilometrage_actuel DECIMAL(10,2) DEFAULT 0,
+    date_derniere_maintenance DATE,
+    prochaine_maintenance DATE,
+    carburant VARCHAR(20) DEFAULT 'Diesel',
+    consommation_moyenne DECIMAL(5,2),
+    CONSTRAINT Vehicule_CC0 PRIMARY KEY (idvehicule)
+);
+
+CREATE TABLE "SCA".Conducteur(
+    idconducteur "SCA".idconducteur NOT NULL,
+    idindividu "SCA".IDindividu NOT NULL,
+    numero_permis "SCA".Nom NOT NULL UNIQUE,
+    type_permis VARCHAR(10) NOT NULL,
+    date_obtention_permis DATE NOT NULL,
+    date_expiration_permis DATE NOT NULL,
+    experience_annees INTEGER DEFAULT 0,
+    statut "SCA".statut_conducteur DEFAULT 'disponible',
+    date_derniere_evaluation DATE,
+    note_evaluation DECIMAL(3,2) CHECK (note_evaluation >= 0 AND note_evaluation <= 5),
+    specialites TEXT,
+    CONSTRAINT Conducteur_CC0 PRIMARY KEY (idconducteur),
+    CONSTRAINT Conducteur_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE
+);
 
 CREATE TABLE "CREDENTIALS".PasswordPolicies (
                                                 setting_name VARCHAR(100) NOT NULL UNIQUE,
@@ -992,6 +1073,96 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Functions for domain idtravailleur
+
+CREATE OR REPLACE FUNCTION "SCA".idtravailleur_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^TR[A-Z0-9]{4}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idtravailleur_VAL(v TEXT)
+    RETURNS "SCA".idtravailleur AS $$
+BEGIN
+    IF NOT "SCA".idtravailleur_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour idtravailleur: %', v;
+    END IF;
+    RETURN v::"SCA".idtravailleur;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idtravailleur_CONV(v TEXT)
+    RETURNS "SCA".idtravailleur AS $$
+BEGIN
+    IF "SCA".idtravailleur_CONF(v) THEN
+        RETURN v::"SCA".idtravailleur;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Functions for domain idvehicule
+
+CREATE OR REPLACE FUNCTION "SCA".idvehicule_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^V[A-Z0-9]{5}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idvehicule_VAL(v TEXT)
+    RETURNS "SCA".idvehicule AS $$
+BEGIN
+    IF NOT "SCA".idvehicule_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour idvehicule: %', v;
+    END IF;
+    RETURN v::"SCA".idvehicule;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idvehicule_CONV(v TEXT)
+    RETURNS "SCA".idvehicule AS $$
+BEGIN
+    IF "SCA".idvehicule_CONF(v) THEN
+        RETURN v::"SCA".idvehicule;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Functions for domain idconducteur
+
+CREATE OR REPLACE FUNCTION "SCA".idconducteur_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^CD[A-Z0-9]{4}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idconducteur_VAL(v TEXT)
+    RETURNS "SCA".idconducteur AS $$
+BEGIN
+    IF NOT "SCA".idconducteur_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour idconducteur: %', v;
+    END IF;
+    RETURN v::"SCA".idconducteur;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idconducteur_CONV(v TEXT)
+    RETURNS "SCA".idconducteur AS $$
+BEGIN
+    IF "SCA".idconducteur_CONF(v) THEN
+        RETURN v::"SCA".idconducteur;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 
 
 --EMIRSSSSSSSS
@@ -1217,6 +1388,68 @@ begin
     insert into "CREDENTIALS".Credentials(email, password,idindividu) values ("SCA".email_CONV(_email),"SCA".password_CONV(_password),"SCA".IDindividu_CONV(_idindiv));
 end; $$ language plpgsql;
 
+-- 18. TRAVAILLEUR
+create or replace procedure "EMIR".Travailleur_INS(
+    _idtravailleur text,
+    _idindividu text,
+    _date_embauche text,
+    _poste text,
+    _departement text,
+    _salaire_horaire text,
+    _statut text,
+    _competences text,
+    _date_derniere_evaluation text
+)
+as $$
+begin
+    insert into "SCA".Travailleur(idtravailleur, idindividu, date_embauche, poste, departement, salaire_horaire, statut, competences, date_derniere_evaluation) 
+    values ("SCA".idtravailleur_CONV(_idtravailleur), "SCA".IDindividu_CONV(_idindividu), _date_embauche::date, "SCA".Nom_CONV(_poste), "SCA".Nom_CONV(_departement), _salaire_horaire::decimal, _statut::"SCA".statut_travailleur, _competences, _date_derniere_evaluation::date);
+end; $$ language plpgsql;
+
+-- 19. VEHICULE
+create or replace procedure "EMIR".Vehicule_INS(
+    _idvehicule text,
+    _immatriculation text,
+    _marque text,
+    _modele text,
+    _annee_fabrication text,
+    _type text,
+    _capacite_charge text,
+    _capacite_volume text,
+    _date_acquisition text,
+    _statut text,
+    _kilometrage_actuel text,
+    _date_derniere_maintenance text,
+    _prochaine_maintenance text,
+    _carburant text,
+    _consommation_moyenne text
+)
+as $$
+begin
+    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, type, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne) 
+    values ("SCA".idvehicule_CONV(_idvehicule), "SCA".Nom_CONV(_immatriculation), "SCA".Nom_CONV(_marque), "SCA".Nom_CONV(_modele), _annee_fabrication::integer, _type::"SCA".type_vehicule, "SCA".dims_CONV(_capacite_charge), "SCA".dims_CONV(_capacite_volume), _date_acquisition::date, _statut::"SCA".statut_vehicule, _kilometrage_actuel::decimal, _date_derniere_maintenance::date, _prochaine_maintenance::date, _carburant, _consommation_moyenne::decimal);
+end; $$ language plpgsql;
+
+-- 20. CONDUCTEUR
+create or replace procedure "EMIR".Conducteur_INS(
+    _idconducteur text,
+    _idindividu text,
+    _numero_permis text,
+    _type_permis text,
+    _date_obtention_permis text,
+    _date_expiration_permis text,
+    _experience_annees text,
+    _statut text,
+    _date_derniere_evaluation text,
+    _note_evaluation text,
+    _specialites text
+)
+as $$
+begin
+    insert into "SCA".Conducteur(idconducteur, idindividu, numero_permis, type_permis, date_obtention_permis, date_expiration_permis, experience_annees, statut, date_derniere_evaluation, note_evaluation, specialites) 
+    values ("SCA".idconducteur_CONV(_idconducteur), "SCA".IDindividu_CONV(_idindividu), "SCA".Nom_CONV(_numero_permis), _type_permis, _date_obtention_permis::date, _date_expiration_permis::date, _experience_annees::integer, _statut::"SCA".statut_conducteur, _date_derniere_evaluation::date, _note_evaluation::decimal, _specialites);
+end; $$ language plpgsql;
+
 -- Fin des routines _INS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -1426,6 +1659,65 @@ begin
     return query select * from "SCA".InventaireEmplacement;
 end; $$ language plpgsql;
 
+-- 18. TRAVAILLEUR
+create or replace function "EMIR".Travailleur_EVA()
+    returns table (
+                      idtravailleur "SCA".idtravailleur,
+                      idindividu "SCA".IDindividu,
+                      date_embauche date,
+                      poste "SCA".Nom,
+                      departement "SCA".Nom,
+                      salaire_horaire decimal(10,2),
+                      statut "SCA".statut_travailleur,
+                      competences text,
+                      date_derniere_evaluation date
+                  ) as $$
+begin
+    return query select * from "SCA".Travailleur;
+end; $$ language plpgsql;
+
+-- 19. VEHICULE
+create or replace function "EMIR".Vehicule_EVA()
+    returns table (
+                      idvehicule "SCA".idvehicule,
+                      immatriculation "SCA".Nom,
+                      marque "SCA".Nom,
+                      modele "SCA".Nom,
+                      annee_fabrication integer,
+                      type "SCA".type_vehicule,
+                      capacite_charge "SCA".dims,
+                      capacite_volume "SCA".dims,
+                      date_acquisition date,
+                      statut "SCA".statut_vehicule,
+                      kilometrage_actuel decimal(10,2),
+                      date_derniere_maintenance date,
+                      prochaine_maintenance date,
+                      carburant varchar(20),
+                      consommation_moyenne decimal(5,2)
+                  ) as $$
+begin
+    return query select * from "SCA".Vehicule;
+end; $$ language plpgsql;
+
+-- 20. CONDUCTEUR
+create or replace function "EMIR".Conducteur_EVA()
+    returns table (
+                      idconducteur "SCA".idconducteur,
+                      idindividu "SCA".IDindividu,
+                      numero_permis "SCA".Nom,
+                      type_permis varchar(10),
+                      date_obtention_permis date,
+                      date_expiration_permis date,
+                      experience_annees integer,
+                      statut "SCA".statut_conducteur,
+                      date_derniere_evaluation date,
+                      note_evaluation decimal(3,2),
+                      specialites text
+                  ) as $$
+begin
+    return query select * from "SCA".Conducteur;
+end; $$ language plpgsql;
+
 -- Fin des fonctions d'évaluation (_EVA)
 -- Les routines MOD, INS, RET peuvent être ajoutées de la même manière si tu veux
 
@@ -1581,6 +1873,33 @@ create or replace procedure "EMIR".InventaireEmplacement_RET(
 as $$
 begin
     delete from "SCA".InventaireEmplacement where idcellule = _idcellule and idlot = _idlot;
+end; $$ language plpgsql;
+
+-- 18. TRAVAILLEUR
+create or replace procedure "EMIR".Travailleur_RET(
+    _idtravailleur "SCA".idtravailleur
+)
+as $$
+begin
+    delete from "SCA".Travailleur where idtravailleur = _idtravailleur;
+end; $$ language plpgsql;
+
+-- 19. VEHICULE
+create or replace procedure "EMIR".Vehicule_RET(
+    _idvehicule "SCA".idvehicule
+)
+as $$
+begin
+    delete from "SCA".Vehicule where idvehicule = _idvehicule;
+end; $$ language plpgsql;
+
+-- 20. CONDUCTEUR
+create or replace procedure "EMIR".Conducteur_RET(
+    _idconducteur "SCA".idconducteur
+)
+as $$
+begin
+    delete from "SCA".Conducteur where idconducteur = _idconducteur;
 end; $$ language plpgsql;
 
 -- Fin des routines _RET
