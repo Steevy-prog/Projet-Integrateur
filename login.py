@@ -168,28 +168,19 @@ class FlipCard(QWidget):
         layout.addWidget(btn_login)
         layout.addWidget(self.login_status)
         layout.addWidget(switch)
-        layout.setSpacing(15)
-        layout.setContentsMargins(50, 30, 50, 30)
+        layout.setSpacing(10)
+        layout.setContentsMargins(30, 10, 30, 10)
         card.setLayout(layout)
         return card
 
     def create_signup_card(self):
         card = QWidget()
         layout = QVBoxLayout()
-        title = QLabel("Create Account")
-        title.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("""
-            QLabel {
-                color: #2c3e50;
-                margin-bottom: 10px;
-                margin-top: 20px;
-            }
-        """)
+        
         subtitle = QLabel("Join us today")
-        subtitle.setFont(QFont("Arial", 12))
+        subtitle.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("color: #7f8c8d; margin-bottom: 30px;")
+        subtitle.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
         self.signup_name = QLineEdit()
         self.signup_name.setPlaceholderText("Full Name")
         self.signup_email = QLineEdit()
@@ -216,17 +207,19 @@ class FlipCard(QWidget):
         self.signup_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
         switch = QPushButton("Already have an account? Sign in")
         switch.clicked.connect(self.flip)
-        for widget in [self.signup_name, self.signup_email, self.signup_password]:
+        for widget in [self.signup_name, self.signup_email, self.signup_password, self.signup_password_confirm, self.id_entreprise, self.id_poste ]:
             widget.setFixedHeight(45)
             widget.setStyleSheet(self.input_style())
         btn_signup.setStyleSheet(self.primary_button_style())
         btn_signup.setFixedHeight(45)
         switch.setStyleSheet(self.link_button_style())
-        layout.addWidget(title)
         layout.addWidget(subtitle)
         layout.addWidget(self.signup_name)
         layout.addWidget(self.signup_email)
         layout.addWidget(self.signup_password)
+        layout.addWidget(self.signup_password_confirm)
+        layout.addWidget(self.id_entreprise)
+        layout.addWidget(self.id_poste)
         layout.addWidget(btn_signup)
         layout.addWidget(self.signup_status)
         layout.addWidget(switch)

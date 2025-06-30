@@ -596,6 +596,7 @@ class ProductInputRow(QHBoxLayout):
 
         self.product_combo = QComboBox()
         self.product_combo.addItem("— Select a product —", None)
+        self.product_combo.setStyleSheet("background-color: 5472AE")
         for p in self.products_data:
             self.product_combo.addItem(p[2], p[0]) # Display name, store ID
 
@@ -604,7 +605,7 @@ class ProductInputRow(QHBoxLayout):
         self.qty_spin.setValue(1)
 
         self.remove_btn = QPushButton("X")
-        self.remove_btn.setFixedSize(24, 24)
+        self.remove_btn.setFixedSize(34, 34)
         self.remove_btn.setStyleSheet("color: red; font-weight: bold; border-radius: 12px; background-color: #FFEBEE;")
         self.remove_btn.clicked.connect(self._on_remove_clicked)
 
@@ -779,6 +780,16 @@ class ClientLogisticsWidget(QWidget):
         self.package_items_layout.setSpacing(8) # Spacing between product rows
         scroll_area.setWidget(package_items_widget)
         layout.addWidget(scroll_area)
+        package_items_widget.setStyleSheet("""
+            QWidget {
+                background-color: #F9F9F9;
+                border-radius: 8px;
+                padding: 10px;
+            }
+            QScrollArea {
+                border: none;
+            }
+        """)
 
         add_product_row_btn = QPushButton("Add Product to Package")
         add_product_row_btn.setStyleSheet("""
