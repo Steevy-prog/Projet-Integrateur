@@ -1060,7 +1060,7 @@ class WarehouseMenuInteractionWidget(QWidget):
 
         # Onglets
         tabs = QTabWidget()
-        tabs.addTab(MenuReception(self.data), "menu reception")
+        #tabs.addTab(MenuReception(self.data), "menu reception")
         tabs.addTab(MenuExpedition(self.data), "menu expedition")
         tabs.addTab(ZoneEmballage(self.data),"zone d'emballage")
         layout.addWidget(tabs)

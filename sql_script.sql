@@ -2517,7 +2517,7 @@ BEGIN
         FROM "SCA".Produit
                  JOIN "SCA".Lot ON "SCA".Produit.idproduit = "SCA".Lot.idproduit
                  JOIN "SCA".InventaireEmplacement ON "SCA".InventaireEmplacement.idlot = "SCA".Lot.idlot
-                 JOIN "SCA".Entrepot ON "SCA".InventaireEmplacement.idcellule = entrepot.idcellule
+                 JOIN "SCA".Entrepot ON "SCA".InventaireEmplacement.idcellule = "SCA".entrepot.idcellule
                  JOIN "SCA".Zone on "SCA".zone.idzone = "SCA".entrepot.position
         WHERE "SCA".Produit.idproduit = id
         LIMIT 1
@@ -2775,7 +2775,7 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-create or replace function "EMIR".Tache_EVA(idindividu "SCA".idindividu)
+create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
                      _idcellule "SCA".idcellule,
@@ -2787,7 +2787,7 @@ create or replace function "EMIR".Tache_EVA(idindividu "SCA".idindividu)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache;
+    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idindividu = _idindividu;
 end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
