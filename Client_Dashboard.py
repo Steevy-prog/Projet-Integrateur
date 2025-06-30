@@ -697,7 +697,7 @@ class ClientLogisticsWidget(QWidget):
         # Section 3: Send Package
         main_splitter.addWidget(self.create_send_section("Send a Package"))
 
-        main_splitter.setSizes([self.width() // 2, self.width() // 2, self.width() // 2])
+        main_splitter.setSizes([self.width() // 2, self.width() // 1, self.width() // 2])
         main_layout.addWidget(main_splitter)
         main_layout.addStretch()
 
@@ -1614,28 +1614,56 @@ class ClientInquiriesWidget(QWidget):
         table = QTableWidget()
         table.setColumnCount(5)
         table.setHorizontalHeaderLabels(['ID', 'Type', 'Related Product', 'Time', 'Status'])
-        print('cul')
-        table.setAlternatingRowColors(True)
+    
+    # Set header visibility BEFORE styling
+        table.horizontalHeader().setVisible(True)
+        table.horizontalHeader().setMinimumHeight(45)  # Ensure header has proper height
         table.verticalHeader().setVisible(False)
+        table.verticalHeader().setDefaultSectionSize(40)
+
         table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                border: 1px solid #E0E0E0;
-                border-radius: 10px;
-                font-size: 14px;
-            }
-            QHeaderView::section {
-                background-color: #F44336;
-                color: white;
-                font-weight: bold;
-                padding: 8px;
-            }
-        """)
-        header = table.horizontalHeader()
-        header.setVisible(True)
-        header.setStretchLastSection(True)
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        QTableWidget {
+            background-color: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-radius: 10px;
+            font-size: 14px;
+            selection-background-color: #FFEBEE;
+            selection-color: #333333;
+            gridline-color: #F0F2F5;
+        }
+        QHeaderView::section {
+            background-color: #F44336;
+            color: #FFFFFF;
+            padding: 12px;
+            border: none;
+            font-weight: bold;
+            font-size: 15px;
+            text-align: left;
+            height: 90px;
+            min-height: 45px;
+        }
+        QHeaderView::section:first {
+            border-top-left-radius: 10px;
+        }
+        QHeaderView::section:last {
+            border-top-right-radius: 10px;
+        }
+        QTableWidget::item {
+            padding: 8px;
+        }
+        QTableWidget::item:selected {
+            background-color: #FFEBEE;
+            color: #333333;
+        }
+    """)
+
+        table.setAlternatingRowColors(True)
+        table.horizontalHeader().setStretchLastSection(True)
         table.cellDoubleClicked.connect(self.view_inquiry_details)
+    
+    # Remove the test row - it's not needed and might interfere
+    # The table will be populated by update_inquiries_table()
+    
         return table
 
     def update_inquiries_table(self, inquiries):

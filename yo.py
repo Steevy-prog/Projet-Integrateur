@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import sys
 from Worker_Dashboard import MainWindow as window1
-from Client_Dashboard import QMainWindow as window2
+from Client_Dashboard import ClientMainWindow as window2
 from IT_Technician import MainWindow as window3
 from Manager_Dashboard import MainWindow as window4
 # ----------------------------
