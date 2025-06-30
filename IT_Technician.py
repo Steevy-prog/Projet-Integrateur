@@ -1359,7 +1359,7 @@ class MainWindow(QMainWindow):
                 margin-bottom: 10px;
             }
             #queryTextEdit {
-                background-color: #021052;
+                background-color: white;
             }
             QWidget#AutomationPage #sectionTitle {
                 font-size: 28px; /* Override for specific title */
@@ -1453,7 +1453,7 @@ if __name__ == "__main__":
     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
     palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
-    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#49F2B4FF"))
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#EB7A16FF"))
     app.setPalette(palette)
     
     window = MainWindow()

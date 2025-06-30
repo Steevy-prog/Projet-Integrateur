@@ -2987,9 +2987,13 @@ create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
                  )
 as $$
 begin
+<<<<<<< HEAD
     return query select id, timestamp,level,message,extra from "SCA".Logs 
     -- ❌ PROBLÈME : Devrait être "SCA".Logs, pas "SCA".Tache
     where _timestamp between _date1 and _date2;
+=======
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
+>>>>>>> 6fb97020ea4569efcd6036400c164b5f5b12b256
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_gethigher(_date timestamp)
@@ -3002,7 +3006,11 @@ create or replace function "EMIR".Logs_gethigher(_date timestamp)
                  )
 as $$
 begin
+<<<<<<< HEAD
     return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp >= _date;
+=======
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
+>>>>>>> 6fb97020ea4569efcd6036400c164b5f5b12b256
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_getlower(_date timestamp)
@@ -3015,6 +3023,7 @@ create or replace function "EMIR".Logs_getlower(_date timestamp)
                  )
 as $$
 begin
+<<<<<<< HEAD
     return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
 end; $$ language plpgsql;
 
@@ -3563,3 +3572,7 @@ create or replace function "EMIR".Credentials_EVA()
 begin
     return query select * from "CREDENTIALS".Credentials;
 end; $$ language plpgsql;
+=======
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp <= _date;
+end; $$ language plpgsql;
+>>>>>>> 6fb97020ea4569efcd6036400c164b5f5b12b256

@@ -1,12 +1,14 @@
 
 import sys
-from datetime import datetime
+import datetime
+from docx import Document
+from docx.shared import Inches
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,QGridLayout,
     QLineEdit, QLabel, QTextEdit, QFileDialog, QMessageBox, QGroupBox, QStackedWidget,
     QFrame, QSizePolicy, QSpacerItem, QScrollArea, QTableWidget, QHeaderView, QTableWidgetItem
 )
-from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QDir
 from PyQt6.QtGui import QPalette, QColor
 import psycopg2
 from psycopg2 import Error
@@ -40,6 +42,8 @@ from db_connection import db_connection
 
 
 # --- Custom Stream for QTextEdit (Our 'Terminal') ---
+
+log_type = 'all'
 class QTextEditLogger(QObject):
     append_text = pyqtSignal(str)
 
@@ -80,7 +84,10 @@ class TerminalPage(QWidget):
             'set_report_settings': self.set_report_settings,
             'generate_report': self.generate_report,
             'start_backup': self.backup_database,
-            'display_logs': self.display_logs,
+            'display_all_logs': self.display_all_logs,
+            'display_pre_logs': self.display_pre_logs,
+            'display_post_logs': self.display_post_logs,
+            'display_range_logs': self.display_range_logs
 
         }
         self.command_description = {
@@ -94,7 +101,10 @@ class TerminalPage(QWidget):
             'set_report_settings': 'Set report generation settings (not implemented).',
             'generate_report': 'Generate a report based on current settings (not implemented).',
             'start_backup': 'Start a database backup.',
-            'display_logs': 'Display system logs.'
+            'display_all_logs': 'Display all system logs.',
+            'display_pre_logs': 'Display previous system logs as from a specific date',
+            'display_post_logs': 'Display system logs starting from a specific date',
+            'display_range_logs': 'Display system logs generated between two dates'
         }
         # --- End of attribute definitions ---
 
@@ -150,6 +160,23 @@ class TerminalPage(QWidget):
         output_layout.addWidget(clear_button, alignment=Qt.AlignmentFlag.AlignRight)
 
         page_layout.addWidget(output_group_box)
+        
+        form_layout = QGridLayout()
+        form_layout.setSpacing(10)
+
+        # Local Data Backup Path
+        form_layout.addWidget(QLabel("Local Path To Store Reports:"), 0, 0)
+        self.report_path_input = QLineEdit()
+        self.report_path_input.setPlaceholderText("e.g., C:/Documents/Reports")
+        form_layout.addWidget(self.report_path_input, 0, 1)
+
+        self.browse_report_button = QPushButton("Browse...")
+        self.browse_report_button.setObjectName("secondaryButton")
+        self.browse_report_button.clicked.connect(self._browse_report_path)
+        form_layout.addWidget(self.browse_report_button, 0, 2)
+
+        page_layout.addLayout(form_layout)
+ 
 
     # --- Core Automation Application (AA) Logic as methods of TerminalPage ---
 
@@ -217,25 +244,162 @@ class TerminalPage(QWidget):
         else:
             self.terminal_output.append("Database connection not established. Cannot start backup.")
             
-    def display_logs(self, log_limit=10):
+    def display_all_logs(self, log_limit=10):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM Logs ORDER BY timestamp DESC LIMIT {log_limit};")  # Assuming a 'logs' table
+                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\"Logs ORDER BY timestamp DESC LIMIT {log_limit};")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
-                self.terminal_output.append("\n--- Recent Logs ---")
+                self.terminal_output.append("\n--- ALl System Logs ---")
                 if logs:
                     for log in logs:
                         self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
                 else:
                     self.terminal_output.append("No logs found.")
                 self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                         )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
             except Error as e:
                 self.terminal_output.append(f"Error retrieving logs: {e}")
             finally:
                 if cursor:
                     cursor.close()
+    
+    def display_pre_logs(self, date):
+        if db_connection:
+            try:
+                cursor = db_connection.cursor()
+                cursor.execute(f"SELECT \"EMIR\".Logs_getlower({date})")
+                logs = cursor.fetchall()
+                self.terminal_output.append(f"\n--- System Logs before {date} ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[1]} <b>[{log[2]}]</b>: {log[3]}")  # Adjust based on log structure
+                else:
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                         )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
+            except Error as e:
+                self.terminal_output.append(f"Error retrieving logs: {e}")
+            finally:
+                if cursor:
+                    cursor.close()
+        else:
+            self.terminal_output.append("Database connection not established. Cannot retrieve logs.")
+    
+    def display_post_logs(self, date):
+        if db_connection:
+            try:
+                cursor = db_connection.cursor()
+                cursor.execute(f"SELECT \"EMIR\".Logs_gethigher({date})")
+                logs = cursor.fetchall()
+                self.terminal_output.append(f"\n--- System Logs after {date} ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[1]} <b>[{log[2]}]</b>: {log[3]}")  # Adjust based on log structure
+                else:
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                         )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
+            except Error as e:
+                self.terminal_output.append(f"Error retrieving logs: {e}")
+            finally:
+                if cursor:
+                    cursor.close()
+        else:
+            self.terminal_output.append("Database connection not established. Cannot retrieve logs.")
+    
+    
+    def display_range_logs(self, date_1, date_2):
+        if db_connection:
+            try:
+                cursor = db_connection.cursor()
+                cursor.execute(f"SELECT \"EMIR\".Logs_get({date_1}, {date_2}")
+                logs = cursor.fetchall()
+                self.terminal_output.append(f"\n--- System Logs between {date_1} and {date_2} ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[1]} <b>[{log[2]}]</b>: {log[3]}")  # Adjust based on log structure
+                else:
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                         )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
+            except Error as e:
+                self.terminal_output.append(f"Error retrieving logs: {e}")
+            finally:
+                if cursor:
+                    cursor.close()
+        else:
+            self.terminal_output.append("Database connection not established. Cannot retrieve logs.")
+    
+    def genearte_logs_report(self, data):
+        current_date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d,%H:%M:%S')
+        filename = f"report-{current_date}.docx"
+        document = Document()
+        document.add_heading('Product Report', level=1)
+        if not data:
+            document.add_paragraph("No data available to generate report.")
+            document.save(filename)
+            return
         
+        table = document.add_table(rows=1, cols=len(data[0]))
+        table.style = 'Table Grid' # Apply a basic style
+
+        # Add header row
+        hdr_cells = table.rows[0].cells
+        headers = ["Date-Time", "Log-Type", "Message"]
+        for i, header_text in enumerate(headers):
+            hdr_cells[i].text = header_text
+
+        # Add data rows
+        for row_data in data:
+            row_cells = table.add_row().cells
+            for i, cell_value in enumerate(row_data):
+                row_cells[i].text = str(cell_value)
+
+        document.add_paragraph(f'\nReport generated on {current_date}') # You can dynamically add date
+        document.save(filename)
+
+        self.terminal_output.append(f'Logs report generated an saved as {filename}')
+    
+    def _browse_report_path(self):
+        """
+        Opens a directory dialog to select the backup path.
+        """
+        # QDir.homePath() is correct for PyQt6
+        current_path = self.report_path_input.text() if self.report_path_input.text() else QDir.homePath()
+        
+        directory = QFileDialog.getExistingDirectory(self, "Select Report Directory", current_path)
+        if directory:
+            self.report_path_input.setText(directory)
+
     def count_product(self):
         if db_connection:
             try:
