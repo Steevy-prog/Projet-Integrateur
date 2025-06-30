@@ -1945,7 +1945,7 @@ class MainDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
-            import again as login
+            import login as login
             self.loginpage = login.FlipCard()
             self.loginpage.show()
 

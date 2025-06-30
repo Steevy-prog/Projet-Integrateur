@@ -91,6 +91,8 @@ CREATE DOMAIN "SCA".username TEXT CHECK (
     VALUE~ '^[a-zA-Z0-9_]{3,20}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
+CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livré','Perdu','Endommagé');
+CREATE TYPE "SCA".etatexception AS ENUM('Progress','Resolu','Ouvert','Fermé');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
 CREATE TYPE "SCA".rapports AS ENUM('lors de la verification avant expedition','lors du destockage et assemblage du colis'
@@ -158,7 +160,7 @@ CREATE TABLE "SCA".Cellule(
 CREATE TABLE "SCA".Colis(
                             idcolis "SCA".Idcolis NOT NULL ,
                             date_creation date NOT NULL ,
-                            statut "SCA".etat NOT NULL ,
+                            statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
 );
 CREATE TABLE "SCA".Zone(
@@ -304,7 +306,7 @@ CREATE TABLE "SCA".RapportException(
                                        type "SCA".rapports NOT NULL ,
                                        date_creation date NOT NULL ,
                                        description text NOT NULL ,
-                                       statut "SCA".etat NOT NULL ,
+                                       statut "SCA".etatexception NOT NULL ,
                                        CONSTRAINT RapportException_CC0 PRIMARY KEY (idrapport),
                                        FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE
 );
