@@ -3511,46 +3511,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Vue pour les colis en cours d'expédition (non livrés)
-CREATE OR REPLACE VIEW "SCA".ColisEnExpedition AS
-(SELECT
-     be.idbonexpedition AS "Numéro bon expédition",
-     be.date_creation AS "Date expédition",
-     c.idcolis AS "Référence colis",
-     c.statut AS "État colis",
-     o_destinataire.nom AS "Destinataire",
-     o_transporteur.nom AS "Transporteur",
-     COUNT(cc.idlot) AS "Nombre de lots",
-     SUM(l.quantite) AS "Quantité totale",
-     STRING_AGG(p.nom, ', ' ORDER BY p.nom) AS "Produits",
-     be.remarques AS "Remarques",
-     CASE
-         WHEN c.statut = 'livre' THEN 'Livré'
-         WHEN c.statut = 'bon etat' THEN 'En transit'
-         WHEN c.statut = 'mauvais etat' THEN 'Problème détecté'
-         WHEN c.statut = 'deteriore' THEN 'Endommagé'
-         ELSE 'Statut inconnu'
-         END AS "Statut livraison"
-FROM
-    "SCA".Bonexpedition be
-        JOIN
-    "SCA".Colis c ON be.idcolis = c.idcolis
-        JOIN
-    "SCA".Organisation o_destinataire ON be.iddestinataire = o_destinataire.idorganisation
-        JOIN
-    "SCA".Organisation o_transporteur ON be.idtransporteur = o_transporteur.idorganisation
-        LEFT JOIN
-    "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
-        LEFT JOIN
-    "SCA".Lot l ON cc.idlot = l.idlot
-        LEFT JOIN
-    "SCA".Produit p ON l.idproduit = p.idproduit
-GROUP BY
-    be.idbonexpedition, be.date_creation, c.idcolis, c.statut,
-    o_destinataire.nom, o_transporteur.nom, be.remarques
-ORDER BY
-    be.date_creation DESC);
-
 -- Fonction d'évaluation pour Credentials
 create or replace function "EMIR".Credentials_EVA()
     returns table (
