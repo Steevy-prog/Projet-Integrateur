@@ -939,6 +939,7 @@ class MenuExpedition(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+                width:200px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1023,6 +1024,7 @@ class MenuReception(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+                width:200px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1040,7 +1042,7 @@ class MenuReception(QWidget):
                 color: #333;
             }
         """)
-        table.setAlternatingRowColors(True)
+
         table.resizeColumnsToContents()
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
@@ -1781,21 +1783,20 @@ class ChartWidget(pg.PlotWidget):
         self.addItem(item)
 
 class MainDashboardWidget(QWidget):
-    """Dashboard with simple collapsible sidebar"""
-    
+    """Dashboard with sidebar menu and top bar"""
+
     def __init__(self, data):
         super().__init__()
         self.data = data
         self.current_widget = None
         self.is_menu_expanded = True
-        self.sidebar_width = 200
         self.init_ui()
 
     def init_ui(self):
-        # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        # Main vertical layout (top bar + content)
+        main_vertical_layout = QVBoxLayout(self)
+        main_vertical_layout.setContentsMargins(0, 0, 0, 0)
+        main_vertical_layout.setSpacing(0)
 
         # Top bar
         top_bar = QWidget()
@@ -1805,23 +1806,25 @@ class MainDashboardWidget(QWidget):
             border-bottom: 1px solid #1a2a3a;
         """)
         top_bar_layout = QHBoxLayout(top_bar)
-        top_bar_layout.setContentsMargins(10, 0, 10, 0)
+        top_bar_layout.setContentsMargins(20, 0, 20, 0)
 
         # Menu toggle button
         self.toggle_btn = QPushButton("≡")
-        self.toggle_btn.setFixedWidth(40)
         self.toggle_btn.setStyleSheet("""
             QPushButton {
-                background: transparent;
+                background: #2c3e50;
                 color: white;
-                font-size: 24px;
+                font-size: 40px;
+                margin-left: 2px;
+                margin-right: 5px;
+                margin-bottom: 2px;
+                padding: 10px;
                 border: none;
             }
             QPushButton:hover {
                 background: #3d566e;
             }
         """)
-        self.toggle_btn.clicked.connect(self.toggle_menu)
 
         # Title
         title_label = QLabel("Warehouse Manager Dashboard")
@@ -1830,49 +1833,50 @@ class MainDashboardWidget(QWidget):
                 color: white;
                 font-size: 18px;
                 font-weight: bold;
-                padding-left: 10px;
             }
         """)
 
         top_bar_layout.addWidget(self.toggle_btn)
         top_bar_layout.addWidget(title_label)
         top_bar_layout.addStretch()
-        main_layout.addWidget(top_bar)
+        main_vertical_layout.addWidget(top_bar)
 
-        # Content area
-        self.content_layout = QHBoxLayout()
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(0)
+        # Content area (sidebar + main content)
+        content_horizontal_layout = QHBoxLayout()
+        content_horizontal_layout.setContentsMargins(0, 0, 0, 0)
+        content_horizontal_layout.setSpacing(0)
 
-        # Sidebar 
+        # Sidebar
         self.sidebar = QWidget()
-        self.sidebar.setFixedWidth(self.sidebar_width)
+        self.sidebar.setFixedWidth(220)
         self.sidebar.setStyleSheet("""
             background-color: #2c3e50;
             color: white;
             border-right: 1px solid #1a2a3a;
         """)
-
-        # Sidebar layout
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(0, 10, 0, 10)
-        sidebar_layout.setSpacing(5)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+        sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.toggle_btn.clicked.connect(self.toggle_menu)
 
         # Menu items
+        self.menu_buttons = []
         menu_items = [
             ("Real-time Inventory", "list"),
             ("Daily Operations Planning", "calendar"),
             ("Storage Space Management", "box"), 
             ("Generate Reports", "file-text"),
             ("Warehouse Interactions", "activity"),
-            ("Logout", "system-log-out")
+            ("Logout", "system-log-out")  # Ajouté ici
         ]
 
         for text, icon in menu_items:
             btn = QPushButton(text)
             btn.setIcon(QIcon.fromTheme(icon))
-            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            
+
+            # Style différent pour le bouton Logout
             if text == "Logout":
                 btn.setStyleSheet("""
                     QPushButton {
@@ -1880,9 +1884,11 @@ class MainDashboardWidget(QWidget):
                         padding: 12px 15px;
                         color: white;
                         border: none;
+                        border-left: 4px solid transparent;
                     }
                     QPushButton:hover {
                         background: #34495e;
+                        border-left: 4px solid #ff0000;
                     }
                 """)
                 btn.clicked.connect(self.logout)
@@ -1893,64 +1899,55 @@ class MainDashboardWidget(QWidget):
                         padding: 12px 15px;
                         color: white;
                         border: none;
+                        border-left: 4px solid transparent;
                     }
                     QPushButton:hover {
                         background: #34495e;
+                        border-left: 4px solid #3498db;
                     }
                 """)
                 btn.clicked.connect(lambda _, t=text: self.switch_content(t))
-            
+
+            self.menu_buttons.append(btn)
             sidebar_layout.addWidget(btn)
 
-        sidebar_layout.addStretch()
+        # Metrics widget
+        metrics_widget = QWidget()
+        metrics_widget.setStyleSheet("""
+            background: #34495e; 
+            margin: 10px; 
+            border-radius: 5px;
+        """)
+        metrics_layout = QVBoxLayout(metrics_widget)
+        metrics_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Content area
+        # Add metrics data
+        metrics_layout.addWidget(self.create_metric_label("Quick Stats"))
+        metrics_layout.addWidget(self.create_metric_item("Total Items", "1,785"))
+        metrics_layout.addWidget(self.create_metric_item("Total Value", "$93,521,250"))
+        metrics_layout.addWidget(self.create_metric_item("Available Cells", "1"))
+
+        # Insérer les métriques avant le bouton Logout
+        sidebar_layout.insertWidget(len(menu_items) - 1, metrics_widget)
+        sidebar_layout.addStretch(1)  # Ajoute un stretch pour pousser Logout en bas
+
+        # Main content area
         self.content_area = QWidget()
+        self.content_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, 
+            QSizePolicy.Policy.Expanding
+        )
         self.content_area.setStyleSheet("background: #ecf0f1;")
-        self.stack_layout = QVBoxLayout(self.content_area)
-        self.stack_layout.setContentsMargins(15, 15, 15, 15)
+        self.content_layout = QVBoxLayout(self.content_area)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Add widgets to main layout
-        self.content_layout.addWidget(self.sidebar)
-        self.content_layout.addWidget(self.content_area)
-        main_layout.addLayout(self.content_layout)
+        # Add widgets to layouts
+        content_horizontal_layout.addWidget(self.sidebar)
+        content_horizontal_layout.addWidget(self.content_area, 1)
+        main_vertical_layout.addLayout(content_horizontal_layout, 1)
 
         # Show default widget
         self.switch_content("Real-time Inventory")
-
-    def toggle_menu(self):
-        """Simple toggle without animation"""
-        if self.is_menu_expanded:
-            self.sidebar.setFixedWidth(0)
-            self.toggle_btn.setText("≫")
-        else:
-            self.sidebar.setFixedWidth(self.sidebar_width)
-            self.toggle_btn.setText("≡")
-        
-        self.is_menu_expanded = not self.is_menu_expanded
-
-    def switch_content(self, menu_item):
-        # Remove current widget if exists
-        if self.current_widget:
-            self.current_widget.deleteLater()
-        
-        # Create new widget based on menu selection
-        if menu_item == "Real-time Inventory":
-            widget = RealtimeInventoryViewWidget(self.data)
-        elif menu_item == "Daily Operations Planning":
-            widget = DailyOperationsPlanningWidget(self.data)
-        elif menu_item == "Storage Space Management":
-            widget = StorageSpaceManagementWidget(self.data)
-        elif menu_item == "Generate Reports":
-            widget = ReportsWidget(self.data)
-        elif menu_item == "Warehouse Interactions":
-            widget = WarehouseMenuInteractionWidget(self.data)
-        else:
-            return
-
-        # Add new widget to content area
-        self.current_widget = widget
-        self.stack_layout.addWidget(widget)
 
     def logout(self):
         response = QMessageBox.question(
@@ -1967,6 +1964,7 @@ class MainDashboardWidget(QWidget):
                 parent_window.close()
             self.loginpage = login.FlipCard()
             self.loginpage.show()
+
     def create_metric_label(self, text):
         label = QLabel(text)
         label.setStyleSheet("font-weight: bold; color: #bdc3c7;")
@@ -1976,23 +1974,31 @@ class MainDashboardWidget(QWidget):
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 5, 0, 5)
-        
+
         name_label = QLabel(name)
         name_label.setStyleSheet("color: #bdc3c7;")
-        
+
         value_label = QLabel(value)
         value_label.setStyleSheet("color: white; font-weight: bold;")
-        
+
         layout.addWidget(name_label)
         layout.addStretch()
         layout.addWidget(value_label)
-        
+
         return widget
+
+    def toggle_menu(self):
+        self.is_menu_expanded = not self.is_menu_expanded
+        if self.is_menu_expanded:
+            self.sidebar.setFixedWidth(220)
+            self.sidebar.show()
+        else:
+            self.sidebar.setFixedWidth(0)
 
     def switch_content(self, menu_item):
         if self.current_widget:
             self.current_widget.deleteLater()
-        
+
         if menu_item == "Real-time Inventory":
             widget = RealtimeInventoryViewWidget(self.data)
         elif menu_item == "Daily Operations Planning":
@@ -2006,22 +2012,6 @@ class MainDashboardWidget(QWidget):
 
         self.current_widget = widget
         self.content_layout.addWidget(widget)
-
-    def logout(self):
-        response = QMessageBox.question(
-            self,
-            "Logout",
-            "Are you sure you want to logout?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        if response == QMessageBox.StandardButton.Yes:
-            self.close()
-            parent_window = self.window()
-            if parent_window is not self:
-                parent_window.close()
-            self.loginpage = login.FlipCard()
-            self.loginpage.show()
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
