@@ -17,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_f00ef828820ae9b71e8c243c99ee67e8 {
+                #map_11b4d92e7dcc0df86afc4278b381e80c {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -54,16 +54,16 @@
 <body>
     
     
-            <div class="folium-map" id="map_f00ef828820ae9b71e8c243c99ee67e8" ></div>
+            <div class="folium-map" id="map_11b4d92e7dcc0df86afc4278b381e80c" ></div>
         
 </body>
 <script>
     
     
-            var map_f00ef828820ae9b71e8c243c99ee67e8 = L.map(
-                "map_f00ef828820ae9b71e8c243c99ee67e8",
+            var map_11b4d92e7dcc0df86afc4278b381e80c = L.map(
+                "map_11b4d92e7dcc0df86afc4278b381e80c",
                 {
-                    center: [3.96439, 9.80059],
+                    center: [9.708596, 4.076956],
                     crs: L.CRS.EPSG3857,
                     ...{
   "zoom": 17,
@@ -78,7 +78,7 @@
 
         
     
-            var tile_layer_4ec074f76d879b994b5b26b0da11db80 = L.tileLayer(
+            var tile_layer_8a75916cc7a8aa7bc35f5f371b577c84 = L.tileLayer(
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
   "minZoom": 0,
@@ -95,37 +95,47 @@
             );
         
     
-            tile_layer_4ec074f76d879b994b5b26b0da11db80.addTo(map_f00ef828820ae9b71e8c243c99ee67e8);
+            tile_layer_8a75916cc7a8aa7bc35f5f371b577c84.addTo(map_11b4d92e7dcc0df86afc4278b381e80c);
         
     
-            var polygon_84fe35067815fc1657767b5348ebdf42 = L.polygon(
-                [[3.97134, 9.790578], [3.971656, 9.790969], [3.970051, 9.792535], [3.969675, 9.79206]],
-                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.1, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 3}
-            ).addTo(map_f00ef828820ae9b71e8c243c99ee67e8);
+            var poly_line_a25cd4d729e51ad4ae46b40fa0569624 = L.polyline(
+                [[9.708596, 4.076956], [9.710839, 4.080529]],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "blue", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 5}
+            ).addTo(map_11b4d92e7dcc0df86afc4278b381e80c);
         
     
-            var marker_986ab257b17208a025a5c4ca20fc22ed = L.marker(
-                [3.96439, 9.80059],
+            var marker_24528a86537ae921c9419a12bd5fe300 = L.marker(
+                [9.708596, 4.076956],
                 {
 }
-            ).addTo(map_f00ef828820ae9b71e8c243c99ee67e8);
+            ).addTo(map_11b4d92e7dcc0df86afc4278b381e80c);
         
     
-        var popup_34fd5511947823bb72e7f0d235c900b6 = L.popup({
-  "maxWidth": "100%",
-});
-
-        
-            
-                var html_31b86db2bd36b5806b8745204f4f09a3 = $(`<div id="html_31b86db2bd36b5806b8745204f4f09a3" style="width: 100.0%; height: 100.0%;">Centre du campus</div>`)[0];
-                popup_34fd5511947823bb72e7f0d235c900b6.setContent(html_31b86db2bd36b5806b8745204f4f09a3);
-            
-        
-
-        marker_986ab257b17208a025a5c4ca20fc22ed.bindPopup(popup_34fd5511947823bb72e7f0d235c900b6)
-        ;
-
+            marker_24528a86537ae921c9419a12bd5fe300.bindTooltip(
+                `<div>
+                     Start
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
         
     
+            var marker_2e1534894982f25f6f9582c233f96dca = L.marker(
+                [9.710839, 4.080529],
+                {
+}
+            ).addTo(map_11b4d92e7dcc0df86afc4278b381e80c);
+        
+    
+            marker_2e1534894982f25f6f9582c233f96dca.bindTooltip(
+                `<div>
+                     End
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
 </script>
 </html>
