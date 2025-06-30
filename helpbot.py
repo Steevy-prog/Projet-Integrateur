@@ -1,6 +1,8 @@
 import sys
+import threading
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
 from PyQt6.QtCore import QThread, pyqtSignal
+from pynput import keyboard
 import google.generativeai as genai
 
 API_KEY = "AIzaSyACCuz2G5YDYs7rmVl9X7Q_Z60Qa1TOq_8"
@@ -67,7 +69,6 @@ class ChatBot(QWidget):
         self.append_message("You", question)
         self.input_line.clear()
 
-        # Show loader
         self.append_message("Bot", "<i>Thinking...</i>")
 
         prompt = f"""
@@ -83,20 +84,50 @@ QUESTION:
 Answer only based on the HELP DOCUMENT above.
 """
 
-        # Run model call in a background thread
         self.worker_thread = WorkerThread(prompt)
         self.worker_thread.finished.connect(self.handle_response)
         self.worker_thread.start()
 
     def handle_response(self, answer):
-        # Remove the "Thinking..." message (undo last append)
         self.chat_display.undo()
         self.append_message("SAC-Bot", answer)
         self.worker_thread = None
 
 
+def listen_for_hotkey(app, chatbot):
+    def on_press(key):
+        try:
+            if key == keyboard.Key.space and current_keys.get('alt'):
+                if chatbot.isVisible():
+                    chatbot.hide()
+                else:
+                    chatbot.show()
+                    chatbot.activateWindow()
+                    chatbot.raise_()
+        except Exception as e:
+            print("Hotkey error:", e)
+
+    def on_release(key):
+        if key == keyboard.Key.alt_l:
+            current_keys['alt'] = False
+
+    def on_key_down(key):
+        if key == keyboard.Key.alt_l:
+            current_keys['alt'] = True
+
+    current_keys = {'alt': False}
+    with keyboard.Listener(on_press=on_key_down, on_release=on_release) as listener:
+        listener2 = keyboard.Listener(on_press=on_press)
+        listener2.start()
+        listener.join()
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     chatbot = ChatBot()
-    chatbot.show()
+
+    # Start the hotkey listener in a separate thread
+    hotkey_thread = threading.Thread(target=listen_for_hotkey, args=(app, chatbot), daemon=True)
+    hotkey_thread.start()
+
     sys.exit(app.exec())
