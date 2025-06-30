@@ -516,6 +516,8 @@ class ProductCreationPopup(QDialog):
             form_layout.addRow("Model:", self.modele)
             form_layout.addRow("Version:", self.version_input)
             form_layout.addRow("License Key:", self.license_input)
+            
+
 
         # Generate unique product ID
         self.produitid = idgenerator.generate_id("^P[A-Z0-9]{5}$", productids)
@@ -526,6 +528,7 @@ class ProductCreationPopup(QDialog):
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
+                font-color: black;
                 border: none;
                 padding: 10px 20px;
                 border-radius: 5px;
@@ -707,6 +710,7 @@ class ClientLogisticsWidget(QWidget):
         section.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
+                font-color: black;
                 border-radius: 10px;
                 padding: 15px;
                 border: 1px solid #E0E0E0;
@@ -721,7 +725,7 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;font-color:black")
         layout.addWidget(title)
         layout.addStretch()
 
@@ -910,19 +914,19 @@ class ClientLogisticsWidget(QWidget):
         section.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
-                border-radius: 10px;
+                border-radius: 5px;
                 padding: 15px;
                 border: 1px solid #E0E0E0;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
             }
             QLabel {
                 font-size: 16px;
                 color: #333;
             }
             QLineEdit, QComboBox {
-                padding: 8px;
+                padding: 15px;
                 border: 1px solid #CCCCCC;
-                border-radius: 8px;
+                border-radius: 5px;
                 font-size: 15px;
                 background-color: white;
             }
@@ -931,7 +935,7 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #6C63FF;")
         layout.addWidget(title)
 
         form = QGridLayout()
@@ -962,7 +966,7 @@ class ClientLogisticsWidget(QWidget):
                 color: #333;
                 border: 1px solid #D0D0D0;
                 border-radius: 6px;
-                padding: 30px 20px;
+                padding: 10px 10px;
                 font-weight: normal;
             }
             QComboBox::drop-down {
@@ -2011,16 +2015,16 @@ class ClientMainWindow(QMainWindow):
             QFrame {
                 background-color: #FFFFFF;
                 border-bottom: 1px solid #E0E0E0;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
             }
             QPushButton {
                 background-color: transparent;
                 border: none;
                 color: #666666;
                 padding: 10px 20px;
-                font-size: 16px;
+                font-size: 14x;
                 font-weight: 500;
-                border-radius: 5px;
+                border-radius: 3px;
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
@@ -2031,6 +2035,7 @@ class ClientMainWindow(QMainWindow):
                 background-color: #6C63FF;
                 color: #FFFFFF;
                 font-weight: bold;
+                
             }
         """)
         navbar_layout = QHBoxLayout(self.navbar)
@@ -2084,7 +2089,7 @@ class ClientMainWindow(QMainWindow):
 
     def create_content_area(self):
         self.content_stack = QStackedWidget()
-        self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 20px;")
+        self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 30px;")
 
         def scrollable(widget, object_name=None):
             scroll = QScrollArea()
@@ -2129,21 +2134,38 @@ class ClientMainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+    # ...existing code...
+    
+
+# Set QMessageBox text color to black
+    
+# ...existing code...
 
     # High-contrast, accessible palette
     palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor("#f9f9f9"))           # Very light background
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#1a1a1a"))       # Almost black text
-    palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))             # Widget backgrounds
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))    # Alternate row backgrounds
-    palette.setColor(QPalette.ColorRole.Text, QColor("#1a1a1a"))             # Text color
-    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))           # Button background
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#1a1a1a"))       # Button text
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#1976d2"))        # Blue highlight
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))  # Highlighted text
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#ffffe1"))      # Tooltip background
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#1a1a1a"))      # Tooltip text
+    palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
+    palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.black)
+    palette.setColor(QPalette.ColorRole.Text, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+    palette.setColor(QPalette.ColorRole.Link, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
+    
     app.setPalette(palette)
+    app.setStyleSheet("""
+    QMessageBox QLabel {
+    color: black;
+    font-color: black;
+    font-size: 14px;
+        }
+    """)
+
 
     app.setFont(QFont("Segoe UI", 10))
 
