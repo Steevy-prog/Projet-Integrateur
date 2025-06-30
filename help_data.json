@@ -1,0 +1,12 @@
+[
+  {
+    "instruction": "How do I reset my password?",
+    "input": "",
+    "output": "To reset your password, go to the login screen and click 'Forgot Password'."
+  },
+  {
+    "instruction": "What is the return policy?",
+    "input": "",
+    "output": "You can return any product within 30 days with the original receipt."
+  }
+]

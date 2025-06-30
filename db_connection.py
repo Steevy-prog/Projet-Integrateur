@@ -19,5 +19,14 @@ try:
     )
     print(f"Successfully connected to PostgreSQL database: {database}")
 
-except Error as e:
-    print(f"Error connecting to PostgreSQL database: {e}")
+except Exception as e:
+    db_connection = psycopg2.connect(
+       host="localhost",
+       database="postgres",
+       user="postgres",
+       password="steevy",
+       port=5432
+    )
+    print(f"Error connecting to online PostgreSQL database: {e}")
+
+
