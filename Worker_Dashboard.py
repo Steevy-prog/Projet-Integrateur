@@ -519,7 +519,7 @@ class NewMovementDialog(QDialog):
         form_layout = QFormLayout()
 
         self.product_combo = QComboBox()
-        self.product_combo.addItems(self.data.products['Product_Name'].tolist())
+        self.product_combo.addItems(self.data.products_df['Product_Name'].tolist())
         self.product_combo.setEditable(True)
         self.product_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.product_combo.completer().setFilterMode(Qt.MatchFlag.MatchContains)
