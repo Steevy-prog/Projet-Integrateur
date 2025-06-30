@@ -897,17 +897,14 @@ class MenuExpedition(QWidget):
         layout = self._main_layout
         expedition_summary_table = self.create_expedition_summary_table()
         bouton = QPushButton("chatte")
-        bouton.setFixedWidth(1000) # This fixed width might constrain layout
+        bouton.setFixedWidth(500) # This fixed width might constrain layout
         bouton.setStyleSheet("""
-                       QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; 
-                       width:10px;}
-                       QPushButton:hover { background-color: #1976D2; }
-                   """)
-        layout.addWidget(expedition_summary_table,0,0)
-        layout.addWidget(bouton,0,1)
-        layout.setColumnStretch(0, 3) # Give more stretch to the table column
-        layout.setColumnStretch(1, 1) # Give less stretch to the button column
-        layout.addLayout(QHBoxLayout(), 1, 0, 1, 2) # Add stretch at bottom
+                    QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
+                    QPushButton:hover { background-color: #1976D2; }
+                """)
+        layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(bouton,1,0)
+
         
     def clear_layout(self, layout):
         if layout is not None:
@@ -963,7 +960,7 @@ class MenuExpedition(QWidget):
         table.verticalHeader().setVisible(False)
         return table
 
-class MenuReception(QWidget):
+class MenuExpedition(QWidget):
     def __init__(self,data):
         super().__init__()
         self.data=data
@@ -976,26 +973,17 @@ class MenuReception(QWidget):
             self._main_layout = QGridLayout(self)
 
         layout = self._main_layout
-        reception_summary_table = self.create_reception_summary_table()
-        bouton = QPushButton("informer magasinier")
-        bouton.setFixedWidth(1000) # This fixed width might constrain layout
+        expedition_summary_table = self.create_expedition_summary_table()
+        bouton = QPushButton("chatte")
+        bouton.setFixedWidth(500) # This fixed width might constrain layout
         bouton.setStyleSheet("""
-               QPushButton { 
-               background-color: #2196F3;
-                color: white; 
-                border: none;
-                padding: 50px 16px; 
-                border-radius: 15px; 
-                font-weight: bold; 
-               width:10px;}
-               QPushButton:hover { background-color: #1976D2; }
-           """)
-        layout.addWidget(bouton,0,1)
-        layout.addWidget(reception_summary_table,0,0)
-        layout.setColumnStretch(0, 3) # Give more stretch to the table column
-        layout.setColumnStretch(1, 1) # Give less stretch to the button column
-        layout.addLayout(QHBoxLayout(), 1, 0, 1, 2) # Add stretch at bottom
+                    QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
+                    QPushButton:hover { background-color: #1976D2; }
+                """)
+        layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(bouton,1,0)
 
+        
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
@@ -1006,16 +994,18 @@ class MenuReception(QWidget):
                 else:
                     self.clear_layout(item.layout())
 
-    def create_reception_summary_table(self):
+    def create_expedition_summary_table(self):
         table = QTableWidget()
-        table.setRowCount(len(self.data.reception2_df))
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels(['identifiant du colis','date prevue', 'Statut'])
+        
+        table.setRowCount(len(self.data.expedition2_df))
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
 
-        for i, (_, row) in enumerate(self.data.reception2_df.iterrows()):
+        for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
             table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
-            table.setItem(i, 1, QTableWidgetItem(str(row['date prevue'])))
-            table.setItem(i, 2, QTableWidgetItem(row['Statuts']))
+            table.setItem(i, 1, QTableWidgetItem(row['identifiant du lot']))
+            table.setItem(i, 2, QTableWidgetItem(row['idbonexpedition']))
+            table.setItem(i, 3, QTableWidgetItem(str(row['dateexpedition'])))
         table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
@@ -1071,7 +1061,7 @@ class WarehouseMenuInteractionWidget(QWidget):
 
         # Onglets
         tabs = QTabWidget()
-        tabs.addTab(MenuReception(self.data), "menu reception")
+        #tabs.addTab(MenuReception(self.data), "menu reception")
         tabs.addTab(MenuExpedition(self.data), "menu expedition")
         tabs.addTab(ZoneEmballage(self.data),"zone d'emballage")
         layout.addWidget(tabs)
