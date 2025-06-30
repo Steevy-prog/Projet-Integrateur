@@ -197,6 +197,18 @@ class FlipCard(QWidget):
         self.signup_password = QLineEdit()
         self.signup_password.setPlaceholderText("Password")
         self.signup_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.signup_password_confirm = QLineEdit()
+        self.signup_password_confirm.setPlaceholderText("Confirm your password")
+        self.signup_password_confirm.setEchoMode(QLineEdit.EchoMode.Password)
+        self.id_entreprise = QLineEdit()
+        self.id_entreprise.setPlaceholderText("ID Organisation")
+        self.id_entreprise.setEchoMode(QLineEdit.EchoMode.Password)
+        self.id_poste = QLineEdit()
+        self.id_poste.setPlaceholderText("ID Poste")
+        self.id_poste.setEchoMode(QLineEdit.EchoMode.Password)
+        
+
+
         btn_signup = QPushButton("Create Account")
         btn_signup.clicked.connect(self.handle_signup)
         self.signup_status = QLabel()

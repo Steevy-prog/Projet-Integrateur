@@ -2,7 +2,6 @@ import sys
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-import again as login
 from PyQt6.QtGui import QIcon, QPixmap, QPen
 from PyQt6.QtCore import QRectF, Qt
 from PyQt6.QtWidgets import QProgressBar
@@ -1946,6 +1945,7 @@ class MainDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
+            import again as login
             self.loginpage = login.FlipCard()
             self.loginpage.show()
 
