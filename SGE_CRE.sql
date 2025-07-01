@@ -91,7 +91,7 @@ CREATE DOMAIN "SCA".username TEXT CHECK (
     VALUE~ '^[a-zA-Z0-9_]{3,20}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
-CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livré','Perdu','Endommagé');
+CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livre','Perdu','Endommagé');
 CREATE TYPE "SCA".etatexception AS ENUM('Progress','Resolu','Ouvert','Fermé');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -172,7 +172,6 @@ CREATE TABLE "SCA".individu(
                                idindividu "SCA".IDindividu NOT NULL ,
                                nom "SCA".Nom NOT NULL ,
                                prenom "SCA".Nom NOT NULL ,
-                               adresse "SCA".Adresse NOT NULL ,
                                telephone "SCA".Numero NOT NULL ,
                                CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
 );
@@ -208,14 +207,12 @@ CREATE TABLE "SCA".Conducteur(
 CREATE TABLE "SCA".Bonreception(
                                    idbonreception "SCA".Bonrecep NOT NULL ,
                                    idcolis "SCA".Idcolis NOT NULL ,
-                                   idtransporteur "SCA".idconducteur NOT NULL ,
                                    date_creation DATE NOT NULL ,
                                    idfournisseur "SCA".idorg NOT NULL ,
                                    statut "SCA".etat NOT NULL ,
                                    remarques TEXT NOT NULL ,
                                    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
                                    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-                                   FOREIGN KEY (idtransporteur)REFERENCES "SCA".conducteur(idconducteur)ON DELETE CASCADE,
                                    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Bonexpedition(
@@ -272,10 +269,7 @@ CREATE TABLE "SCA".Lot(
                           idproduit "SCA".Idproduit NOT NULL ,
                           quantite "SCA".dims NOT NULL ,
                           date_creation date NOT NULL ,
-                          statut "SCA".etat NOT NULL ,
-                          origine "SCA".etat_lot DEFAULT 'standard',
-                          nombre_utilisations INTEGER DEFAULT 0,
-                          condition "SCA".condition_materiel DEFAULT 'utilisable',
+                          statut "SCA".etat_lot NOT NULL ,
                           CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
                               ON DELETE CASCADE
@@ -344,8 +338,10 @@ CREATE TABLE "SCA".Tache(
                             idtache "SCA".idtache NOT NULL ,
                             idtravailleur "SCA".idtravailleur NOT NULL ,
                             idcellule "SCA".Idcellule NOT NULL ,
-                            idlot "SCA".Idlot NOT NULL ,
+                            idcolis "SCA".Idcolis NOT NULL ,
                             date_creation DATE NOT NULL ,
+                            date_echeance DATE NOT NULL ,
+                            duree_estimee INTERVAL NOT NULL ,
                             description TEXT NOT NULL ,
                             priority text not null,
                             statut text NOT NULL DEFAULT 'en cours',

@@ -8,9 +8,7 @@ SELECT
     u.username,
     i.nom,
     i.prenom,
-    i.adresse,
     i.telephone,
-    c.email,
     u.date_inscription,
     u.date_derniere_connexion,
     u.statut,
@@ -52,7 +50,6 @@ SELECT
     u.statut as statut_utilisateur,
     i.nom,
     i.prenom,
-    i.adresse,
     i.telephone
 FROM "SCA".Conducteur c
 JOIN "SCA".Utilisateur u ON c.idutilisateur = u.idutilisateur
@@ -76,7 +73,6 @@ SELECT
     u.statut as statut_utilisateur,
     i.nom,
     i.prenom,
-    i.adresse,
     i.telephone
 FROM "SCA".Travailleur t
 JOIN "SCA".Utilisateur u ON t.idutilisateur = u.idutilisateur
@@ -161,7 +157,7 @@ CREATE OR REPLACE VIEW "SCA".inventaire AS (
                                                SELECT DISTINCT cc.idlot
                                                FROM "SCA".ContenuColis cc
                                                         JOIN "SCA".Colis c ON cc.idcolis = c.idcolis
-                                               WHERE c.statut = 'livre'
+                                               WHERE c.statut = 'Livre'
                                            )
                                            GROUP BY p.idproduit, p.nom
                                                );
@@ -180,10 +176,11 @@ CREATE OR REPLACE VIEW "SCA".ColisEnExpedition AS
      STRING_AGG(p.nom, ', ' ORDER BY p.nom) AS "Produits",
      be.remarques AS "Remarques",
      CASE
-         WHEN c.statut = 'livre' THEN 'Livré'
-         WHEN c.statut = 'bon etat' THEN 'En transit'
-         WHEN c.statut = 'mauvais etat' THEN 'Problème détecté'
-         WHEN c.statut = 'deteriore' THEN 'Endommagé'
+         WHEN c.statut = 'Livre' THEN 'Livré'
+         WHEN c.statut = 'Transit' THEN 'En transit'
+         WHEN c.statut = 'Endommagé' THEN 'Problème détecté'
+         WHEN c.statut = 'Attente' THEN 'En attente'
+         WHEN c.statut = 'Perdu' THEN 'Perdu'
          ELSE 'Statut inconnu'
          END AS "Statut livraison"
 FROM
@@ -989,11 +986,10 @@ create or replace procedure "EMIR".Individu_INS(
     _nom text,
     _prenom text,
     _telephone text,
-    _adresse text
 )
 as $$
 begin
-    insert into "SCA".Individu(idindividu, nom, prenom, telephone, adresse) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone), "SCA".adresse_conv(_adresse));
+    insert into "SCA".Individu(idindividu, nom, prenom, telephone) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone));
 end; $$ language plpgsql;
 
 -- 8. REPERTOIRE
@@ -1060,7 +1056,7 @@ create or replace procedure "EMIR".Lot_INS(
 )
 as $$
 begin
-    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,origine,nombre_utilisations,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_origine::"SCA".etat_lot,_nbUses::int,_cond::"SCA".condition_materiel);
+    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_cond::"SCA".condition_materiel);
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1167,7 +1163,7 @@ create or replace procedure "EMIR".Vehicule_INS(
 )
 as $$
 begin
-    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, type, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne)
+    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, types, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne)
     values ("SCA".idvehicule_CONV(_idvehicule), "SCA".Nom_CONV(_immatriculation), "SCA".Nom_CONV(_marque), "SCA".Nom_CONV(_modele), _annee_fabrication::integer, _type::"SCA".type_vehicule, "SCA".dims_CONV(_capacite_charge), "SCA".dims_CONV(_capacite_volume), _date_acquisition::date, _statut::"SCA".statut_vehicule, _kilometrage_actuel::decimal, _date_derniere_maintenance::date, _prochaine_maintenance::date, _carburant, _consommation_moyenne::decimal);
 end; $$ language plpgsql;
 
@@ -1293,7 +1289,6 @@ create or replace function "EMIR".Individu_EVA()
                       idindividu "SCA".IDindividu,
                       nom "SCA".Nom,
                       prenom "SCA".Nom,
-                      adresse "SCA".Adresse,
                       telephone "SCA".Numero
                   ) as $$
 begin
@@ -1338,6 +1333,23 @@ create or replace function "EMIR".ProduitMateriel_EVA()
                   ) as $$
 begin
     return query select * from "SCA".ProduitMateriel;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
+    returns table(
+                     _idtache "SCA".idtache,
+                     _idcellule "SCA".idcellule,
+                     _idcolis "SCA".idcolis,
+                     _date_creation date,
+                     _date_echeance date,
+                     _duree_estimé int,
+                     _description text,
+                     _statut text,
+                     _type text
+                 )
+as $$
+begin
+    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL

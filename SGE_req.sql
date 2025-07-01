@@ -233,7 +233,7 @@ $$ LANGUAGE plpgsql;
 create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
-                     _idcellule "SCA".idcellule,
+                     _idtravailleur "SCA"._idtravailleur,                                                                     _idcellule "SCA".idcellule,
                      _idlot "SCA".idlot,
                      _date_creation date,
                      _description text,
@@ -242,7 +242,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idindividu = _idindividu;
+    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
 end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
@@ -432,3 +432,26 @@ as $$
 begin
     return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
 end; $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".getproductnames(_idcolis "SCA".Idcolis)
+RETURNS TABLE(nom_produit text) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT p.nom::text
+    FROM "SCA".ContenuColis c
+    JOIN "SCA".Lot l ON l.idlot = c.idlot
+    JOIN "SCA".Produit p ON p.idproduit = l.idproduit
+    WHERE c.idcolis = _idcolis;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".getlots(_idcolis "SCA".idcolis)
+returns setof "SCA".Lot as $$
+begin
+return query
+    select "SCA".Lot.*
+    from "SCA".Lot
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+    where "SCA".ContenuColis.idcolis = _idcolis;
+end;
+$$ language plpgsql;

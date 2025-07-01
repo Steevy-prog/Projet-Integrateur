@@ -10,11 +10,19 @@ with open(os.path.join(os.path.dirname(script_path), 'jdd.JSON'), 'r', encoding=
     data = json.load(f)
 
 # 🗄️ Connexion à PostgreSQL (adapte les infos)
+#conn = psycopg2.connect(
+#    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#    database="projet_integrateur",
+#    user="group13",
+#    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#    port=5432
+#)
+
 conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+    host="localhost",
+    database="postgres",
+    user = "postgres",
+    password = "1234",
     port=5432
 )
 
@@ -37,7 +45,7 @@ def lister_tables(schema):
 
 lister_tables(schema)
 
-# 📥 Fonction d’insertion en batch (pas de changement ici)
+# 📥 Fonction d'insertion en batch (pas de changement ici)
 def insert(table, cols, rows):
     # Utilise ON CONFLICT DO NOTHING pour éviter les erreurs si les données existent déjà
     placeholders = ", ".join(["%s"] * len(cols))
@@ -93,9 +101,74 @@ insert('"SCA".Zone',
        [(z["idzone"], z["nom"]) for z in sc["Zone"]])
 
 insert('"SCA".individu',
-       ["idindividu", "nom", "adresse", "telephone"],
-       [(i["idindividu"], i["nom"], i["adresse"], i["telephone"])
+       ["idindividu", "nom", "prenom", "adresse", "telephone"],
+       [(i["idindividu"], i["nom"], i["prenom"], i["adresse"], i["telephone"])
         for i in sc["individu"]])
+
+insert('"SCA".Utilisateur',
+       ["idutilisateur", "idindividu", "username", "date_inscription", "date_derniere_connexion", "statut", "niveau_acces"],
+       [
+           (
+               u["idutilisateur"],
+               u["idindividu"],
+               u["username"],
+               u["date_inscription"],
+               u["date_derniere_connexion"],
+               u["statut"],
+               u["niveau_acces"]
+           )
+           for u in sc["Utilisateur"]
+       ])
+
+insert('"SCA".Travailleur',
+       ["idtravailleur", "idutilisateur", "date_embauche", "poste", "departement", "salaire_horaire", "statut", "competences", "date_derniere_evaluation"],
+       [(
+           t["idtravailleur"],
+           t["idutilisateur"],
+           t["date_embauche"],
+           t["poste"],
+           t["departement"],
+           t["salaire_horaire"],
+           t["statut"],
+           t["competences"],
+           t["date_derniere_evaluation"]
+        ) for t in sc["Travailleur"]])
+
+insert('"SCA".Vehicule',
+       ["idvehicule", "immatriculation", "marque", "modele", "annee_fabrication", "types", "capacite_charge", "capacite_volume", "date_acquisition", "statut", "kilometrage_actuel", "date_derniere_maintenance", "prochaine_maintenance", "carburant", "consommation_moyenne"],
+       [(
+           v["idvehicule"],
+           v["immatriculation"],
+           v["marque"],
+           v["modele"],
+           v["annee_fabrication"],
+           v["types"],
+           v["capacite_charge"],
+           v["capacite_volume"],
+           v["date_acquisition"],
+           v["statut"],
+           v["kilometrage_actuel"],
+           v["date_derniere_maintenance"],
+           v["prochaine_maintenance"],
+           v["carburant"],
+           v["consommation_moyenne"]
+        ) for v in sc["Vehicule"]])
+
+insert('"SCA".Conducteur',
+       ["idconducteur", "idutilisateur", "numero_permis", "type_permis", "date_obtention_permis", "date_expiration_permis", "experience_annees", "statut", "date_derniere_evaluation", "note_evaluation", "specialites"],
+       [(
+           c["idconducteur"],
+           c["idutilisateur"],
+           c["numero_permis"],
+           c["type_permis"],
+           c["date_obtention_permis"],
+           c["date_expiration_permis"],
+           c["experience_annees"],
+           c["statut"],
+           c["date_derniere_evaluation"],
+           c["note_evaluation"],
+           c["specialites"]
+        ) for c in sc["Conducteur"]])
 
 insert('"SCA".Repertoire',
        ["idindividu", "idorganisation", "role"],
@@ -119,9 +192,9 @@ insert('"SCA".ProduitLogiciel',
         for l in sc["ProduitLogiciel"]])
 
 insert('"SCA".Lot',
-       ["idlot", "idproduit", "quantite", "date_creation", "statut", "origine", "nombre_utilisations", "condition"],
+       ["idlot", "idproduit", "quantite", "date_creation", "statut"],
        [(l["idlot"], l["idproduit"], l["quantite"], l["date_creation"],
-         l["statut"], l["origine"], l["nombre_utilisations"], l["condition"])
+         l["statut"])
         for l in sc["Lot"]])
 
 insert('"SCA".ContenuColis',
@@ -134,9 +207,25 @@ insert('"SCA".InventaireEmplacement',
        [(i["idcellule"], i["idlot"], i["quantite"], i["datemaj"])
         for i in sc["InventaireEmplacement"]])
 
+insert('"SCA".Tache',
+       ["idtache", "idtravailleur", "idcellule", "idlot", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
+       [(
+           t["idtache"],
+           t["idtravailleur"],
+           t["idcellule"],
+           t["idlot"],
+           t["date_creation"],
+           t["date_echeance"],
+           t["duree_estimee"],
+           t["description"],
+           t["priority"],
+           t["statut"],
+           t["type"]
+        ) for t in sc["Tache"]])
+
 insert('"SCA".Bonreception',
-       ["idbonreception", "idcolis", "idtransporteur", "date_creation", "idfournisseur", "statut", "remarques"],
-       [(b["idbonreception"], b["idcolis"], b["idtransporteur"], b["date_creation"],
+       ["idbonreception", "idcolis", "date_creation", "idfournisseur", "statut", "remarques"],
+       [(b["idbonreception"], b["idcolis"], b["date_creation"],
          b["idfournisseur"], b["statut"], b["remarques"])
         for b in sc["Bonreception"]])
 
@@ -160,18 +249,13 @@ insert('"SCA".entrepot',
 cred = data["CREDENTIALS"]
 
 insert('"CREDENTIALS".PasswordPolicies',
-       ["nom_policy", "min_length", "max_length", "require_uppercase", "require_lowercase",
-        "require_digit", "require_special_char", "min_special_chars", "allowed_special_chars", "disallowed_chars",
-        "prevent_common_passwords"],
-       [(p["nom_policy"], p["min_length"], p["max_length"],
-         p["require_uppercase"], p["require_lowercase"], p["require_digit"],
-         p["require_special_char"], p["min_special_chars"], p["allowed_special_chars"],
-         p.get("disallowed_chars"), p["prevent_common_passwords"])
+       ["setting_name", "setting_value", "setting_group", "description"],
+       [(p["setting_name"], p["setting_value"], p["setting_group"], p["description"])
         for p in cred["PasswordPolicies"]])
 
 insert('"CREDENTIALS".Credentials',
-       ["email", "password", "nom_policy", "idindividu"],
-       [(c["email"], c["password"], c["nom_policy"], c["idindividu"])
+       ["email", "mot_de_passe_hash", "idutilisateur", "date_creation"],
+       [(c["email"], c["mot_de_passe_hash"], c["idutilisateur"], c["date_creation"])
         for c in cred["Credentials"]])
 
 # CORRECTION: La table s'appelle 'organisation' et non 'OrganisationCred'.
@@ -186,6 +270,9 @@ insert('"CREDENTIALS".application_theme',
        ["theme_name", "interface", "theme_qss"],
        [(t["theme_name"], t["window"], t["theme_qss"])
         for t in data["application_theme"]])
+
+
+
 
 # ✅ Finalisation
 conn.commit()

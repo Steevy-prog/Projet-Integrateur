@@ -17,6 +17,7 @@ import datetime
 import random
 import psycopg2
 from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
+from helpbot import ChatBot
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
@@ -205,7 +206,7 @@ class ClientTaskCard(QFrame):
             QFrame {{
                 background-color: #FFFFFF;
                 border-radius: 12px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #FFFFFF;
                 margin: 5px 0;
                 padding: 0;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -235,12 +236,12 @@ class ClientTaskCard(QFrame):
 
         header_row = QHBoxLayout()
         order_label = QLabel(self.order_data['Order_ID'])
-        order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;")
+        order_label.setStyleSheet("font-size: 16px; font-weight: 700; color: #333333;")
         header_row.addWidget(order_label)
         header_row.addStretch()
 
         status_label = QLabel(self.order_data['Status'])
-        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 11px; font-weight: bold; padding: 4px 10px;")
+        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 12px; font-weight: bold; padding: 1px 1px;")
         header_row.addWidget(status_label)
         info_layout.addLayout(header_row)
 
@@ -286,11 +287,11 @@ class ClientTaskCard(QFrame):
 
     def get_status_color(self, status):
         colors = {
-            'Pending': '#FFC107',       # Amber
-            'Processing': '#2196F3',    # Blue
-            'Shipped': '#8BC34A',       # Light Green
-            'Delivered': '#4CAF50',     # Green
-            'Cancelled': '#F44336'      # Red
+            'Pending':"#6C63FF",
+            'Processing': "#6C63FF",    # Blue
+            'Shipped': "#6C63FF",
+            'Delivered': "#6C63FF",
+            'Cancelled': "#6C63FF",   # Red
         }
         return colors.get(status, '#666666') # Default color
 
@@ -463,15 +464,25 @@ class ProductCreationPopup(QDialog):
         self.clear_layout()
         form_layout = QFormLayout()
 
+        # ...existing code...
+
         self.name_input = QLineEdit()
+        self.name_input.setStyleSheet("color: #232946; background: #FFFFFF;height: 30px;")
         self.prix_unitaire = QDoubleSpinBox()
         self.prix_unitaire.setSuffix(" $")
+        self.prix_unitaire.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.prix_unitaire.setRange(0.0, 100000.0)
 
         self.marque = QLineEdit()
         self.description = QTextEdit()
+        self.marque.setStyleSheet("color: #232946; background: #FFFFFF;")
+        self.description = QTextEdit()
+        self.description.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.modele = QLineEdit()
+        self.modele.setStyleSheet("color: #232946; background: #FFFFFF;")
 
+# For radio buttons and combo box, you can also set styles if needed:
+        
         self.categorie_group = QButtonGroup(self)
         self.categorie1 = QRadioButton("Packaging")
         self.categorie2 = QRadioButton("Electronic")
@@ -480,11 +491,19 @@ class ProductCreationPopup(QDialog):
         self.categorie_group.addButton(self.categorie2)
         self.categorie_group.addButton(self.categorie3)
         self.categorie1.setChecked(True)
+        self.categorie1.setChecked(True) # Default selection
+        self.categorie1.setStyleSheet("color: #232946;")
+        self.categorie2.setStyleSheet("color: #232946;")
+        self.categorie3.setStyleSheet("color: #232946;")
+        
+
+        
 
         self.fournisseur = QComboBox()
         for org in orgs:
-            self.fournisseur.addItem(org[1], org[0])
-
+            self.fournisseur.addItem(org[1], org[0]) # Display name, store ID
+        self.fournisseur.setStyleSheet("color: #232946; background: #FFFFFF;")
+        
         if self.product_type == "physical":
             self.category_text = "Packaging"
             self.categorie_group.buttonClicked.connect(lambda btn: setattr(self, 'category_text', btn.text()))
@@ -625,7 +644,7 @@ class ProductCreationPopup1(QDialog):
         next_btn = QPushButton("Next")
         next_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color:#333333;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -633,7 +652,7 @@ class ProductCreationPopup1(QDialog):
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #1976D2;
+                background-color: #5247D6;;
             }
         """)
         self.setStyleSheet("""
@@ -647,8 +666,8 @@ class ProductCreationPopup1(QDialog):
                 background-color: white;
                 border: 1px solid #ccc;
                 border-radius: 4px;
-                width: 10px;
-                height: 5px
+                width: 7px;
+                height: 20px
 
             }
         """)
@@ -815,7 +834,7 @@ class ProductCreationPopup1(QDialog):
 
 
 def show_product_creation_popup(parent=None):
-    dialog = ProductCreationPopup(parent)
+    dialog = ProductCreationPopup1(parent)
     dialog.exec()
 
 class ProductInputRow(QHBoxLayout):
@@ -910,7 +929,7 @@ class ClientLogisticsWidget(QWidget):
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Product & Package Management")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color:#6C63FF;")
         header_layout.addWidget(title)
         header_layout.addStretch()
         main_layout.addLayout(header_layout)
@@ -953,14 +972,14 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;font-color:black")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #333333;font-color:black")
         layout.addWidget(title)
         layout.addStretch()
 
         add_product_btn = QPushButton("Launch Product Creation")
         add_product_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -971,7 +990,7 @@ class ClientLogisticsWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #388E3C;
+                background-color: #5247D6;
                 transform: translateY(-2px);
             }
         """)
@@ -1000,7 +1019,7 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #333333;")
         layout.addWidget(title)
 
         scroll_area = QScrollArea()
@@ -1026,7 +1045,7 @@ class ClientLogisticsWidget(QWidget):
         add_product_row_btn = QPushButton("Add Product to Package")
         add_product_row_btn.setStyleSheet("""
             QPushButton {
-                background-color: #FF9800;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -1037,7 +1056,7 @@ class ClientLogisticsWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #F57C00;
+                background-color: #5247D6;
                 transform: translateY(-1px);
             }
         """)
@@ -1047,7 +1066,7 @@ class ClientLogisticsWidget(QWidget):
         create_package_btn = QPushButton("Create Package")
         create_package_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -1058,7 +1077,7 @@ class ClientLogisticsWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #1976D2;
+                background-color: #5247D6;;
                 transform: translateY(-2px);
             }
         """)
@@ -1163,7 +1182,7 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #6C63FF;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color:#333333;")
         layout.addWidget(title)
 
         form = QGridLayout()
@@ -1272,7 +1291,7 @@ class ClientOrderManagementWidget(QWidget):
 
         header_layout = QHBoxLayout()
         title = QLabel("My Orders")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #6C63FF;")
 
         refresh_btn = QPushButton("Refresh Orders")
         refresh_btn.setStyleSheet("""
@@ -1334,7 +1353,7 @@ class ClientOrderManagementWidget(QWidget):
         card.setFrameShadow(QFrame.Shadow.Raised)
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: #FFFFFF;
+                background-color: "#FFFFFF";
                 border: 1px solid #E0E0E0;
                 border-radius: 10px;
                 padding: 18px 20px;
@@ -1419,7 +1438,7 @@ class ShipmentTrackingWidget(QWidget):
 
         header_layout = QHBoxLayout()
         title = QLabel("Shipment Tracking")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color:#6C63FF;")
         header_layout.addWidget(title)
         header_layout.addStretch()
         layout.addLayout(header_layout)
@@ -1428,7 +1447,7 @@ class ShipmentTrackingWidget(QWidget):
         filter_search_layout.setSpacing(15)
 
         search_label = QLabel("Search Package:")
-        search_label.setStyleSheet("font-size: 15px; color: #666;")
+        search_label.setStyleSheet("font-size: 15px; color: #FFFFFF;")
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Enter package ID or product name...")
         self.search_input.setStyleSheet("""
@@ -1543,7 +1562,7 @@ class ShipmentTrackingWidget(QWidget):
         sorted_movements = sorted(movements, key=lambda x: x['Timestamp'], reverse=True)
         self.movements_table.setRowCount(len(sorted_movements))
 
-        accent_color = "#2921C5"
+        accent_color = "#6C63FF"
 
         for i, movement in enumerate(sorted_movements):
             self.movements_table.setItem(i, 0, QTableWidgetItem(movement['Timestamp'].strftime('%H:%M %b %d')))
@@ -1601,7 +1620,7 @@ class InquiryDetailDialog(QDialog):
                 border: 1px solid #F44336;
             }
             QPushButton {
-                background-color: #F44336;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 12px 25px;
@@ -1611,7 +1630,7 @@ class InquiryDetailDialog(QDialog):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #5247D6;
             }
         """)
 
@@ -1647,7 +1666,7 @@ class InquiryDetailDialog(QDialog):
         button_layout.addWidget(save_button)
 
         close_button = QPushButton("Close")
-        close_button.setStyleSheet("background-color: #CCCCCC;")
+        close_button.setStyleSheet("background-color: #6C63FF;")
         close_button.clicked.connect(self.reject)
         button_layout.addWidget(close_button)
 
@@ -1698,7 +1717,7 @@ class NewInquiryDialog(QDialog):
                 border: 1px solid #F44336;
             }
             QPushButton {
-                background-color: #F44336;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 12px 25px;
@@ -1708,7 +1727,7 @@ class NewInquiryDialog(QDialog):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #5247D6;
             }
         """)
 
@@ -1764,12 +1783,6 @@ class NewInquiryDialog(QDialog):
         QMessageBox.information(self, "Success", "Inquiry reported successfully!")
         self.accept()
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QTableWidget, QTableWidgetItem, QDialog, QHeaderView
-)
-from PyQt6.QtGui import QColor
-
 class ClientInquiriesWidget(QWidget):
     """Widget for viewing and managing client inquiries."""
 
@@ -1784,24 +1797,26 @@ class ClientInquiriesWidget(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(25)
 
-        # Header Section
         header_layout = QHBoxLayout()
         title = QLabel("My Inquiries")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #6C63FF;")
 
         report_inquiry_btn = QPushButton("Submit New Inquiry")
         report_inquiry_btn.setStyleSheet("""
             QPushButton {
-                background-color: #F44336;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 10px 20px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
+                box-shadow: 0 4px 10px rgba(244, 67, 54, 0.2);
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #5247D6;
+                transform: translateY(-2px);
             }
         """)
         report_inquiry_btn.clicked.connect(self.report_new_inquiry)
@@ -1811,37 +1826,41 @@ class ClientInquiriesWidget(QWidget):
         header_layout.addWidget(report_inquiry_btn)
         layout.addLayout(header_layout)
 
-        # Stats Cards
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
         open_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Open'])
-        in_progress = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
-        resolved = len([i for i in self.data.inquiries if i['Status'] in ('Resolved', 'Closed')])
+        in_progress_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
+        resolved_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Resolved' or i['Status'] == 'Closed'])
 
-        stats_layout.addWidget(self.create_stat_card("Open Inquiries", open_inquiries, "#F44336"))
-        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress, "#FFC107"))
-        stats_layout.addWidget(self.create_stat_card("Resolved/Closed", resolved, "#4CAF50"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Open Inquiries", open_inquiries, "#F44336"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("In Progress", in_progress_inquiries, "#FFC107"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Resolved/Closed", resolved_inquiries, "#4CAF50"))
         layout.addLayout(stats_layout)
 
-        # Table of Inquiries
         self.inquiries_table = self.create_inquiries_table()
         layout.addWidget(self.inquiries_table)
+
         self.setLayout(layout)
+        self.update_inquiries_table(self.data.inquiries) # Initial population
 
-        self.update_inquiries_table(self.data.inquiries)
-
-    def create_stat_card(self, title, value, color):
+    def create_inquiry_stat_card(self, title, value, color):
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: white;
+        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShadow(QFrame.Shadow.Raised)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FFFFFF;
                 border: 1px solid #E0E0E0;
                 border-radius: 10px;
                 padding: 18px 20px;
-            }
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }}
         """)
+
         layout = QVBoxLayout()
+        layout.setSpacing(5)
+
         title_label = QLabel(title)
         title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
 
@@ -1875,7 +1894,7 @@ class ClientInquiriesWidget(QWidget):
             gridline-color: #F0F2F5;
         }
         QHeaderView::section {
-            background-color: #F44336;
+            background-color: #6C63FF;
             color: #FFFFFF;
             padding: 12px;
             border: none;
@@ -1924,27 +1943,208 @@ class ClientInquiriesWidget(QWidget):
                 'Open': '#F44336',
                 'In Progress': '#FFC107',
                 'Resolved': '#4CAF50',
-                'Closed': '#9E9E9E'
+                'Closed': '#9E9E9E' # Grey for closed
             }
-            bg_color = QColor(status_colors.get(inquiry['Status'], '#E0E0E0'))
-            status_item.setBackground(bg_color)
-            status_item.setForeground(QColor('white') if inquiry['Status'] != 'In Progress' else QColor('#333333'))
+            status_item.setBackground(QColor(status_colors.get(inquiry['Status'], '#E0E0E0')))
+            status_item.setForeground(QColor('#FFFFFF'))
+            if inquiry['Status'] == 'In Progress':
+                status_item.setForeground(QColor('#333333'))
             self.inquiries_table.setItem(i, 4, status_item)
-
         self.inquiries_table.resizeColumnsToContents()
+
 
     def view_inquiry_details(self, row, column):
         inquiry_id = self.inquiries_table.item(row, 0).text()
         inquiry_data = next((i for i in self.data.inquiries if i['ID'] == inquiry_id), None)
+
         if inquiry_data:
             dialog = InquiryDetailDialog(inquiry_data, self)
             if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.update_inquiries_table(self.data.inquiries)
+                self.update_inquiries_table(self.data.inquiries) # Refresh table if status changed
 
     def report_new_inquiry(self):
         dialog = NewInquiryDialog(self.data, self.client_id, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.update_inquiries_table(self.data.inquiries)
+            
+class HelpWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setSpacing(30)
+        layout.setContentsMargins(40, 40, 40, 40)
+        
+        from helpbot import ChatBot
+        
+        # --- Card 1: AI Assistant Placeholder --
+        ai_card = QFrame()
+        ai_card.setStyleSheet("""
+            QFrame {
+                background-color: #F8F0FA;
+                border-radius: 16px;
+                border: 1px solid #E0E0E0
+                padding: 20px;
+                box-shadow: 0 4px 5px rgba(108,99,255,0.07)
+            }
+        """)
+        ai_layout = QVBoxLayout(ai_card)
+        ai_title = QLabel("🤖 AI Assistant ")
+        ai_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #6C63FF;")
+        ai_desc = QLabel("An Intelligent assistant that will answer all your questions about the platform.")
+        ai_desc.setWordWrap(True)
+        ai_desc.setStyleSheet("font-size: 18px; color:#333")
+        ai_btn = QPushButton("Ask your questions")
+        ai_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border-radius: 8px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;;
+            }
+        """)
+        ai_btn.clicked.connect(self.open_helpbot_dialog)  # Placeholder for AI chat functionality
+        ai_layout.addWidget(ai_title)
+        ai_layout.addWidget(ai_desc)
+        ai_layout.addWidget(ai_btn)
+        ai_layout.addWidget(ai_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        ai_layout.addStretch()
+        
+        # --- Card 2: Report a Bug ---
+        bug_card = QFrame()
+        ai_card.setStyleSheet("""
+            QFrame {
+                background-color: #F8F0FA;
+                border-radius: 16px;
+                border: 1px solid #E0E0E0
+                padding: 20px;
+                box-shadow: 0 4px 5px rgba(108,99,255,0.07)
+            }
+        """)
+        bug_layout= QVBoxLayout(bug_card)
+        bug_title = QLabel("🐞 Report a Bug")
+        bug_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #FF9800;")
+        bug_desc = QLabel("If you encounter a problem or bug, please let our IT support know so we can fix it quickly.")
+        bug_desc.setWordWrap(True)
+        bug_desc.setStyleSheet("font-size: 18px; color: #333;")
+        report_btn = QPushButton("Report a Bug")
+        report_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border-radius: 8px;
+                padding: 12x 20px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """)
+        report_btn.clicked.connect(self.open_bug_report_dialog)
+        bug_layout.addWidget(bug_title)
+        bug_layout.addWidget(bug_title)
+        bug_layout.addWidget(bug_desc)
+        bug_layout.addWidget(report_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        bug_layout.addStretch()
+        
+        layout.addWidget(ai_card)
+        layout.addWidget(bug_card)
+        layout.addStretch()
+        
+    def open_helpbot_dialog(self):
+        self.chatbot_window = ChatBot()
+        self.chatbot_window.show()
+        
+    def open_bug_report_dialog(self):
+        dialog = BugReportDialog(self)
+        dialog.exec()
+        
+class BugReportDialog(QDialog):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle("Report a Bug")
+        self.setFixedSize(450,350)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(30,30,30,30)
+        self.setStyleSheet(""""
+            QDialog{
+                background-color: #FFFDE7;
+                border-radius: 12px;
+            }
+            QLabel {
+                font-size: 16px;
+                color: #333px;
+            }
+            QTextEdit {
+                border: 1px solid #FFD180;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: #FFFFFF;
+            }
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                font-weight: bold;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 10 24px;
+            }
+        """)
+        label = QLabel("Describe the bug you encounter:")
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlaceholderText("Please provide as much details as possible")
+        
+        self.send_btn  = QPushButton("Send to IT Support")
+        self.send_btn.clicked.connect(self.send_bug_report)
+        
+        layout.addWidget(label)
+        layout.addWidget(self.text_edit)
+        layout.addStretch()
+        layout.addWidget(self.send_btn, alignment=Qt.AlignmentFlag.AlignRight)
+       
+    def send_bug_report(self):
+        import smtplib
+        from email.mime.text import MIMEText
+
+        bug_text = self.text_edit.toPlainText().strip()
+        if not bug_text:
+            QMessageBox.warning(self, "Input Error", "Please describe the bug before sending.")
+            return
+
+        # --- Email sending logic (update with your IT support email) ---
+        support_email = "steevy.tongoue@2029.ucac-icam.com"
+        subject = "Bug Report from Client Dashboard"
+        body = bug_text
+
+        try:
+            
+            smtp_server = "smtp.gmail.com"
+            smtp_port = 587
+            smtp_user = "scarobotinterne@gmail.com"
+            smtp_password = "vzeokmezwltpoqbt"
+
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"] = smtp_user
+            msg["To"] = support_email
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.sendmail(smtp_user, [support_email], msg.as_string())
+
+            QMessageBox.information(self, "Sent", "Your bug report has been sent to IT support. Thank you!")
+            self.accept()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to send bug report.\n\n{e}")
+
+
+        
 
 class ClientMainDashboard(QWidget):
     """Main dashboard widget for clients."""
@@ -2272,7 +2472,7 @@ class ClientMainWindow(QMainWindow):
         logo_label.setStyleSheet("""
             font-size: 24px;
             font-weight: bold;
-            color: #333333;
+            color: #6C63FF;
             margin-right: 30px;
         """)
         navbar_layout.addWidget(logo_label)
@@ -2282,12 +2482,14 @@ class ClientMainWindow(QMainWindow):
         self.shipment_tracking_btn = QPushButton("Shipment Tracking")
         self.client_logistics_btn = QPushButton("Logistics") # For product/package management
         self.client_inquiries_btn = QPushButton("My Inquiries")
+        self.help_btn = QPushButton("Help")
 
         self.dashboard_btn.setCheckable(True)
         self.order_management_btn.setCheckable(True)
         self.shipment_tracking_btn.setCheckable(True)
         self.client_logistics_btn.setCheckable(True)
         self.client_inquiries_btn.setCheckable(True)
+        self.help_btn.setCheckable(True)
 
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
@@ -2296,12 +2498,14 @@ class ClientMainWindow(QMainWindow):
         self.button_group.addButton(self.shipment_tracking_btn)
         self.button_group.addButton(self.client_logistics_btn)
         self.button_group.addButton(self.client_inquiries_btn)
+        self.button_group.addButton(self.help_btn)
 
         self.dashboard_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
         self.order_management_btn.clicked.connect(lambda: self.navigate_to_widget(self.order_management_widget))
         self.shipment_tracking_btn.clicked.connect(lambda: self.navigate_to_widget(self.shipment_tracking_widget))
         self.client_logistics_btn.clicked.connect(lambda: self.navigate_to_widget(self.client_logistics_widget))
         self.client_inquiries_btn.clicked.connect(lambda: self.navigate_to_widget(self.client_inquiries_widget))
+        self.help_btn.clicked.connect(lambda: self.navigate_to_widget(self.help_widget))
 
         navbar_layout.addStretch()
         navbar_layout.addWidget(self.dashboard_btn)
@@ -2309,6 +2513,7 @@ class ClientMainWindow(QMainWindow):
         navbar_layout.addWidget(self.shipment_tracking_btn)
         navbar_layout.addWidget(self.client_logistics_btn)
         navbar_layout.addWidget(self.client_inquiries_btn)
+        navbar_layout.addWidget(self.help_btn)  
         navbar_layout.addStretch()
 
         self.main_layout.addWidget(self.navbar)
@@ -2316,6 +2521,7 @@ class ClientMainWindow(QMainWindow):
     def create_content_area(self):
         self.content_stack = QStackedWidget()
         self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 30px;")
+        
 
         def scrollable(widget, object_name=None):
             scroll = QScrollArea()
@@ -2331,12 +2537,14 @@ class ClientMainWindow(QMainWindow):
         self.shipment_tracking_widget = scrollable(ShipmentTrackingWidget(self.data))
         self.client_logistics_widget = scrollable(ClientLogisticsWidget(self.data), object_name="clientLogisticsWidget") # Add object_name
         self.client_inquiries_widget = scrollable(ClientInquiriesWidget(self.data, client_org_id))
+        self.help_widget = HelpWidget()
 
         self.content_stack.addWidget(self.dashboard_widget)
         self.content_stack.addWidget(self.order_management_widget)
         self.content_stack.addWidget(self.shipment_tracking_widget)
         self.content_stack.addWidget(self.client_logistics_widget)
         self.content_stack.addWidget(self.client_inquiries_widget)
+        self.content_stack.addWidget(self.help_widget)
 
         self.main_layout.addWidget(self.content_stack)
 
@@ -2355,6 +2563,8 @@ class ClientMainWindow(QMainWindow):
             self.client_logistics_btn.setChecked(True)
         elif target_widget == self.client_inquiries_widget:
             self.client_inquiries_btn.setChecked(True)
+        elif target_widget == self.help_widget:
+            self.help_btn.setChecked(True)
 
 
 if __name__ == '__main__':
@@ -2387,8 +2597,8 @@ if __name__ == '__main__':
     app.setStyleSheet("""
     QMessageBox QLabel {
     color: black;
-    font-color: black;
     font-size: 14px;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
         }
     """)
 
