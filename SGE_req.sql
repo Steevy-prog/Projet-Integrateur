@@ -233,8 +233,7 @@ $$ LANGUAGE plpgsql;
 create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
-                     _idtravailleur "SCA".idtravailleur,
-                     _idcellule "SCA".idcellule,
+                     _idtravailleur "SCA"._idtravailleur,                                                                     _idcellule "SCA".idcellule,
                      _idlot "SCA".idlot,
                      _date_creation date,
                      _description text,
