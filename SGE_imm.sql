@@ -10,8 +10,6 @@ SELECT
     i.prenom,
     i.adresse,
     i.telephone,
-    -- c.email,
-    cred.email,
     u.date_inscription,
     u.date_derniere_connexion,
     u.statut,
@@ -162,7 +160,7 @@ CREATE OR REPLACE VIEW "SCA".inventaire AS (
                                                SELECT DISTINCT cc.idlot
                                                FROM "SCA".ContenuColis cc
                                                         JOIN "SCA".Colis c ON cc.idcolis = c.idcolis
-                                               WHERE c.statut = 'Livré'
+                                               WHERE c.statut = 'Livre'
                                            )
                                            GROUP BY p.idproduit, p.nom
                                                );
@@ -181,10 +179,11 @@ CREATE OR REPLACE VIEW "SCA".ColisEnExpedition AS
      STRING_AGG(p.nom, ', ' ORDER BY p.nom) AS "Produits",
      be.remarques AS "Remarques",
      CASE
-         WHEN c.statut = 'livre' THEN 'Livré'
-         WHEN c.statut = 'bon etat' THEN 'En transit'
-         WHEN c.statut = 'mauvais etat' THEN 'Problème détecté'
-         WHEN c.statut = 'deteriore' THEN 'Endommagé'
+         WHEN c.statut = 'Livre' THEN 'Livré'
+         WHEN c.statut = 'Transit' THEN 'En transit'
+         WHEN c.statut = 'Endommagé' THEN 'Problème détecté'
+         WHEN c.statut = 'Attente' THEN 'En attente'
+         WHEN c.statut = 'Perdu' THEN 'Perdu'
          ELSE 'Statut inconnu'
          END AS "Statut livraison"
 FROM
@@ -1061,7 +1060,7 @@ create or replace procedure "EMIR".Lot_INS(
 )
 as $$
 begin
-    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,origine,nombre_utilisations,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_origine::"SCA".etat_lot,_nbUses::int,_cond::"SCA".condition_materiel);
+    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_cond::"SCA".condition_materiel);
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1168,7 +1167,7 @@ create or replace procedure "EMIR".Vehicule_INS(
 )
 as $$
 begin
-    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, type, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne)
+    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, types, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne)
     values ("SCA".idvehicule_CONV(_idvehicule), "SCA".Nom_CONV(_immatriculation), "SCA".Nom_CONV(_marque), "SCA".Nom_CONV(_modele), _annee_fabrication::integer, _type::"SCA".type_vehicule, "SCA".dims_CONV(_capacite_charge), "SCA".dims_CONV(_capacite_volume), _date_acquisition::date, _statut::"SCA".statut_vehicule, _kilometrage_actuel::decimal, _date_derniere_maintenance::date, _prochaine_maintenance::date, _carburant, _consommation_moyenne::decimal);
 end; $$ language plpgsql;
 

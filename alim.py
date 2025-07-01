@@ -10,11 +10,19 @@ with open(os.path.join(os.path.dirname(script_path), 'jdd.JSON'), 'r', encoding=
     data = json.load(f)
 
 # 🗄️ Connexion à PostgreSQL (adapte les infos)
+#conn = psycopg2.connect(
+#    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#    database="projet_integrateur",
+#    user="group13",
+#    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#    port=5432
+#)
+
 conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+    host="localhost",
+    database="postgres",
+    user = "postgres",
+    password = "steevy",
     port=5432
 )
 

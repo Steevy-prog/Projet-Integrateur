@@ -395,10 +395,32 @@ class ProductCreationPopup(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Create Product")
-        self.setFixedSize(600, 450)
+        self.setFixedSize(900, 600)
         self.layout = QVBoxLayout(self)
         self.step = 1
         self.product_type = None
+
+        self.setStyleSheet("""
+            QLabel {
+                color: black;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QLineEdit, QDoubleSpinBox, QComboBox, QTextEdit {
+                color: black;
+                background-color: white;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+        """)
+
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll.setWidget(self.scroll_content)
+        self.layout.addWidget(self.scroll)
+
         self.build_step_1()
 
     def build_step_1(self):
@@ -412,7 +434,6 @@ class ProductCreationPopup(QDialog):
             QPushButton {
                 background-color: #2196F3;
                 color: white;
-                border: none;
                 padding: 10px 20px;
                 border-radius: 5px;
                 font-weight: bold;
@@ -423,11 +444,11 @@ class ProductCreationPopup(QDialog):
         """)
         next_btn.clicked.connect(self.goto_step_2)
 
-        self.layout.addWidget(label)
-        self.layout.addWidget(self.physical_radio)
-        self.layout.addWidget(self.software_radio)
-        self.layout.addStretch()
-        self.layout.addWidget(next_btn)
+        self.scroll_layout.addWidget(label)
+        self.scroll_layout.addWidget(self.physical_radio)
+        self.scroll_layout.addWidget(self.software_radio)
+        self.scroll_layout.addStretch()
+        self.scroll_layout.addWidget(next_btn)
 
     def goto_step_2(self):
         if self.physical_radio.isChecked():
@@ -441,17 +462,25 @@ class ProductCreationPopup(QDialog):
         self.clear_layout()
         form_layout = QFormLayout()
 
+        # ...existing code...
+
         self.name_input = QLineEdit()
-        self.name_input.setStyleSheet("color:black;")
+        self.name_input.setStyleSheet("color: #232946; background: #FFFFFF;height: 30px;")
         self.prix_unitaire = QDoubleSpinBox()
         self.prix_unitaire.setSuffix(" $")
-        self.prix_unitaire.setStyleSheet("color:black;")
+        self.prix_unitaire.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.prix_unitaire.setRange(0.0, 100000.0)
 
         self.marque = QLineEdit()
-        self.description = QTextEdit() # Changed to QTextEdit for more space
+        self.description = QTextEdit()
+        self.marque.setStyleSheet("color: #232946; background: #FFFFFF;")
+        self.description = QTextEdit()
+        self.description.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.modele = QLineEdit()
+        self.modele.setStyleSheet("color: #232946; background: #FFFFFF;")
 
+# For radio buttons and combo box, you can also set styles if needed:
+        
         self.categorie_group = QButtonGroup(self)
         self.categorie1 = QRadioButton("Packaging")
         self.categorie2 = QRadioButton("Electronic")
@@ -459,14 +488,22 @@ class ProductCreationPopup(QDialog):
         self.categorie_group.addButton(self.categorie1)
         self.categorie_group.addButton(self.categorie2)
         self.categorie_group.addButton(self.categorie3)
+        self.categorie1.setChecked(True)
         self.categorie1.setChecked(True) # Default selection
+        self.categorie1.setStyleSheet("color: #232946;")
+        self.categorie2.setStyleSheet("color: #232946;")
+        self.categorie3.setStyleSheet("color: #232946;")
+        
+
+        
 
         self.fournisseur = QComboBox()
         for org in orgs:
             self.fournisseur.addItem(org[1], org[0]) # Display name, store ID
-
+        self.fournisseur.setStyleSheet("color: #232946; background: #FFFFFF;")
+        
         if self.product_type == "physical":
-            self.category_text = "Packaging" # Default
+            self.category_text = "Packaging"
             self.categorie_group.buttonClicked.connect(lambda btn: setattr(self, 'category_text', btn.text()))
 
             self.length_input = QDoubleSpinBox()
@@ -505,9 +542,10 @@ class ProductCreationPopup(QDialog):
             form_layout.addRow("Width:", self.width_input)
             form_layout.addRow("Height:", self.height_input)
             form_layout.addRow("Mass:", self.mass_input)
-        else: # software
+        else:
             self.version_input = QLineEdit()
             self.license_input = QLineEdit()
+
             form_layout.addRow("Name:", self.name_input)
             form_layout.addRow("Supplier:", self.fournisseur)
             form_layout.addRow("Description:", self.description)
@@ -516,12 +554,220 @@ class ProductCreationPopup(QDialog):
             form_layout.addRow("Model:", self.modele)
             form_layout.addRow("Version:", self.version_input)
             form_layout.addRow("License Key:", self.license_input)
-            
+            self.category_text = "Software"
 
-
-        # Generate unique product ID
         self.produitid = idgenerator.generate_id("^P[A-Z0-9]{5}$", productids)
-        productids.append(self.produitid) # Add to global list to prevent reuse
+        productids.append(self.produitid)
+
+        submit_btn = QPushButton("Create Product")
+        submit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #388E3C;
+            }
+        """)
+        submit_btn.clicked.connect(self.submit_product)
+
+        self.scroll_layout.addLayout(form_layout)
+        self.scroll_layout.addStretch()
+        self.scroll_layout.addWidget(submit_btn)
+
+    def submit_product(self):
+        name = self.name_input.text().strip()
+        fournisseur_id = self.fournisseur.currentData()
+        description = self.description.toPlainText().strip()
+        prix_unitaire = self.prix_unitaire.value()
+        marque = self.marque.text().strip()
+        modele = self.modele.text().strip()
+        category = self.category_text
+
+        if not name or not fournisseur_id:
+            QMessageBox.warning(self, "Validation Error", "Product name and supplier are required.")
+            return
+
+        try:
+            cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)',
+                        (self.produitid, fournisseur_id, name, description, prix_unitaire, marque, modele, category))
+            if self.product_type == "physical":
+                cur.execute('CALL "EMIR".ProduitMateriel_INS(%s,%s,%s,%s,%s)',
+                            (self.produitid,
+                             self.length_input.value(),
+                             self.width_input.value(),
+                             self.height_input.value(),
+                             self.mass_input.value()))
+            else:
+                cur.execute('CALL "EMIR".ProduitLogiciel_INS(%s,%s,%s)',
+                            (self.produitid,
+                             self.version_input.text().strip(),
+                             self.license_input.text().strip()))
+            conn.commit()
+            QMessageBox.information(self, "Success", f"Product '{name}' created successfully.")
+            self.accept()
+        except psycopg2.Error as e:
+            conn.rollback()
+            QMessageBox.critical(self, "Database Error", f"Failed to create product: {e}")
+
+    def clear_layout(self):
+        while self.scroll_layout.count():
+            item = self.scroll_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+class ProductCreationPopup1(QDialog):
+    """Dialog to create a new product (physical or software)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Create Product")
+        self.setFixedSize(1200, 500)
+        self.layout = QVBoxLayout(self)
+        self.step = 1
+        self.product_type = None
+        self.build_step_1()
+
+    def build_step_1(self):
+        self.clear_layout()
+        label = QLabel("Choose product type:")
+        label.setStyleSheet("color: black;")
+        self.physical_radio = QRadioButton("Physical Product")
+        self.software_radio = QRadioButton("Software Product")
+
+        next_btn = QPushButton("Next")
+        next_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        self.setStyleSheet("""
+            QLabel {
+                color: black;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QLineEdit, QDoubleSpinBox, QComboBox, QTextEdit {
+                color: black;
+                background-color: white;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                width: 10px;
+                height: 5px
+
+            }
+        """)
+        next_btn.clicked.connect(self.goto_step_2)
+
+        self.layout.addWidget(label)
+        self.layout.addWidget(self.physical_radio)
+        self.layout.addWidget(self.software_radio)
+        self.layout.addStretch()
+        self.layout.addWidget(next_btn)
+
+    def goto_step_2(self):
+        if self.physical_radio.isChecked():
+            self.product_type = "physical"
+        elif self.software_radio.isChecked():
+            self.product_type = "software"
+        else:
+            QMessageBox.warning(self, "Error", "Please select a product type.")
+            return
+
+        self.clear_layout()
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        form_container = QWidget()
+        form_layout = QFormLayout(form_container)
+
+        scroll.setWidget(form_container)
+        self.layout.addWidget(scroll)
+
+        self.name_input = QLineEdit()
+        self.prix_unitaire = QDoubleSpinBox()
+        self.prix_unitaire.setSuffix(" $")
+        self.prix_unitaire.setRange(0.0, 100000.0)
+
+        self.marque = QLineEdit()
+        self.description = QTextEdit()
+        self.modele = QLineEdit()
+
+        self.fournisseur = QComboBox()
+        for org in orgs:
+            self.fournisseur.addItem(org[1], org[0])  # Display name, store ID
+
+        form_layout.addRow(QLabel("Name:"), self.name_input)
+        form_layout.addRow(QLabel("Supplier:"), self.fournisseur)
+        form_layout.addRow(QLabel("Description:"), self.description)
+        form_layout.addRow(QLabel("Unit Price:"), self.prix_unitaire)
+        form_layout.addRow(QLabel("Brand:"), self.marque)
+        form_layout.addRow(QLabel("Model:"), self.modele)
+
+        if self.product_type == "physical":
+            self.categorie_group = QButtonGroup(self)
+            self.categorie1 = QRadioButton("Packaging")
+            self.categorie2 = QRadioButton("Electronic")
+            self.categorie3 = QRadioButton("Non-Electronic")
+            self.categorie_group.addButton(self.categorie1)
+            self.categorie_group.addButton(self.categorie2)
+            self.categorie_group.addButton(self.categorie3)
+            self.categorie1.setChecked(True)
+            self.category_text = "Packaging"
+            self.categorie_group.buttonClicked.connect(lambda btn: setattr(self, 'category_text', btn.text()))
+
+            ho = QHBoxLayout()
+            ho.addWidget(self.categorie1)
+            ho.addWidget(self.categorie2)
+            ho.addWidget(self.categorie3)
+
+            self.length_input = QDoubleSpinBox()
+            self.length_input.setSuffix(" cm")
+            self.length_input.setRange(0.0, 1000.0)
+            self.length_input.setValue(10.0)
+
+            self.width_input = QDoubleSpinBox()
+            self.width_input.setSuffix(" cm")
+            self.width_input.setRange(0.0, 1000.0)
+            self.width_input.setValue(10.0)
+
+            self.height_input = QDoubleSpinBox()
+            self.height_input.setSuffix(" cm")
+            self.height_input.setRange(0.0, 1000.0)
+            self.height_input.setValue(10.0)
+
+            self.mass_input = QDoubleSpinBox()
+            self.mass_input.setSuffix(" kg")
+            self.mass_input.setRange(0.0, 1000.0)
+            self.mass_input.setValue(10.0)
+
+            form_layout.addRow(QLabel("Category:"), ho)
+            form_layout.addRow(QLabel("Length:"), self.length_input)
+            form_layout.addRow(QLabel("Width:"), self.width_input)
+            form_layout.addRow(QLabel("Height:"), self.height_input)
+            form_layout.addRow(QLabel("Mass:"), self.mass_input)
+        else:
+            self.version_input = QLineEdit()
+            self.license_input = QLineEdit()
+            form_layout.addRow(QLabel("Version:"), self.version_input)
+            form_layout.addRow(QLabel("License Key:"), self.license_input)
+            self.category_text = "Software"
+
+        # Generate Product ID
+        self.produitid = idgenerator.generate_id("^P[A-Z0-9]{5}$", productids)
+        productids.append(self.produitid)
 
         submit_btn = QPushButton("Create Product")
         submit_btn.setStyleSheet("""
@@ -540,8 +786,6 @@ class ProductCreationPopup(QDialog):
         """)
         submit_btn.clicked.connect(self.submit_product)
 
-        self.layout.addLayout(form_layout)
-        self.layout.addStretch()
         self.layout.addWidget(submit_btn)
 
     def submit_product(self):
@@ -551,7 +795,7 @@ class ProductCreationPopup(QDialog):
         prix_unitaire = self.prix_unitaire.value()
         marque = self.marque.text().strip()
         modele = self.modele.text().strip()
-        category = self.category_text if self.product_type == "physical" else "Software" # Default for software
+        category = self.category_text
 
         if not name or not fournisseur_id:
             QMessageBox.warning(self, "Validation Error", "Product name and supplier are required.")
@@ -567,7 +811,7 @@ class ProductCreationPopup(QDialog):
                 mass = self.mass_input.value()
                 cur.execute('CALL "EMIR".ProduitMateriel_INS(%s,%s,%s,%s,%s)',
                             (self.produitid, length, width, height, mass))
-            else: # software
+            else:
                 version = self.version_input.text().strip()
                 license_key = self.license_input.text().strip()
                 cur.execute('CALL "EMIR".ProduitLogiciel_INS(%s,%s,%s)',
@@ -586,8 +830,9 @@ class ProductCreationPopup(QDialog):
             if widget:
                 widget.deleteLater()
 
+
 def show_product_creation_popup(parent=None):
-    dialog = ProductCreationPopup(parent)
+    dialog = ProductCreationPopup1(parent)
     dialog.exec()
 
 class ProductInputRow(QHBoxLayout):
@@ -1536,12 +1781,6 @@ class NewInquiryDialog(QDialog):
         QMessageBox.information(self, "Success", "Inquiry reported successfully!")
         self.accept()
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QTableWidget, QTableWidgetItem, QDialog, QHeaderView
-)
-from PyQt6.QtGui import QColor
-
 class ClientInquiriesWidget(QWidget):
     """Widget for viewing and managing client inquiries."""
 
@@ -1556,7 +1795,6 @@ class ClientInquiriesWidget(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(25)
 
-        # Header Section
         header_layout = QHBoxLayout()
         title = QLabel("My Inquiries")
         title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
@@ -1571,9 +1809,12 @@ class ClientInquiriesWidget(QWidget):
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
+                box-shadow: 0 4px 10px rgba(244, 67, 54, 0.2);
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
                 background-color: #D32F2F;
+                transform: translateY(-2px);
             }
         """)
         report_inquiry_btn.clicked.connect(self.report_new_inquiry)
@@ -1583,37 +1824,41 @@ class ClientInquiriesWidget(QWidget):
         header_layout.addWidget(report_inquiry_btn)
         layout.addLayout(header_layout)
 
-        # Stats Cards
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
         open_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Open'])
-        in_progress = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
-        resolved = len([i for i in self.data.inquiries if i['Status'] in ('Resolved', 'Closed')])
+        in_progress_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
+        resolved_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Resolved' or i['Status'] == 'Closed'])
 
-        stats_layout.addWidget(self.create_stat_card("Open Inquiries", open_inquiries, "#F44336"))
-        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress, "#FFC107"))
-        stats_layout.addWidget(self.create_stat_card("Resolved/Closed", resolved, "#4CAF50"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Open Inquiries", open_inquiries, "#F44336"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("In Progress", in_progress_inquiries, "#FFC107"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Resolved/Closed", resolved_inquiries, "#4CAF50"))
         layout.addLayout(stats_layout)
 
-        # Table of Inquiries
         self.inquiries_table = self.create_inquiries_table()
         layout.addWidget(self.inquiries_table)
+
         self.setLayout(layout)
+        self.update_inquiries_table(self.data.inquiries) # Initial population
 
-        self.update_inquiries_table(self.data.inquiries)
-
-    def create_stat_card(self, title, value, color):
+    def create_inquiry_stat_card(self, title, value, color):
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: white;
+        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShadow(QFrame.Shadow.Raised)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FFFFFF;
                 border: 1px solid #E0E0E0;
                 border-radius: 10px;
                 padding: 18px 20px;
-            }
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }}
         """)
+
         layout = QVBoxLayout()
+        layout.setSpacing(5)
+
         title_label = QLabel(title)
         title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
 
@@ -1696,22 +1941,24 @@ class ClientInquiriesWidget(QWidget):
                 'Open': '#F44336',
                 'In Progress': '#FFC107',
                 'Resolved': '#4CAF50',
-                'Closed': '#9E9E9E'
+                'Closed': '#9E9E9E' # Grey for closed
             }
-            bg_color = QColor(status_colors.get(inquiry['Status'], '#E0E0E0'))
-            status_item.setBackground(bg_color)
-            status_item.setForeground(QColor('white') if inquiry['Status'] != 'In Progress' else QColor('#333333'))
+            status_item.setBackground(QColor(status_colors.get(inquiry['Status'], '#E0E0E0')))
+            status_item.setForeground(QColor('#FFFFFF'))
+            if inquiry['Status'] == 'In Progress':
+                status_item.setForeground(QColor('#333333'))
             self.inquiries_table.setItem(i, 4, status_item)
-
         self.inquiries_table.resizeColumnsToContents()
+
 
     def view_inquiry_details(self, row, column):
         inquiry_id = self.inquiries_table.item(row, 0).text()
         inquiry_data = next((i for i in self.data.inquiries if i['ID'] == inquiry_id), None)
+
         if inquiry_data:
             dialog = InquiryDetailDialog(inquiry_data, self)
             if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.update_inquiries_table(self.data.inquiries)
+                self.update_inquiries_table(self.data.inquiries) # Refresh table if status changed
 
     def report_new_inquiry(self):
         dialog = NewInquiryDialog(self.data, self.client_id, self)
@@ -2159,8 +2406,8 @@ if __name__ == '__main__':
     app.setStyleSheet("""
     QMessageBox QLabel {
     color: black;
-    font-color: black;
     font-size: 14px;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
         }
     """)
 
