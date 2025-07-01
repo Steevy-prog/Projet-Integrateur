@@ -205,7 +205,7 @@ class TerminalPage(QWidget):
         self.terminal_output.append("\n--- Available commands: ---")
         # Corrected iteration: iterate over items() to get both key and value
         for cmd, description in self.command_description.items():
-            self.terminal_output.append(f"- {cmd}:\t{description}")
+            self.terminal_output.append(f"- {cmd}: {description}")
         self.terminal_output.append("---------------------------\n")
 
     def unknown_command(self):
@@ -248,7 +248,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\"Logs ORDER BY timestamp DESC LIMIT {log_limit};")  # Assuming a 'logs' table
+                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\".Logs ORDER BY timestamp DESC LIMIT {log_limit};")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
                 self.terminal_output.append("\n--- ALl System Logs ---")
                 if logs:

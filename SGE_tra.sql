@@ -16,7 +16,6 @@ begin
     update "SCA".Organisation
     set nom = "SCA".nom_conv(_nom),
         telephone = "SCA".Numero_CONV(_telephone),
-        adresse = "SCA".adresse_conv(_adresse),
         type = _type::"SCA".typeOrg
     where idorganisation = "SCA".idorg_conv(_idorganisation);
 end; $$ language plpgsql;
@@ -320,7 +319,7 @@ begin
         marque = "SCA".Nom_CONV(_marque),
         modele = "SCA".Nom_CONV(_modele),
         annee_fabrication = _annee_fabrication::integer,
-        type = _type::"SCA".type_vehicule,
+        types = _type::"SCA".type_vehicule,
         capacite_charge = "SCA".dims_CONV(_capacite_charge),
         capacite_volume = "SCA".dims_CONV(_capacite_volume),
         date_acquisition = _date_acquisition::date,
