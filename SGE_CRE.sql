@@ -172,7 +172,6 @@ CREATE TABLE "SCA".individu(
                                idindividu "SCA".IDindividu NOT NULL ,
                                nom "SCA".Nom NOT NULL ,
                                prenom "SCA".Nom NOT NULL ,
-                               adresse "SCA".Adresse NOT NULL ,
                                telephone "SCA".Numero NOT NULL ,
                                CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
 );
@@ -339,7 +338,7 @@ CREATE TABLE "SCA".Tache(
                             idtache "SCA".idtache NOT NULL ,
                             idtravailleur "SCA".idtravailleur NOT NULL ,
                             idcellule "SCA".Idcellule NOT NULL ,
-                            idlot "SCA".Idlot NOT NULL ,
+                            idcolis "SCA".Idcolis NOT NULL ,
                             date_creation DATE NOT NULL ,
                             date_echeance DATE NOT NULL ,
                             duree_estimee INTERVAL NOT NULL ,

@@ -8,7 +8,6 @@ SELECT
     u.username,
     i.nom,
     i.prenom,
-    i.adresse,
     i.telephone,
     u.date_inscription,
     u.date_derniere_connexion,
@@ -51,7 +50,6 @@ SELECT
     u.statut as statut_utilisateur,
     i.nom,
     i.prenom,
-    i.adresse,
     i.telephone
 FROM "SCA".Conducteur c
 JOIN "SCA".Utilisateur u ON c.idutilisateur = u.idutilisateur
@@ -75,7 +73,6 @@ SELECT
     u.statut as statut_utilisateur,
     i.nom,
     i.prenom,
-    i.adresse,
     i.telephone
 FROM "SCA".Travailleur t
 JOIN "SCA".Utilisateur u ON t.idutilisateur = u.idutilisateur
@@ -989,11 +986,10 @@ create or replace procedure "EMIR".Individu_INS(
     _nom text,
     _prenom text,
     _telephone text,
-    _adresse text
 )
 as $$
 begin
-    insert into "SCA".Individu(idindividu, nom, prenom, telephone, adresse) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone), "SCA".adresse_conv(_adresse));
+    insert into "SCA".Individu(idindividu, nom, prenom, telephone) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone));
 end; $$ language plpgsql;
 
 -- 8. REPERTOIRE
@@ -1293,7 +1289,6 @@ create or replace function "EMIR".Individu_EVA()
                       idindividu "SCA".IDindividu,
                       nom "SCA".Nom,
                       prenom "SCA".Nom,
-                      adresse "SCA".Adresse,
                       telephone "SCA".Numero
                   ) as $$
 begin
@@ -1344,7 +1339,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
                      _idcellule "SCA".idcellule,
-                     _idlot "SCA".idlot,
+                     _idcolis "SCA".idcolis,
                      _date_creation date,
                      _date_echeance date,
                      _duree_estimé int,
@@ -1354,7 +1349,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
+    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL
