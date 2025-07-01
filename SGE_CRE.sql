@@ -91,7 +91,7 @@ CREATE DOMAIN "SCA".username TEXT CHECK (
     VALUE~ '^[a-zA-Z0-9_]{3,20}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
-CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livré','Perdu','Endommagé');
+CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livre','Perdu','Endommagé');
 CREATE TYPE "SCA".etatexception AS ENUM('Progress','Resolu','Ouvert','Fermé');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -272,9 +272,7 @@ CREATE TABLE "SCA".Lot(
                           idproduit "SCA".Idproduit NOT NULL ,
                           quantite "SCA".dims NOT NULL ,
                           date_creation date NOT NULL ,
-                          statut "SCA".etat NOT NULL ,
-                          origine "SCA".etat_lot DEFAULT 'standard',
-                          nombre_utilisations INTEGER DEFAULT 0,
+                          statut "SCA".etat_lot NOT NULL ,
                           condition "SCA".condition_materiel DEFAULT 'utilisable',
                           CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)

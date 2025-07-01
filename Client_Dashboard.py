@@ -832,7 +832,7 @@ class ProductCreationPopup1(QDialog):
 
 
 def show_product_creation_popup(parent=None):
-    dialog = ProductCreationPopup(parent)
+    dialog = ProductCreationPopup1(parent)
     dialog.exec()
 
 class ProductInputRow(QHBoxLayout):
