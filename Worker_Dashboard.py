@@ -385,7 +385,6 @@ class TaskCard(QFrame):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.task_selected.emit(self.task_data)
-
 class TaskDetailDialog(QDialog):
     """Dialog to display details of a selected task with new design."""
     def __init__(self, task_data, parent=None):
@@ -406,13 +405,13 @@ class TaskDetailDialog(QDialog):
             }
             QLabel {
                 font-size: 15px;
-                color: black;
+                color: #212121;
                 margin-bottom: 7px;
             }
             QLabel#title {
                 font-size: 24px;
                 font-weight: bold;
-                color: black;
+                color: #212121;
                 margin-bottom: 20px;
                 padding-bottom: 10px;
                 border-bottom: 1px solid #E0E0E0;
@@ -450,15 +449,13 @@ class TaskDetailDialog(QDialog):
         title_label.setObjectName("title")
         layout.addWidget(title_label)
 
-        # Database query
-        cur.execute('SELECT * FROM "EMIR".getproductnames(%s);', (self.task_data['Colis'],))
-        productnames = cur.fetchall()
-        names_str = ", ".join(name[0] for name in productnames) if productnames else "Aucun produit"
-
         # Task detail form
         form_layout = QFormLayout()
-        form_layout.addRow("Product(s):", QLabel(names_str))
-        form_layout.addRow("Items Count:", QLabel(str(0)))  # Remplace avec vraie valeur si dispo
+        # Simulated product name list
+
+        product_names = ["Box", "Tape", "Scissors"]
+        form_layout.addRow("Product(s):", QLabel(", ".join(product_names)))
+        form_layout.addRow("Items Count:", QLabel(str(0)))
         form_layout.addRow("Estimated Time (min):", QLabel(str(self.task_data['duree'])))
 
         status_label = QLabel(self.task_data['status'])
@@ -469,7 +466,7 @@ class TaskDetailDialog(QDialog):
         form_layout.addRow("Due Time:", QLabel(str(self.task_data['date-ech'])))
         layout.addLayout(form_layout)
 
-        # Optional: Item list
+        # Items list
         items_list_label = QLabel("Items to Pick/Pack:")
         layout.addWidget(items_list_label)
         items_list = QListWidget()
@@ -482,12 +479,10 @@ class TaskDetailDialog(QDialog):
 
         complete_button = QPushButton("Mark as Completed")
         complete_button.setStyleSheet("background-color: #4CAF50; color: white;")
-        # complete_button.clicked.connect(self.mark_as_completed)
         button_layout.addWidget(complete_button)
 
         cancel_button = QPushButton("Cancel Task")
         cancel_button.setStyleSheet("background-color: #F44336; color: white;")
-        # cancel_button.clicked.connect(self.cancel_task)
         button_layout.addWidget(cancel_button)
 
         close_button = QPushButton("Close")

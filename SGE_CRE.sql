@@ -172,7 +172,6 @@ CREATE TABLE "SCA".individu(
                                idindividu "SCA".IDindividu NOT NULL ,
                                nom "SCA".Nom NOT NULL ,
                                prenom "SCA".Nom NOT NULL ,
-                               adresse "SCA".Adresse NOT NULL ,
                                telephone "SCA".Numero NOT NULL ,
                                CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
 );
