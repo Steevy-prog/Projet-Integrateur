@@ -16,6 +16,7 @@ import datetime
 import random
 import psycopg2
 from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
+from helpbot import ChatBot
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
@@ -1964,6 +1965,185 @@ class ClientInquiriesWidget(QWidget):
         dialog = NewInquiryDialog(self.data, self.client_id, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.update_inquiries_table(self.data.inquiries)
+            
+class HelpWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setSpacing(30)
+        layout.setContentsMargins(40, 40, 40, 40)
+        
+        from helpbot import ChatBot
+        
+        # --- Card 1: AI Assistant Placeholder --
+        ai_card = QFrame()
+        ai_card.setStyleSheet("""
+            QFrame {
+                background-color: #F8F0FA;
+                border-radius: 16px;
+                border: 1px solid #E0E0E0
+                padding: 20px;
+                box-shadow: 0 4px 5px rgba(108,99,255,0.07)
+            }
+        """)
+        ai_layout = QVBoxLayout(ai_card)
+        ai_title = QLabel("🤖 AI Assistant ")
+        ai_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #6C63FF;")
+        ai_desc = QLabel("An Intelligent assistant that will answer all your questions about the platform.")
+        ai_desc.setWordWrap(True)
+        ai_desc.setStyleSheet("font-size: 18px; color:#333")
+        ai_btn = QPushButton("Ask your questions")
+        ai_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border-radius: 8px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;;
+            }
+        """)
+        ai_btn.clicked.connect(self.open_helpbot_dialog)  # Placeholder for AI chat functionality
+        ai_layout.addWidget(ai_title)
+        ai_layout.addWidget(ai_desc)
+        ai_layout.addWidget(ai_btn)
+        ai_layout.addWidget(ai_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        ai_layout.addStretch()
+        
+        # --- Card 2: Report a Bug ---
+        bug_card = QFrame()
+        ai_card.setStyleSheet("""
+            QFrame {
+                background-color: #F8F0FA;
+                border-radius: 16px;
+                border: 1px solid #E0E0E0
+                padding: 20px;
+                box-shadow: 0 4px 5px rgba(108,99,255,0.07)
+            }
+        """)
+        bug_layout= QVBoxLayout(bug_card)
+        bug_title = QLabel("🐞 Report a Bug")
+        bug_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #FF9800;")
+        bug_desc = QLabel("If you encounter a problem or bug, please let our IT support know so we can fix it quickly.")
+        bug_desc.setWordWrap(True)
+        bug_desc.setStyleSheet("font-size: 18px; color: #333;")
+        report_btn = QPushButton("Report a Bug")
+        report_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border-radius: 8px;
+                padding: 12x 20px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """)
+        report_btn.clicked.connect(self.open_bug_report_dialog)
+        bug_layout.addWidget(bug_title)
+        bug_layout.addWidget(bug_title)
+        bug_layout.addWidget(bug_desc)
+        bug_layout.addWidget(report_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        bug_layout.addStretch()
+        
+        layout.addWidget(ai_card)
+        layout.addWidget(bug_card)
+        layout.addStretch()
+        
+    def open_helpbot_dialog(self):
+        self.chatbot_window = ChatBot()
+        self.chatbot_window.show()
+        
+    def open_bug_report_dialog(self):
+        dialog = BugReportDialog(self)
+        dialog.exec()
+        
+class BugReportDialog(QDialog):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle("Report a Bug")
+        self.setFixedSize(450,350)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(30,30,30,30)
+        self.setStyleSheet(""""
+            QDialog{
+                background-color: #FFFDE7;
+                border-radius: 12px;
+            }
+            QLabel {
+                font-size: 16px;
+                color: #333px;
+            }
+            QTextEdit {
+                border: 1px solid #FFD180;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: #FFFFFF;
+            }
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                font-weight: bold;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 10 24px;
+            }
+        """)
+        label = QLabel("Describe the bug you encounter:")
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlaceholderText("Please provide as much details as possible")
+        
+        self.send_btn  = QPushButton("Send to IT Support")
+        self.send_btn.clicked.connect(self.send_bug_report)
+        
+        layout.addWidget(label)
+        layout.addWidget(self.text_edit)
+        layout.addStretch()
+        layout.addWidget(self.send_btn, alignment=Qt.AlignmentFlag.AlignRight)
+       
+    def send_bug_report(self):
+        import smtplib
+        from email.mime.text import MIMEText
+
+        bug_text = self.text_edit.toPlainText().strip()
+        if not bug_text:
+            QMessageBox.warning(self, "Input Error", "Please describe the bug before sending.")
+            return
+
+        # --- Email sending logic (update with your IT support email) ---
+        support_email = "steevy.tongoue@2029.ucac-icam.com"
+        subject = "Bug Report from Client Dashboard"
+        body = bug_text
+
+        try:
+            
+            smtp_server = "smtp.gmail.com"
+            smtp_port = 587
+            smtp_user = "scarobotinterne@gmail.com"
+            smtp_password = "vzeokmezwltpoqbt"
+
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"] = smtp_user
+            msg["To"] = support_email
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.sendmail(smtp_user, [support_email], msg.as_string())
+
+            QMessageBox.information(self, "Sent", "Your bug report has been sent to IT support. Thank you!")
+            self.accept()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to send bug report.\n\n{e}")
+
+
+        
 
 class ClientMainDashboard(QWidget):
     """Main dashboard widget for clients."""
@@ -2301,12 +2481,14 @@ class ClientMainWindow(QMainWindow):
         self.shipment_tracking_btn = QPushButton("Shipment Tracking")
         self.client_logistics_btn = QPushButton("Logistics") # For product/package management
         self.client_inquiries_btn = QPushButton("My Inquiries")
+        self.help_btn = QPushButton("Help")
 
         self.dashboard_btn.setCheckable(True)
         self.order_management_btn.setCheckable(True)
         self.shipment_tracking_btn.setCheckable(True)
         self.client_logistics_btn.setCheckable(True)
         self.client_inquiries_btn.setCheckable(True)
+        self.help_btn.setCheckable(True)
 
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
@@ -2315,12 +2497,14 @@ class ClientMainWindow(QMainWindow):
         self.button_group.addButton(self.shipment_tracking_btn)
         self.button_group.addButton(self.client_logistics_btn)
         self.button_group.addButton(self.client_inquiries_btn)
+        self.button_group.addButton(self.help_btn)
 
         self.dashboard_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
         self.order_management_btn.clicked.connect(lambda: self.navigate_to_widget(self.order_management_widget))
         self.shipment_tracking_btn.clicked.connect(lambda: self.navigate_to_widget(self.shipment_tracking_widget))
         self.client_logistics_btn.clicked.connect(lambda: self.navigate_to_widget(self.client_logistics_widget))
         self.client_inquiries_btn.clicked.connect(lambda: self.navigate_to_widget(self.client_inquiries_widget))
+        self.help_btn.clicked.connect(lambda: self.navigate_to_widget(self.help_widget))
 
         navbar_layout.addStretch()
         navbar_layout.addWidget(self.dashboard_btn)
@@ -2328,6 +2512,7 @@ class ClientMainWindow(QMainWindow):
         navbar_layout.addWidget(self.shipment_tracking_btn)
         navbar_layout.addWidget(self.client_logistics_btn)
         navbar_layout.addWidget(self.client_inquiries_btn)
+        navbar_layout.addWidget(self.help_btn)  
         navbar_layout.addStretch()
 
         self.main_layout.addWidget(self.navbar)
@@ -2335,6 +2520,7 @@ class ClientMainWindow(QMainWindow):
     def create_content_area(self):
         self.content_stack = QStackedWidget()
         self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 30px;")
+        
 
         def scrollable(widget, object_name=None):
             scroll = QScrollArea()
@@ -2350,12 +2536,14 @@ class ClientMainWindow(QMainWindow):
         self.shipment_tracking_widget = scrollable(ShipmentTrackingWidget(self.data))
         self.client_logistics_widget = scrollable(ClientLogisticsWidget(self.data), object_name="clientLogisticsWidget") # Add object_name
         self.client_inquiries_widget = scrollable(ClientInquiriesWidget(self.data, client_org_id))
+        self.help_widget = HelpWidget()
 
         self.content_stack.addWidget(self.dashboard_widget)
         self.content_stack.addWidget(self.order_management_widget)
         self.content_stack.addWidget(self.shipment_tracking_widget)
         self.content_stack.addWidget(self.client_logistics_widget)
         self.content_stack.addWidget(self.client_inquiries_widget)
+        self.content_stack.addWidget(self.help_widget)
 
         self.main_layout.addWidget(self.content_stack)
 
@@ -2374,6 +2562,8 @@ class ClientMainWindow(QMainWindow):
             self.client_logistics_btn.setChecked(True)
         elif target_widget == self.client_inquiries_widget:
             self.client_inquiries_btn.setChecked(True)
+        elif target_widget == self.help_widget:
+            self.help_btn.setChecked(True)
 
 
 if __name__ == '__main__':
