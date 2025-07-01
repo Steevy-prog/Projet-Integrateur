@@ -10,7 +10,8 @@ SELECT
     i.prenom,
     i.adresse,
     i.telephone,
-    c.email,
+    -- c.email,
+    cred.email,
     u.date_inscription,
     u.date_derniere_connexion,
     u.statut,
@@ -161,7 +162,7 @@ CREATE OR REPLACE VIEW "SCA".inventaire AS (
                                                SELECT DISTINCT cc.idlot
                                                FROM "SCA".ContenuColis cc
                                                         JOIN "SCA".Colis c ON cc.idcolis = c.idcolis
-                                               WHERE c.statut = 'livre'
+                                               WHERE c.statut = 'Livré'
                                            )
                                            GROUP BY p.idproduit, p.nom
                                                );

@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QFileDialog
 )
-from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal, QDir
+from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal, QDir, QObject, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 from terminal import TerminalPage, AutomationPage
@@ -792,6 +792,7 @@ class SystemConfigurationPage(QWidget):
                 cursor.close()
 
 class DatabaseMaintenancePage(QWidget):
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("databaseMaintenancePage")
@@ -868,6 +869,14 @@ class DatabaseMaintenancePage(QWidget):
         if not query:
             QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
             return
+        
+        # msg_box = QMessageBox(self, "Status", "Query will be executed", QMessageBox.StandardButton.NoButton)
+        # timer = QTimer(msg_box)
+        # timer.setSingleShot(True)
+        # timer.timeout.connect(msg_box.close)
+        # timer.start(1500)
+        # msg_box.exec()
+        
         self.results_table.clearContents()
         self.results_table.setRowCount(0)
         self.results_table.setColumnCount(0)
@@ -1057,6 +1066,7 @@ class MainWindow(QMainWindow):
         self._apply_styles()
 
     def _setup_ui(self):
+        
         self.sidebar_frame = QFrame()
         self.sidebar_frame.setObjectName("sidebarFrame")
         self.sidebar_frame.setFixedWidth(250)
@@ -1113,7 +1123,8 @@ class MainWindow(QMainWindow):
             else:
                 btn_widget.setProperty("active", False)
             btn_widget.style().polish(btn_widget)
-
+    
+   
     def _apply_styles(self):
         self.setStyleSheet("""
             QMainWindow {
@@ -1262,6 +1273,7 @@ class MainWindow(QMainWindow):
                 background-color: #cccccc;
                 color: #666666;
             }
+            
             #deleteButton {
                 background-color: #e74c3c;
                 color: white;
