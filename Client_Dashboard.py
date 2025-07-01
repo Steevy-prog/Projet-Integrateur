@@ -204,7 +204,7 @@ class ClientTaskCard(QFrame):
             QFrame {{
                 background-color: #FFFFFF;
                 border-radius: 12px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #FFFFFF;
                 margin: 5px 0;
                 padding: 0;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -234,12 +234,12 @@ class ClientTaskCard(QFrame):
 
         header_row = QHBoxLayout()
         order_label = QLabel(self.order_data['Order_ID'])
-        order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;")
+        order_label.setStyleSheet("font-size: 16px; font-weight: 700; color: #333333;")
         header_row.addWidget(order_label)
         header_row.addStretch()
 
         status_label = QLabel(self.order_data['Status'])
-        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 11px; font-weight: bold; padding: 4px 10px;")
+        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 12px; font-weight: bold; padding: 1px 1px;")
         header_row.addWidget(status_label)
         info_layout.addLayout(header_row)
 
@@ -285,11 +285,11 @@ class ClientTaskCard(QFrame):
 
     def get_status_color(self, status):
         colors = {
-            'Pending': '#FFC107',       # Amber
-            'Processing': '#2196F3',    # Blue
-            'Shipped': '#8BC34A',       # Light Green
-            'Delivered': '#4CAF50',     # Green
-            'Cancelled': '#F44336'      # Red
+            'Pending':"#6C63FF",
+            'Processing': "#6C63FF",    # Blue
+            'Shipped': "#6C63FF",
+            'Delivered': "#6C63FF",
+            'Cancelled': "#6C63FF",   # Red
         }
         return colors.get(status, '#666666') # Default color
 
@@ -642,7 +642,7 @@ class ProductCreationPopup1(QDialog):
         next_btn = QPushButton("Next")
         next_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color:#333333;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -650,7 +650,7 @@ class ProductCreationPopup1(QDialog):
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #1976D2;
+                background-color: #5247D6;;
             }
         """)
         self.setStyleSheet("""
@@ -664,8 +664,8 @@ class ProductCreationPopup1(QDialog):
                 background-color: white;
                 border: 1px solid #ccc;
                 border-radius: 4px;
-                width: 10px;
-                height: 5px
+                width: 7px;
+                height: 20px
 
             }
         """)
@@ -927,7 +927,7 @@ class ClientLogisticsWidget(QWidget):
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Product & Package Management")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color:#6C63FF;")
         header_layout.addWidget(title)
         header_layout.addStretch()
         main_layout.addLayout(header_layout)
@@ -970,14 +970,14 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;font-color:black")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #333333;font-color:black")
         layout.addWidget(title)
         layout.addStretch()
 
         add_product_btn = QPushButton("Launch Product Creation")
         add_product_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -988,7 +988,7 @@ class ClientLogisticsWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #388E3C;
+                background-color: #5247D6;
                 transform: translateY(-2px);
             }
         """)
@@ -1017,7 +1017,7 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #6C63FF;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #333333;")
         layout.addWidget(title)
 
         scroll_area = QScrollArea()
@@ -1043,7 +1043,7 @@ class ClientLogisticsWidget(QWidget):
         add_product_row_btn = QPushButton("Add Product to Package")
         add_product_row_btn.setStyleSheet("""
             QPushButton {
-                background-color: #FF9800;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -1054,7 +1054,7 @@ class ClientLogisticsWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #F57C00;
+                background-color: #5247D6;
                 transform: translateY(-1px);
             }
         """)
@@ -1064,7 +1064,7 @@ class ClientLogisticsWidget(QWidget):
         create_package_btn = QPushButton("Create Package")
         create_package_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -1075,7 +1075,7 @@ class ClientLogisticsWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #1976D2;
+                background-color: #5247D6;;
                 transform: translateY(-2px);
             }
         """)
@@ -1180,7 +1180,7 @@ class ClientLogisticsWidget(QWidget):
         layout.setSpacing(15)
 
         title = QLabel(name)
-        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #6C63FF;")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color:#333333;")
         layout.addWidget(title)
 
         form = QGridLayout()
@@ -1289,7 +1289,7 @@ class ClientOrderManagementWidget(QWidget):
 
         header_layout = QHBoxLayout()
         title = QLabel("My Orders")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #6C63FF;")
 
         refresh_btn = QPushButton("Refresh Orders")
         refresh_btn.setStyleSheet("""
@@ -1351,7 +1351,7 @@ class ClientOrderManagementWidget(QWidget):
         card.setFrameShadow(QFrame.Shadow.Raised)
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: #FFFFFF;
+                background-color: "#FFFFFF";
                 border: 1px solid #E0E0E0;
                 border-radius: 10px;
                 padding: 18px 20px;
@@ -1436,7 +1436,7 @@ class ShipmentTrackingWidget(QWidget):
 
         header_layout = QHBoxLayout()
         title = QLabel("Shipment Tracking")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color:#6C63FF;")
         header_layout.addWidget(title)
         header_layout.addStretch()
         layout.addLayout(header_layout)
@@ -1445,7 +1445,7 @@ class ShipmentTrackingWidget(QWidget):
         filter_search_layout.setSpacing(15)
 
         search_label = QLabel("Search Package:")
-        search_label.setStyleSheet("font-size: 15px; color: #666;")
+        search_label.setStyleSheet("font-size: 15px; color: #FFFFFF;")
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Enter package ID or product name...")
         self.search_input.setStyleSheet("""
@@ -1560,7 +1560,7 @@ class ShipmentTrackingWidget(QWidget):
         sorted_movements = sorted(movements, key=lambda x: x['Timestamp'], reverse=True)
         self.movements_table.setRowCount(len(sorted_movements))
 
-        accent_color = "#2921C5"
+        accent_color = "#6C63FF"
 
         for i, movement in enumerate(sorted_movements):
             self.movements_table.setItem(i, 0, QTableWidgetItem(movement['Timestamp'].strftime('%H:%M %b %d')))
@@ -1618,7 +1618,7 @@ class InquiryDetailDialog(QDialog):
                 border: 1px solid #F44336;
             }
             QPushButton {
-                background-color: #F44336;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 12px 25px;
@@ -1628,7 +1628,7 @@ class InquiryDetailDialog(QDialog):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #5247D6;
             }
         """)
 
@@ -1664,7 +1664,7 @@ class InquiryDetailDialog(QDialog):
         button_layout.addWidget(save_button)
 
         close_button = QPushButton("Close")
-        close_button.setStyleSheet("background-color: #CCCCCC;")
+        close_button.setStyleSheet("background-color: #6C63FF;")
         close_button.clicked.connect(self.reject)
         button_layout.addWidget(close_button)
 
@@ -1715,7 +1715,7 @@ class NewInquiryDialog(QDialog):
                 border: 1px solid #F44336;
             }
             QPushButton {
-                background-color: #F44336;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 12px 25px;
@@ -1725,7 +1725,7 @@ class NewInquiryDialog(QDialog):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #5247D6;
             }
         """)
 
@@ -1797,12 +1797,12 @@ class ClientInquiriesWidget(QWidget):
 
         header_layout = QHBoxLayout()
         title = QLabel("My Inquiries")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #6C63FF;")
 
         report_inquiry_btn = QPushButton("Submit New Inquiry")
         report_inquiry_btn.setStyleSheet("""
             QPushButton {
-                background-color: #F44336;
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -1813,7 +1813,7 @@ class ClientInquiriesWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #D32F2F;
+                background-color: #5247D6;
                 transform: translateY(-2px);
             }
         """)
@@ -1892,7 +1892,7 @@ class ClientInquiriesWidget(QWidget):
             gridline-color: #F0F2F5;
         }
         QHeaderView::section {
-            background-color: #F44336;
+            background-color: #6C63FF;
             color: #FFFFFF;
             padding: 12px;
             border: none;
@@ -2291,7 +2291,7 @@ class ClientMainWindow(QMainWindow):
         logo_label.setStyleSheet("""
             font-size: 24px;
             font-weight: bold;
-            color: #333333;
+            color: #6C63FF;
             margin-right: 30px;
         """)
         navbar_layout.addWidget(logo_label)
