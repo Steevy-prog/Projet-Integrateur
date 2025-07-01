@@ -272,9 +272,7 @@ CREATE TABLE "SCA".Lot(
                           idproduit "SCA".Idproduit NOT NULL ,
                           quantite "SCA".dims NOT NULL ,
                           date_creation date NOT NULL ,
-                          statut "SCA".etat NOT NULL ,
-                          origine "SCA".etat_lot DEFAULT 'standard',
-                          nombre_utilisations INTEGER DEFAULT 0,
+                          statut "SCA".etat_lot NOT NULL ,
                           condition "SCA".condition_materiel DEFAULT 'utilisable',
                           CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
