@@ -74,7 +74,7 @@ class WorkerData:
         expedition_tasks_data = []
         cur.execute("SELECT (p).* FROM \"EMIR\".Tache_EVA(%s) AS p;", (worker_id,))
         tasks = cur.fetchall()
-        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date','description','priority','status','type'])
+        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date-cre','date-ech','duree','description','priority','status','type'])
         for i in self.expedition_tasks.itertuples():
             expedition_tasks_data.append({
                 'Order_ID': i[0],
@@ -848,8 +848,8 @@ class WorkerMainDashboard(QWidget):
         dashboard_stats_layout = QHBoxLayout()
         dashboard_stats_layout.setSpacing(20)
 
-        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'Pending'])
-        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Check if completed today
+        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'en cours'])
+        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'Completed']) # Check if completed today
         #my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
         #open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
 
@@ -1047,9 +1047,9 @@ class ExpeditionManagementWidget(QWidget):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
-        pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'Pending'])
-        in_progress_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'In Progress'])
-        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Example of checking "today"
+        pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'en cours'])
+        in_progress_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'Progress'])
+        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'Completed']) # Example of checking "today"
 
         stats_layout.addWidget(self.create_stat_card("Pending Tasks", pending_tasks, "#FFC107"))
         stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#6C63FF"))
@@ -1063,12 +1063,12 @@ class ExpeditionManagementWidget(QWidget):
 
         # My Current Tasks
         my_tasks_section = self.create_task_section("My Current Tasks",
-            [t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] != 'Completed'])
+            [t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] != 'Completed'])
         sections_splitter.addWidget(my_tasks_section)
 
         # High Priority Tasks
         high_priority_section = self.create_task_section("High Priority Tasks",
-            [t for t in self.data.expedition_tasks.to_dict('records') if t['Priority'] == 'High' and t['Status'] != 'Completed'])
+            [t for t in self.data.expedition_tasks.to_dict('records') if t['priority'] == 'High' and t['status'] != 'Completed'])
         sections_splitter.addWidget(high_priority_section)
 
         sections_splitter.setSizes([self.width() // 2, self.width() // 2]) # Initial sizes
