@@ -77,7 +77,7 @@ class WorkerData:
         self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date-cre','date-ech','duree','description','priority','status','type'])
         for i in self.expedition_tasks.itertuples():
             expedition_tasks_data.append({
-                'Order_ID': i[0],
+                'Task_id': i[0],
                 'Product_ID': i[2],
                 'Cell': i[1],
                 'Date-Creation': i[3],
@@ -389,7 +389,7 @@ class TaskDetailDialog(QDialog):
     def __init__(self, task_data, parent=None):
         super().__init__(parent)
         self.task_data = task_data
-        self.setWindowTitle(f"Task Details: {self.task_data['Order_ID']}")
+        self.setWindowTitle(f"Task Details: {self.task_data['Task_id']}")
         self.setFixedSize(500, 550) # Slightly larger dialog
         self.init_ui()
 
@@ -444,18 +444,19 @@ class TaskDetailDialog(QDialog):
             }
         """)
 
-        title_label = QLabel(f"Task: {self.task_data['Order_ID']}")
+        title_label = QLabel(f"Task: {self.task_data['Task_id']}")
         title_label.setProperty("class", "title")
         layout.addWidget(title_label)
-
+        cur.execute('SELECT "EMIR".getproductname(%s);', (self.task_data['Lot'],))
+        productname = cur.fetchone()[0]
         form_layout = QFormLayout()
-        form_layout.addRow("Product:", QLabel(self.task_data['Product_Name']))
-        form_layout.addRow("Items Count:", QLabel(str(self.task_data['Items_Count'])))
-        form_layout.addRow("Estimated Time (min):", QLabel(str(self.task_data['Estimated_Time'])))
-        form_layout.addRow("Status:", QLabel(self.task_data['Status']))
-        form_layout.addRow("Priority:", QLabel(self.task_data['Priority']))
-        form_layout.addRow("Due Time:", QLabel(self.task_data['Due_Time'].strftime('%Y-%m-%d %H:%M')))
-        form_layout.addRow("Assigned Worker:", QLabel(self.task_data['Assigned_Worker']))
+        form_layout.addRow("Product:", QLabel(productname))
+        #form_layout.addRow("Items Count:", QLabel(str(self.task_data['Items_Count'])))
+        form_layout.addRow("Items Count:", QLabel(str(0)))
+        form_layout.addRow("Estimated Time (min):", QLabel(str(self.task_data['duree'])))
+        form_layout.addRow("Status:", QLabel(self.task_data['status']))
+        form_layout.addRow("Priority:", QLabel(self.task_data['priority']))
+        form_layout.addRow("Due Time:", QLabel(str(self.task_data['date-ech'])))
         layout.addLayout(form_layout)
 
         # For more complex tasks, you might add a list of sub-tasks or required steps
@@ -463,7 +464,7 @@ class TaskDetailDialog(QDialog):
         layout.addWidget(items_list_label)
         items_list = QListWidget()
         # In a real scenario, task_data would have detailed items. For now, simulate.
-        items_list.addItem(f"- {self.task_data['Items_Count']} x {self.task_data['Product_Name']} (ID: {self.task_data['Product_ID']})")
+        #items_list.addItem(f"- {self.task_data['Items_Count']} x {self.task_data['Product_Name']} (ID: {self.task_data['Product_ID']})")
         items_list.addItem("- Check quality")
         items_list.addItem("- Scan barcode")
         layout.addWidget(items_list)

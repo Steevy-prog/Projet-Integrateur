@@ -230,21 +230,6 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
-    returns table(
-                     _idtache "SCA".idtache,
-                     _idtravailleur "SCA".idtravailleur,
-                     _idcellule "SCA".idcellule,
-                     _idlot "SCA".idlot,
-                     _date_creation date,
-                     _description text,
-                     _statut text,
-                     _type text
-                 )
-as $$
-begin
-    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
-end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
 
@@ -432,4 +417,16 @@ create or replace function "EMIR".Logs_getlower(_date timestamp)
 as $$
 begin
     return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".getproductname(_idlot "SCA".idlot)
+    returns text as $$
+declare
+    product_name text;
+begin
+    select "SCA".Produit.nom into product_name
+    from "SCA".Lot
+             join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
+    where "SCA".Lot.idlot = _idlot;
+    return product_name;
 end; $$ language plpgsql;
