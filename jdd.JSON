@@ -223,11 +223,11 @@
    { "idbonreception": "RANT20", "idcolis": "COANT20", "idtransporteur": "OTRANS", "date_creation": "2024-08-01", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Antivirus entreprise livré, licences valides." }
   ],
   "Bonexpedition": [
-   { "idbonexpedition": "EZYXW9", "idcolis": "COABC01", "idtransporteur": "OTRANS", "date_creation": "2024-05-20", "iddestinataire": "ODESTI", "statut": "bon etat", "remarques": "Prêt pour expédition vers Yaoundé." },
-   { "idbonexpedition": "EABCD1", "idcolis": "COKLM03", "idtransporteur": "OLOGIS", "date_creation": "2024-06-25", "iddestinataire": "ODESTT", "statut": "bon etat", "remarques": "Expédié vers Bafoussam." },
-   { "idbonexpedition": "EFGHI2", "idcolis": "COVWX06", "idtransporteur": "OTRANS", "date_creation": "2024-07-12", "iddestinataire": "OCLIEN", "statut": "bon etat", "remarques": "Commande client urgente pour Garoua." },
-   { "idbonexpedition": "EFRAC4", "idcolis": "COFRA07", "idtransporteur": "OTRACK", "date_creation": "2024-07-19", "iddestinataire": "ODESTB", "statut": "bon etat", "remarques": "Expédié vers Bamenda." },
-   { "idbonexpedition": "EFUTU5", "idcolis": "COFUT08", "idtransporteur": "OTIMEC", "date_creation": "2024-07-24", "iddestinataire": "ODESTC", "statut": "bon etat", "remarques": "Expédié vers Bertoua." }
+    { "idbonexpedition": "EZYXW9", "idcolis": "COABC01", "idtransporteur": "CD0001", "date_creation": "2024-05-20", "iddestinataire": "ODESTI", "statut": "bon etat", "remarques": "Prêt pour expédition vers Yaoundé." },
+    { "idbonexpedition": "EABCD1", "idcolis": "COKLM03", "idtransporteur": "CD0002", "date_creation": "2024-06-25", "iddestinataire": "ODESTT", "statut": "bon etat", "remarques": "Expédié vers Bafoussam." },
+    { "idbonexpedition": "EFGHI2", "idcolis": "COVWX06", "idtransporteur": "CD0003", "date_creation": "2024-07-12", "iddestinataire": "OCLIEN", "statut": "bon etat", "remarques": "Commande client urgente pour Garoua." },
+    { "idbonexpedition": "EFRAC4", "idcolis": "COFRA07", "idtransporteur": "CD0004", "date_creation": "2024-07-19", "iddestinataire": "ODESTB", "statut": "bon etat", "remarques": "Expédié vers Bamenda." },
+    { "idbonexpedition": "EFUTU5", "idcolis": "COFUT08", "idtransporteur": "CD0005", "date_creation": "2024-07-24", "iddestinataire": "ODESTC", "statut": "bon etat", "remarques": "Expédié vers Bertoua." }
   ],
   "RapportException": [
    { "idrapport": "RFAUAA", "idcolis": "COXYZ02", "type": "lors de la reception du colis", "date_creation": "2024-05-13", "description": "Le colis présentait une déchirure sur le côté droit. Un article endommagé.", "statut": "mauvais etat" },
@@ -246,21 +246,13 @@
    { "idcellule": "CF0006", "position": "ZEMBA5" }
   ],
   "LocalisationOrganisation": [
-   { "idorganisation": "OFIRST", "adresse": "123 Rue de la Technologie, Douala", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.0511, "longitude": 9.7679, "date_ajout": "2024-01-10" },
-   { "idorganisation": "OTRANS", "adresse": "45 Avenue du Port, Douala", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.0512, "longitude": 9.7680, "date_ajout": "2024-01-11" },
-   { "idorganisation": "ODESTI", "adresse": "789 Boulevard de la Liberté, Yaoundé", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.8480, "longitude": 11.5021, "date_ajout": "2024-01-12" },
-   { "idorganisation": "OSACQC", "adresse": "10 Boulevard de la République, Douala", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.0513, "longitude": 9.7681, "date_ajout": "2024-01-13" },
-   { "idorganisation": "ONEWSP", "adresse": "56 Rue de l'Industrie, Kribi", "ville": "Kribi", "region": "Sud", "pays": "Cameroun", "latitude": 2.9381, "longitude": 9.9109, "date_ajout": "2024-01-14" },
-   { "idorganisation": "ODESTT", "adresse": "88 Avenue des Montagnes, Bafoussam", "ville": "Bafoussam", "region": "Ouest", "pays": "Cameroun", "latitude": 5.4778, "longitude": 10.4176, "date_ajout": "2024-01-15" },
-   { "idorganisation": "OSUPPL", "adresse": "200 Zone Industrielle, Bonabéri", "ville": "Bonabéri", "region": "Littoral", "pays": "Cameroun", "latitude": 4.0700, "longitude": 9.6500, "date_ajout": "2024-01-16" },
-   { "idorganisation": "OLOGIS", "adresse": "301 Hub Logistique, Limbe", "ville": "Limbe", "region": "Sud-Ouest", "pays": "Cameroun", "latitude": 4.0236, "longitude": 9.2144, "date_ajout": "2024-01-17" },
-   { "idorganisation": "OCLIEN", "adresse": "402 Avenue du Client, Garoua", "ville": "Garoua", "region": "Nord", "pays": "Cameroun", "latitude": 9.3000, "longitude": 13.4000, "date_ajout": "2024-01-18" },
-   { "idorganisation": "OFRACT", "adresse": "12 Rue des Algorithmes, Douala", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.0520, "longitude": 9.7690, "date_ajout": "2024-02-01" },
-   { "idorganisation": "OTRACK", "adresse": "99 Route Express, Yaoundé", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.8500, "longitude": 11.5100, "date_ajout": "2024-02-02" },
-   { "idorganisation": "ODESTB", "adresse": "7 Avenue du Nord, Bamenda", "ville": "Bamenda", "region": "Nord-Ouest", "pays": "Cameroun", "latitude": 5.9631, "longitude": 10.1591, "date_ajout": "2024-02-03" },
-   { "idorganisation": "OFUTUR", "adresse": "5 Avenue de l'Innovation, Douala", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.0550, "longitude": 9.7700, "date_ajout": "2024-03-01" },
-   { "idorganisation": "OTIMEC", "adresse": "101 Route du Temps, Yaoundé", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.8600, "longitude": 11.5200, "date_ajout": "2024-03-02" },
-   { "idorganisation": "ODESTC", "adresse": "2 Place du Marché, Bertoua", "ville": "Bertoua", "region": "Est", "pays": "Cameroun", "latitude": 4.5772, "longitude": 13.6846, "date_ajout": "2024-03-03" }
+   { "idorganisation": "OFIRST", "adresse": "près de l'aéroport", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.014623, "longitude": 9.718912, "date_ajout": "2024-01-10" },
+   { "idorganisation": "OTRANS", "adresse": "Japoma", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.007820, "longitude": 9.821751, "date_ajout": "2024-01-11" },
+   { "idorganisation": "ODESTI", "adresse": "Lendi", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.117245, "longitude": 9.775457, "date_ajout": "2024-01-12" },
+   { "idorganisation": "OSACQC", "adresse": "Yansoki", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 3.970307, "longitude": 9.791949, "date_ajout": "2024-01-13" },
+   { "idorganisation": "ONEWSP", "adresse": "Essos", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.869689, "longitude": 11.541228, "date_ajout": "2024-01-14" },
+   { "idorganisation": "ODESTT", "adresse": "Nkolbisson", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.870495, "longitude": 11.446176, "date_ajout": "2024-01-15" },
+   { "idorganisation": "OFRACT", "adresse": "Bonapriso", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.019980, "longitude": 9.700302, "date_ajout": "2024-01-10" }
   ],
   "Conducteur": [
     {"idconducteur": "CD0001","idutilisateur": "U00003","numero_permis": "PERMIS654321","type_permis": "C","date_obtention_permis": "2017-05-10","date_expiration_permis": "2027-05-10","experience_annees": 7,"statut": "disponible","date_derniere_evaluation": "2024-01-10","note_evaluation": 4.2,"specialites": "Poids lourds, longues distances"},
@@ -303,21 +295,49 @@
     {"idtravailleur": "TR0009", "idutilisateur": "U00010", "date_embauche": "2023-10-20", "poste": "Chargé Clientèle", "departement": "Service Client", "salaire_horaire": 2300.00, "statut": "actif", "competences": "Relation client", "date_derniere_evaluation": "2024-05-10"},
     {"idtravailleur": "TR0010", "idutilisateur": "U00011", "date_embauche": "2023-11-25", "poste": "Fournisseur", "departement": "Achats", "salaire_horaire": 2600.00, "statut": "actif", "competences": "Approvisionnement", "date_derniere_evaluation": "2024-05-20"},
     {"idtravailleur": "TR0011", "idutilisateur": "U00013", "date_embauche": "2024-01-15", "poste": "Acheteur", "departement": "Achats", "salaire_horaire": 2700.00, "statut": "actif", "competences": "Négociation, gestion", "date_derniere_evaluation": "2024-06-10"}
+  ],
+  "Tache": [
+    {"idtache": "T00001", "idtravailleur": "TR0001", "idcellule": "CA0001", "idlot": "LLA01A", "date_creation": "2024-06-01", "date_echeance": "2024-06-03", "duree_estimee": "2 days", "description": "Inventaire de la cellule principale", "priority": "haute", "statut": "en cours", "type": "inventaire"},
+    {"idtache": "T00002", "idtravailleur": "TR0002", "idcellule": "CB0002", "idlot": "LEB01B", "date_creation": "2024-06-02", "date_echeance": "2024-06-04", "duree_estimee": "1 day", "description": "Réception de lots de cartons", "priority": "moyenne", "statut": "en cours", "type": "réception"},
+    {"idtache": "T00003", "idtravailleur": "TR0003", "idcellule": "CC0003", "idlot": "LMN02A", "date_creation": "2024-06-03", "date_echeance": "2024-06-05", "duree_estimee": "3 days", "description": "Préparation de commande pour expédition", "priority": "haute", "statut": "en attente_validation", "type": "préparation"},
+    {"idtache": "T00004", "idtravailleur": "TR0004", "idcellule": "CD0004", "idlot": "LKY03A", "date_creation": "2024-06-04", "date_echeance": "2024-06-06", "duree_estimee": "2 days", "description": "Vérification des claviers en stock", "priority": "basse", "statut": "en cours", "type": "contrôle qualité"},
+    {"idtache": "T00005", "idtravailleur": "TR0005", "idcellule": "CE0005", "idlot": "LLA01R", "date_creation": "2024-06-05", "date_echeance": "2024-06-07", "duree_estimee": "1 day", "description": "Tri des lots à recycler", "priority": "moyenne", "statut": "en cours", "type": "tri"},
+    {"idtache": "T00006", "idtravailleur": "TR0006", "idcellule": "CF0006", "idlot": "LBX18A", "date_creation": "2024-06-06", "date_echeance": "2024-06-08", "duree_estimee": "2 days", "description": "Mise en stock des boîtes XXL", "priority": "haute", "statut": "en cours", "type": "stockage"},
+    {"idtache": "T00007", "idtravailleur": "TR0007", "idcellule": "CA0001", "idlot": "LTAB07", "date_creation": "2024-06-07", "date_echeance": "2024-06-09", "duree_estimee": "1 day", "description": "Préparation de tablettes pour livraison", "priority": "moyenne", "statut": "en cours", "type": "préparation"},
+    {"idtache": "T00008", "idtravailleur": "TR0008", "idcellule": "CB0002", "idlot": "LCARTB", "date_creation": "2024-06-08", "date_echeance": "2024-06-10", "duree_estimee": "2 days", "description": "Vérification des cartouches d'encre", "priority": "basse", "statut": "en cours", "type": "contrôle qualité"}
+  ],
+  "Vehicule": [
+    {"idvehicule": "V00001", "immatriculation": "LT-123-AB", "marque": "Mercedes", "modele": "Actros", "annee_fabrication": 2020, "types": "camion", "capacite_charge": 18000.0, "capacite_volume": 40.0, "date_acquisition": "2021-03-15", "statut": "disponible", "kilometrage_actuel": 45000.5, "date_derniere_maintenance": "2024-05-01", "prochaine_maintenance": "2024-11-01", "carburant": "Diesel", "consommation_moyenne": 28.5},
+    {"idvehicule": "V00002", "immatriculation": "LT-456-CD", "marque": "Renault", "modele": "Master", "annee_fabrication": 2018, "types": "fourgon", "capacite_charge": 3500.0, "capacite_volume": 13.0, "date_acquisition": "2019-07-10", "statut": "en maintenance", "kilometrage_actuel": 120000.0, "date_derniere_maintenance": "2024-04-15", "prochaine_maintenance": "2024-10-15", "carburant": "Diesel", "consommation_moyenne": 10.2},
+    {"idvehicule": "V00003", "immatriculation": "LT-789-EF", "marque": "Toyota", "modele": "Hilux", "annee_fabrication": 2022, "types": "camionnette", "capacite_charge": 1000.0, "capacite_volume": 5.0, "date_acquisition": "2022-09-01", "statut": "en livraison", "kilometrage_actuel": 25000.0, "date_derniere_maintenance": "2024-06-01", "prochaine_maintenance": "2024-12-01", "carburant": "Essence", "consommation_moyenne": 8.5},
+    {"idvehicule": "V00004", "immatriculation": "LT-321-GH", "marque": "Iveco", "modele": "Daily", "annee_fabrication": 2017, "types": "remorque", "capacite_charge": 12000.0, "capacite_volume": 30.0, "date_acquisition": "2018-05-20", "statut": "hors service", "kilometrage_actuel": 180000.0, "date_derniere_maintenance": "2024-03-10", "prochaine_maintenance": "2024-09-10", "carburant": "Diesel", "consommation_moyenne": 15.0},
+    {"idvehicule": "V00005", "immatriculation": "LT-654-IJ", "marque": "Ford", "modele": "Transit", "annee_fabrication": 2019, "types": "fourgon", "capacite_charge": 3200.0, "capacite_volume": 12.0, "date_acquisition": "2020-02-10", "statut": "disponible", "kilometrage_actuel": 80000.0, "date_derniere_maintenance": "2024-04-20", "prochaine_maintenance": "2024-10-20", "carburant": "Diesel", "consommation_moyenne": 9.8},
+    {"idvehicule": "V00006", "immatriculation": "LT-987-KL", "marque": "MAN", "modele": "TGS", "annee_fabrication": 2021, "types": "camion", "capacite_charge": 20000.0, "capacite_volume": 45.0, "date_acquisition": "2021-11-05", "statut": "en livraison", "kilometrage_actuel": 35000.0, "date_derniere_maintenance": "2024-05-15", "prochaine_maintenance": "2024-11-15", "carburant": "Diesel", "consommation_moyenne": 30.0},
+    {"idvehicule": "V00007", "immatriculation": "LT-321-MN", "marque": "Peugeot", "modele": "Boxer", "annee_fabrication": 2016, "types": "camionnette", "capacite_charge": 1400.0, "capacite_volume": 7.0, "date_acquisition": "2017-03-22", "statut": "en maintenance", "kilometrage_actuel": 160000.0, "date_derniere_maintenance": "2024-06-10", "prochaine_maintenance": "2024-12-10", "carburant": "Essence", "consommation_moyenne": 11.0}
   ]
  },
  "CREDENTIALS": {
   "PasswordPolicies": [
-   { "nom_policy": "Default-Strong", "min_length": 8, "max_length": 128, "require_uppercase": true, "require_lowercase": true, "require_digit": true, "require_special_char": true, "min_special_chars": 1, "allowed_special_chars": "!@#$%^&*", "disallowed_chars": null, "prevent_common_passwords": true }
+    { "setting_name": "min_length", "setting_value": "8", "setting_group": "Default-Strong", "description": "Longueur minimale du mot de passe" },
+    { "setting_name": "max_length", "setting_value": "128", "setting_group": "Default-Strong", "description": "Longueur maximale du mot de passe" },
+    { "setting_name": "require_uppercase", "setting_value": "true", "setting_group": "Default-Strong", "description": "Au moins une majuscule requise" },
+    { "setting_name": "require_lowercase", "setting_value": "true", "setting_group": "Default-Strong", "description": "Au moins une minuscule requise" },
+    { "setting_name": "require_digit", "setting_value": "true", "setting_group": "Default-Strong", "description": "Au moins un chiffre requis" },
+    { "setting_name": "require_special_char", "setting_value": "true", "setting_group": "Default-Strong", "description": "Au moins un caractère spécial requis" },
+    { "setting_name": "min_special_chars", "setting_value": "1", "setting_group": "Default-Strong", "description": "Nombre minimal de caractères spéciaux" },
+    { "setting_name": "allowed_special_chars", "setting_value": "!@#$%^&*", "setting_group": "Default-Strong", "description": "Caractères spéciaux autorisés" },
+    { "setting_name": "disallowed_chars", "setting_value": "", "setting_group": "Default-Strong", "description": "Caractères interdits" },
+    { "setting_name": "prevent_common_passwords", "setting_value": "true", "setting_group": "Default-Strong", "description": "Empêcher les mots de passe courants" }
   ],
   "Credentials": [
-   { "email": "admin@sca.com", "password": "hashed_password_for_admin", "nom_policy": "Default-Strong", "idindividu": "IADMIN" },
-   { "email": "j.dupont@sca.com", "password": "hashed_password_for_jean", "nom_policy": "Default-Strong", "idindividu": "IMAGA1" },
-   { "email": "a.bello@transport.com", "password": "hashed_password_for_aisha", "nom_policy": "Default-Strong", "idindividu": "ICHFR1" },
-   { "email": "f.zahra@desti.com", "password": "hashed_password_for_fatima", "nom_policy": "Default-Strong", "idindividu": "IBUYR1" },
-   { "email": "c.manga@sca.com", "password": "hashed_password_for_charles", "nom_policy": "Default-Strong", "idindividu": "ILOGI1" },
-   { "email": "manager.un@sca.com", "password": "hashed_password_for_manager1", "nom_policy": "Default-Strong", "idindividu": "IMNGR1" },
-   { "email": "vendeur.pro@desti.com", "password": "hashed_password_for_vendeur1", "nom_policy": "Default-Strong", "idindividu": "IVEND1" },
-   { "email": "ouvrier.efficace@sca.com", "password": "hashed_password_for_worker1", "nom_policy": "Default-Strong", "idindividu": "IWRKR1" }
+    { "email": "admin@sca.com", "mot_de_passe_hash": "hashed_password_for_admin", "idutilisateur": "U00001", "date_creation": "2023-01-10T08:00:00" },
+    { "email": "j.dupont@sca.com", "mot_de_passe_hash": "hashed_password_for_jean", "idutilisateur": "U00004", "date_creation": "2023-04-10T09:30:00" },
+    { "email": "a.bello@transport.com", "mot_de_passe_hash": "hashed_password_for_aisha", "idutilisateur": "U00003", "date_creation": "2023-03-20T12:00:00" },
+    { "email": "f.zahra@desti.com", "mot_de_passe_hash": "hashed_password_for_fatima", "idutilisateur": "U00005", "date_creation": "2023-05-05T14:00:00" },
+    { "email": "c.manga@sca.com", "mot_de_passe_hash": "hashed_password_for_charles", "idutilisateur": "U00006", "date_creation": "2023-06-12T15:00:00" },
+    { "email": "manager.un@sca.com", "mot_de_passe_hash": "hashed_password_for_manager1", "idutilisateur": "U00002", "date_creation": "2023-02-15T10:00:00" },
+    { "email": "vendeur.pro@desti.com", "mot_de_passe_hash": "hashed_password_for_vendeur1", "idutilisateur": "U00007", "date_creation": "2023-07-18T16:00:00" },
+    { "email": "ouvrier.efficace@sca.com", "mot_de_passe_hash": "hashed_password_for_worker1", "idutilisateur": "U00008", "date_creation": "2023-08-22T17:00:00" }
   ],
   "organisation": [
    { "idorganisation": "OSACQC", "mdpOrg": "hashed_password_for_org_sca" },
