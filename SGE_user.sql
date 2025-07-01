@@ -99,11 +99,11 @@ BEGIN
                 uc.username,
                 uc.nom,
                 uc.prenom,
-                uc.email,
+                d.email,
                 uc.niveau_acces,
                 uc.statut,
                 uc.type_utilisateur
-            FROM "SCA".UtilisateursComplets uc
+            FROM "SCA".UtilisateursComplets uc NATURAL JOIN "CREDENTIALS".credentials d
             WHERE uc.idutilisateur = _utilisateur_record.idutilisateur;
         END IF;
     ELSE
@@ -260,12 +260,12 @@ BEGIN
         uc.username,
         uc.nom,
         uc.prenom,
-        uc.email,
+        d.email,
         uc.niveau_acces,
         uc.statut,
         uc.date_inscription,
         uc.date_derniere_connexion
-    FROM "SCA".UtilisateursComplets uc
+    FROM "SCA".UtilisateursComplets uc NATURAL JOIN "CREDENTIALS".credentials d
     ORDER BY uc.date_inscription DESC;
 END;
 $$ LANGUAGE plpgsql;
