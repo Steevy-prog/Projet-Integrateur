@@ -91,7 +91,7 @@ CREATE DOMAIN "SCA".username TEXT CHECK (
     VALUE~ '^[a-zA-Z0-9_]{3,20}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
-CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livré','Perdu','Endommagé');
+CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livre','Perdu','Endommagé');
 CREATE TYPE "SCA".etatexception AS ENUM('Progress','Resolu','Ouvert','Fermé');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
