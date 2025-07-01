@@ -74,7 +74,7 @@ class WorkerData:
         expedition_tasks_data = []
         cur.execute("SELECT (p).* FROM \"EMIR\".Tache_EVA(%s) AS p;", (worker_id,))
         tasks = cur.fetchall()
-        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date-cre','date-ech','duree','description','priority','status','type'])
+        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Colis','date-cre','date-ech','duree','description','priority','status','type'])
         for i in self.expedition_tasks.itertuples():
             expedition_tasks_data.append({
                 'Task_id': i[0],
@@ -320,12 +320,14 @@ class TaskCard(QFrame):
             priority_label = QLabel(self.task_data['priority'])
             priority_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 11px; font-weight: bold; padding: 4px 10px;")
             header_row.addWidget(priority_label)
-        info_layout.addLayout(header_row)
+            info_layout.addLayout(header_row)
 
         # Details row
-        if self.card_type == "expedition":
-            #details_text = f"Items: <b>{self.task_data['Items_Count']}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['Estimated_Time']} min</b>"
-            details_text = f"Items: <b>{0}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
+
+            cur.execute("SELECT (p).* FROM \"EMIR\".getlots(%s) AS p;", (self.task_data['Colis'],))
+            items_count = cur.fetchall()
+            details_text = f"Items: <b>{len(items_count)}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
+            #details_text = f"Items: <b>{0}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
             due_text = f"Due: <b>{self.task_data['date-ech']}</b>"
         else: # For other card types, adjust details as needed
             details_text = f"Customer: <b>{self.task_data.get('Customer', 'N/A')}</b>"
@@ -390,40 +392,39 @@ class TaskDetailDialog(QDialog):
         super().__init__(parent)
         self.task_data = task_data
         self.setWindowTitle(f"Task Details: {self.task_data['Task_id']}")
-        self.setFixedSize(500, 550) # Slightly larger dialog
+        self.setFixedSize(500, 550)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25) # More padding
+        layout.setContentsMargins(25, 25, 25, 25)
+
         self.setStyleSheet("""
             QDialog {
-                background-color: #F8F9FA; /* Light background for dialogs */
+                background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); /* More prominent shadow for dialog */
             }
             QLabel {
                 font-size: 15px;
-                color: #333333;
+                color: black;
                 margin-bottom: 7px;
             }
-            QLabel.title {
+            QLabel#title {
                 font-size: 24px;
                 font-weight: bold;
-                color: #333333;
+                color: black;
                 margin-bottom: 20px;
                 padding-bottom: 10px;
                 border-bottom: 1px solid #E0E0E0;
             }
             QPushButton {
-                background-color: #6C63FF; /* Primary accent for buttons */
+                background-color: #6C63FF;
                 color: white;
                 border: none;
                 padding: 12px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
-                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
                 background-color: #5247D6;
@@ -433,56 +434,64 @@ class TaskDetailDialog(QDialog):
                 border-radius: 8px;
                 padding: 10px;
                 background-color: white;
-                min-height: 150px; /* Ensure sufficient height for list */
+                min-height: 150px;
+                color: #333333;
             }
             QListWidget::item {
                 padding: 5px;
             }
-            QFormLayout QLabel { /* Specific style for labels in form layout */
+            QFormLayout QLabel {
                 font-weight: bold;
-                color: #555555;
+                color: #212121;
             }
         """)
 
         title_label = QLabel(f"Task: {self.task_data['Task_id']}")
-        title_label.setProperty("class", "title")
+        title_label.setObjectName("title")
         layout.addWidget(title_label)
-        cur.execute('SELECT "EMIR".getproductname(%s);', (self.task_data['Lot'],))
-        productname = cur.fetchone()[0]
+
+        # Database query
+        cur.execute('SELECT * FROM "EMIR".getproductnames(%s);', (self.task_data['Colis'],))
+        productnames = cur.fetchall()
+        names_str = ", ".join(name[0] for name in productnames) if productnames else "Aucun produit"
+
+        # Task detail form
         form_layout = QFormLayout()
-        form_layout.addRow("Product:", QLabel(productname))
-        #form_layout.addRow("Items Count:", QLabel(str(self.task_data['Items_Count'])))
-        form_layout.addRow("Items Count:", QLabel(str(0)))
+        form_layout.addRow("Product(s):", QLabel(names_str))
+        form_layout.addRow("Items Count:", QLabel(str(0)))  # Remplace avec vraie valeur si dispo
         form_layout.addRow("Estimated Time (min):", QLabel(str(self.task_data['duree'])))
-        form_layout.addRow("Status:", QLabel(self.task_data['status']))
+
+        status_label = QLabel(self.task_data['status'])
+        status_label.setStyleSheet("color: #000000; font-weight: bold;")
+        form_layout.addRow("Status:", status_label)
+
         form_layout.addRow("Priority:", QLabel(self.task_data['priority']))
         form_layout.addRow("Due Time:", QLabel(str(self.task_data['date-ech'])))
         layout.addLayout(form_layout)
 
-        # For more complex tasks, you might add a list of sub-tasks or required steps
+        # Optional: Item list
         items_list_label = QLabel("Items to Pick/Pack:")
         layout.addWidget(items_list_label)
         items_list = QListWidget()
-        # In a real scenario, task_data would have detailed items. For now, simulate.
-        #items_list.addItem(f"- {self.task_data['Items_Count']} x {self.task_data['Product_Name']} (ID: {self.task_data['Product_ID']})")
         items_list.addItem("- Check quality")
         items_list.addItem("- Scan barcode")
         layout.addWidget(items_list)
 
-        # Action buttons
+        # Buttons
         button_layout = QHBoxLayout()
+
         complete_button = QPushButton("Mark as Completed")
-        complete_button.setStyleSheet("background-color: #4CAF50;") # Green for complete
-        # complete_button.clicked.connect(self.mark_as_completed) # Implement this logic in WorkerData
+        complete_button.setStyleSheet("background-color: #4CAF50; color: white;")
+        # complete_button.clicked.connect(self.mark_as_completed)
         button_layout.addWidget(complete_button)
 
         cancel_button = QPushButton("Cancel Task")
-        cancel_button.setStyleSheet("background-color: #F44336;") # Red for cancel
-        # cancel_button.clicked.connect(self.cancel_task) # Implement this logic in WorkerData
+        cancel_button.setStyleSheet("background-color: #F44336; color: white;")
+        # cancel_button.clicked.connect(self.cancel_task)
         button_layout.addWidget(cancel_button)
 
         close_button = QPushButton("Close")
-        close_button.setStyleSheet("background-color: #999999;") # Gray for close
+        close_button.setStyleSheet("background-color: #999999; color: white;")
         close_button.clicked.connect(self.accept)
         button_layout.addWidget(close_button)
 
@@ -1072,7 +1081,7 @@ class ExpeditionManagementWidget(QWidget):
 
         # High Priority Tasks
         high_priority_section = self.create_task_section("High Priority Tasks",
-            [t for t in self.data.expedition_tasks.to_dict('records') if t['priority'] == 'High' and t['status'] != 'Completed'])
+            [t for t in self.data.expedition_tasks.to_dict('records') if t['priority'] == 'high' and t['status'] != 'Completed'])
         sections_splitter.addWidget(high_priority_section)
 
         sections_splitter.setSizes([self.width() // 2, self.width() // 2]) # Initial sizes

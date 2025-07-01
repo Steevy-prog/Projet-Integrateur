@@ -1344,7 +1344,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
                      _idcellule "SCA".idcellule,
-                     _idlot "SCA".idlot,
+                     _idcolis "SCA".idcolis,
                      _date_creation date,
                      _date_echeance date,
                      _duree_estimé int,
@@ -1354,7 +1354,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
+    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL

@@ -1,4 +1,4 @@
---script de création du schéma de base
+ --script de création du schéma de base
 --domaines, types, tables
 
 DROP SCHEMA IF EXISTS "SCA" CASCADE;
@@ -344,7 +344,7 @@ CREATE TABLE "SCA".Tache(
                             idtache "SCA".idtache NOT NULL ,
                             idtravailleur "SCA".idtravailleur NOT NULL ,
                             idcellule "SCA".Idcellule NOT NULL ,
-                            idlot "SCA".Idlot NOT NULL ,
+                            idcolis "SCA".idcolis NOT NULL ,
                             date_creation DATE NOT NULL ,
                             date_echeance DATE NOT NULL ,
                             duree_estime INT NOT NULL ,
@@ -355,7 +355,7 @@ CREATE TABLE "SCA".Tache(
                             CONSTRAINT Tache_CC0 PRIMARY KEY (idtache),
                             CONSTRAINT Tache_CR0 FOREIGN KEY (idtravailleur) REFERENCES "SCA".Travailleur(idtravailleur) ON DELETE CASCADE,
                             FOREIGN KEY (idcellule) REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE,
-                            FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
+                            FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE
 );
 -- CREATE TABLE "CREDENTIALS".PasswordPolicies (
 --                                                 id_policy INT GENERATED ALWAYS AS IDENTITY,
@@ -3099,20 +3099,6 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
-    returns table(
-                     _idtache "SCA".idtache,
-                     _idcellule "SCA".idcellule,
-                     _idlot "SCA".idlot,
-                     _date_creation date,
-                     _description text,
-                     _statut text,
-                     _type text
-                 )
-as $$
-begin
-    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idindividu = _idindividu;
-end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
 
@@ -3307,7 +3293,7 @@ create or replace function "EMIR".Tache_EVA(_idtravailleur "SCA".idtravailleur)
 returns table(
     _idtache "SCA".idtache,
     _idcellule "SCA".idcellule,
-    _idlot "SCA".idlot,
+    _idcolis "SCA".idcolis,
     _date_creation date,
     _date_echeance date,
     _duree_estimé int,
@@ -3318,7 +3304,7 @@ returns table(
 )
 as $$
 begin
-return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estime,description,priority,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
+return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estime,description,priority,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
 end; $$ language plpgsql;
 
 select * from "SCA".Produit;
@@ -3364,10 +3350,12 @@ INSERT INTO "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) VALUES
 ('LBBBBB', 'PBBBBB', 50.0, '2025-06-02', 'bon etat');
 
 INSERT INTO "SCA".Colis(idcolis, date_creation, statut) VALUES
-('CO12345', '2025-06-10', 'Attente');
+('CO12345', '2025-06-10', 'Attente'),
+('CO13345', '2025-06-14', 'Attente');;
 
 INSERT INTO "SCA".ContenuColis(idcolis, idlot, quantite, date_MAJ) VALUES
-('CO12345', 'LAAAAA', 100.0, '2025-06-11');
+('CO12345', 'LAAAAA', 100.0, '2025-06-11'),
+('CO12345', 'LBBBBB', 80.0, '2025-06-13');;
 
 
 INSERT INTO "SCA".Repertoire(idindividu, idorganisation, role) VALUES
@@ -3389,9 +3377,9 @@ INSERT INTO "SCA".Travailleur(idtravailleur, idutilisateur, date_embauche, poste
 ('TR1234', 'UAAAAA', '2024-01-10', 'Magasinier', 'Logistique', 300.00, 'Gestion stock, inventaire');
 
 -- Création de 2 tâches
-INSERT INTO "SCA".Tache(idtache, idtravailleur, idcellule, idlot, date_creation,date_echeance,duree_estime, description, priority, statut, type) VALUES
-('TABCDE', 'TR1234', 'C11111', 'LAAAAA', '2025-06-14','2025-06-16',10, 'Vérifier contenu cellulaire', 'medium', 'en cours', 'contrôle'),
-('TABCD1', 'TR1234', 'C22222', 'LBBBBB', '2025-06-15', '2025-06-16',20, 'Transférer lot vers zone B', 'high', 'en cours', 'transfert');
+INSERT INTO "SCA".Tache(idtache, idtravailleur, idcellule, idcolis, date_creation,date_echeance,duree_estime, description, priority, statut, type) VALUES
+('TABCDE', 'TR1234', 'C11111', 'CO12345', '2025-06-14','2025-06-16',10, 'Vérifier contenu cellulaire', 'medium', 'en cours', 'contrôle'),
+('TABCD1', 'TR1234', 'C22222', 'CO13345', '2025-06-15', '2025-06-16',20, 'Transférer lot vers zone B', 'high', 'en cours', 'transfert');
 
 INSERT INTO "SCA".RapportException(idrapport, idcolis, type, date_creation, description, statut) VALUES
 ('RABCDE', 'CO12345', 'lors de la verification avant expedition', '2025-06-15', 'Colis endommagé détecté', 'Ouvert');
@@ -3431,3 +3419,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION "EMIR".getproductnames(_idcolis "SCA".Idcolis)
+RETURNS TABLE(nom_produit text) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT p.nom::text
+    FROM "SCA".ContenuColis c
+    JOIN "SCA".Lot l ON l.idlot = c.idlot
+    JOIN "SCA".Produit p ON p.idproduit = l.idproduit
+    WHERE c.idcolis = _idcolis;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".getlots(_idcolis "SCA".idcolis)
+returns setof "SCA".Lot as $$
+begin
+return query
+    select "SCA".Lot.*
+    from "SCA".Lot
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+    where "SCA".ContenuColis.idcolis = _idcolis;
+end;
+$$ language plpgsql;

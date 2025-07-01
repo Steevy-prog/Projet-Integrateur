@@ -433,14 +433,25 @@ begin
     return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
 end; $$ language plpgsql;
 
-create or replace function "EMIR".getproductname(_idlot "SCA".idlot)
-    returns text as $$
-declare
-    product_name text;
+CREATE OR REPLACE FUNCTION "EMIR".getproductnames(_idcolis "SCA".Idcolis)
+RETURNS TABLE(nom_produit text) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT p.nom::text
+    FROM "SCA".ContenuColis c
+    JOIN "SCA".Lot l ON l.idlot = c.idlot
+    JOIN "SCA".Produit p ON p.idproduit = l.idproduit
+    WHERE c.idcolis = _idcolis;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".getlots(_idcolis "SCA".idcolis)
+returns setof "SCA".Lot as $$
 begin
-    select "SCA".Produit.nom into product_name
+return query
+    select "SCA".Lot.*
     from "SCA".Lot
-             join "SCA".Produit on "SCA".Lot.idproduit = "SCA".Produit.idproduit
-    where "SCA".Lot.idlot = _idlot;
-    return product_name;
-end; $$ language plpgsql;
+             join "SCA".ContenuColis on "SCA".Lot.idlot = "SCA".ContenuColis.idlot
+    where "SCA".ContenuColis.idcolis = _idcolis;
+end;
+$$ language plpgsql;

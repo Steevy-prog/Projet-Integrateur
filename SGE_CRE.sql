@@ -341,7 +341,7 @@ CREATE TABLE "SCA".Tache(
                             idtache "SCA".idtache NOT NULL ,
                             idtravailleur "SCA".idtravailleur NOT NULL ,
                             idcellule "SCA".Idcellule NOT NULL ,
-                            idlot "SCA".Idlot NOT NULL ,
+                            idcolis "SCA".Idcolis NOT NULL ,
                             date_creation DATE NOT NULL ,
                             date_echeance DATE NOT NULL ,
                             duree_estimee INTERVAL NOT NULL ,
