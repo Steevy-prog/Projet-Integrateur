@@ -230,6 +230,20 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
+create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
+    returns table(
+                     _idtache "SCA".idtache,
+                     _idtravailleur "SCA"._idtravailleur,                                                                     _idcellule "SCA".idcellule,
+                     _idlot "SCA".idlot,
+                     _date_creation date,
+                     _description text,
+                     _statut text,
+                     _type text
+                 )
+as $$
+begin
+    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
+end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
 
