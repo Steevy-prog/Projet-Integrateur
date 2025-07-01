@@ -926,7 +926,7 @@ class WorkerMainDashboard(QWidget):
                 subcontrol-position: top left;
                 padding: 0 10px;
                 margin-left: 10px;
-                color: #00BFA5; /* Secondary accent for title */
+                color: #6C63FF; /* Secondary accent for title */
             }
         """)
         recent_activity_layout = QVBoxLayout()
@@ -1161,7 +1161,7 @@ class ProductMovementTrackingWidget(QWidget):
         new_movement_btn = QPushButton("Record Movement")
         new_movement_btn.setStyleSheet("""
             QPushButton {
-                background-color: #00BFA5; /* Teal */
+                background-color: #6C63FF; /* Teal */
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -1450,7 +1450,7 @@ class ExceptionReportsWidget(QWidget):
                 gridline-color: #F0F2F5;
             }
             QHeaderView::section {
-                background-color: #F44336; /* Red for header */
+                background-color:#6C63FF; /* Red for header */
                 color: #FFFFFF;
                 padding: 12px;
                 border: none;
@@ -1468,7 +1468,7 @@ class ExceptionReportsWidget(QWidget):
                 padding: 8px;
             }
             QTableWidget::item:selected {
-                background-color: #FFEBEE;
+                background-color: #6C63FF;
                 color: #333333;
             }
         """)

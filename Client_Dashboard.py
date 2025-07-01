@@ -441,17 +441,24 @@ class ProductCreationPopup(QDialog):
         self.clear_layout()
         form_layout = QFormLayout()
 
+        # ...existing code...
+
         self.name_input = QLineEdit()
-        self.name_input.setStyleSheet("color:black;")
+        self.name_input.setStyleSheet("color: #232946; background: #FFFFFF;height: 30px;")
         self.prix_unitaire = QDoubleSpinBox()
         self.prix_unitaire.setSuffix(" $")
-        self.prix_unitaire.setStyleSheet("color:black;")
+        self.prix_unitaire.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.prix_unitaire.setRange(0.0, 100000.0)
 
         self.marque = QLineEdit()
-        self.description = QTextEdit() # Changed to QTextEdit for more space
+        self.marque.setStyleSheet("color: #232946; background: #FFFFFF;")
+        self.description = QTextEdit()
+        self.description.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.modele = QLineEdit()
+        self.modele.setStyleSheet("color: #232946; background: #FFFFFF;")
 
+# For radio buttons and combo box, you can also set styles if needed:
+        
         self.categorie_group = QButtonGroup(self)
         self.categorie1 = QRadioButton("Packaging")
         self.categorie2 = QRadioButton("Electronic")
@@ -460,11 +467,18 @@ class ProductCreationPopup(QDialog):
         self.categorie_group.addButton(self.categorie2)
         self.categorie_group.addButton(self.categorie3)
         self.categorie1.setChecked(True) # Default selection
+        self.categorie1.setStyleSheet("color: #232946;")
+        self.categorie2.setStyleSheet("color: #232946;")
+        self.categorie3.setStyleSheet("color: #232946;")
+        
+
+        
 
         self.fournisseur = QComboBox()
         for org in orgs:
             self.fournisseur.addItem(org[1], org[0]) # Display name, store ID
-
+        self.fournisseur.setStyleSheet("color: #232946; background: #FFFFFF;")
+        
         if self.product_type == "physical":
             self.category_text = "Packaging" # Default
             self.categorie_group.buttonClicked.connect(lambda btn: setattr(self, 'category_text', btn.text()))
@@ -1536,12 +1550,6 @@ class NewInquiryDialog(QDialog):
         QMessageBox.information(self, "Success", "Inquiry reported successfully!")
         self.accept()
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QTableWidget, QTableWidgetItem, QDialog, QHeaderView
-)
-from PyQt6.QtGui import QColor
-
 class ClientInquiriesWidget(QWidget):
     """Widget for viewing and managing client inquiries."""
 
@@ -1556,7 +1564,6 @@ class ClientInquiriesWidget(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(25)
 
-        # Header Section
         header_layout = QHBoxLayout()
         title = QLabel("My Inquiries")
         title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
@@ -1571,9 +1578,12 @@ class ClientInquiriesWidget(QWidget):
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
+                box-shadow: 0 4px 10px rgba(244, 67, 54, 0.2);
+                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
                 background-color: #D32F2F;
+                transform: translateY(-2px);
             }
         """)
         report_inquiry_btn.clicked.connect(self.report_new_inquiry)
@@ -1583,37 +1593,41 @@ class ClientInquiriesWidget(QWidget):
         header_layout.addWidget(report_inquiry_btn)
         layout.addLayout(header_layout)
 
-        # Stats Cards
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
         open_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Open'])
-        in_progress = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
-        resolved = len([i for i in self.data.inquiries if i['Status'] in ('Resolved', 'Closed')])
+        in_progress_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
+        resolved_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Resolved' or i['Status'] == 'Closed'])
 
-        stats_layout.addWidget(self.create_stat_card("Open Inquiries", open_inquiries, "#F44336"))
-        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress, "#FFC107"))
-        stats_layout.addWidget(self.create_stat_card("Resolved/Closed", resolved, "#4CAF50"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Open Inquiries", open_inquiries, "#F44336"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("In Progress", in_progress_inquiries, "#FFC107"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Resolved/Closed", resolved_inquiries, "#4CAF50"))
         layout.addLayout(stats_layout)
 
-        # Table of Inquiries
         self.inquiries_table = self.create_inquiries_table()
         layout.addWidget(self.inquiries_table)
+
         self.setLayout(layout)
+        self.update_inquiries_table(self.data.inquiries) # Initial population
 
-        self.update_inquiries_table(self.data.inquiries)
-
-    def create_stat_card(self, title, value, color):
+    def create_inquiry_stat_card(self, title, value, color):
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: white;
+        card.setFrameShape(QFrame.Shape.StyledPanel)
+        card.setFrameShadow(QFrame.Shadow.Raised)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FFFFFF;
                 border: 1px solid #E0E0E0;
                 border-radius: 10px;
                 padding: 18px 20px;
-            }
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }}
         """)
+
         layout = QVBoxLayout()
+        layout.setSpacing(5)
+
         title_label = QLabel(title)
         title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
 
@@ -1696,22 +1710,24 @@ class ClientInquiriesWidget(QWidget):
                 'Open': '#F44336',
                 'In Progress': '#FFC107',
                 'Resolved': '#4CAF50',
-                'Closed': '#9E9E9E'
+                'Closed': '#9E9E9E' # Grey for closed
             }
-            bg_color = QColor(status_colors.get(inquiry['Status'], '#E0E0E0'))
-            status_item.setBackground(bg_color)
-            status_item.setForeground(QColor('white') if inquiry['Status'] != 'In Progress' else QColor('#333333'))
+            status_item.setBackground(QColor(status_colors.get(inquiry['Status'], '#E0E0E0')))
+            status_item.setForeground(QColor('#FFFFFF'))
+            if inquiry['Status'] == 'In Progress':
+                status_item.setForeground(QColor('#333333'))
             self.inquiries_table.setItem(i, 4, status_item)
-
         self.inquiries_table.resizeColumnsToContents()
+
 
     def view_inquiry_details(self, row, column):
         inquiry_id = self.inquiries_table.item(row, 0).text()
         inquiry_data = next((i for i in self.data.inquiries if i['ID'] == inquiry_id), None)
+
         if inquiry_data:
             dialog = InquiryDetailDialog(inquiry_data, self)
             if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.update_inquiries_table(self.data.inquiries)
+                self.update_inquiries_table(self.data.inquiries) # Refresh table if status changed
 
     def report_new_inquiry(self):
         dialog = NewInquiryDialog(self.data, self.client_id, self)
@@ -2159,8 +2175,8 @@ if __name__ == '__main__':
     app.setStyleSheet("""
     QMessageBox QLabel {
     color: black;
-    font-color: black;
     font-size: 14px;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
         }
     """)
 
