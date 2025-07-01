@@ -208,14 +208,12 @@ CREATE TABLE "SCA".Conducteur(
 CREATE TABLE "SCA".Bonreception(
                                    idbonreception "SCA".Bonrecep NOT NULL ,
                                    idcolis "SCA".Idcolis NOT NULL ,
-                                   idtransporteur "SCA".idconducteur NOT NULL ,
                                    date_creation DATE NOT NULL ,
                                    idfournisseur "SCA".idorg NOT NULL ,
                                    statut "SCA".etat NOT NULL ,
                                    remarques TEXT NOT NULL ,
                                    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
                                    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-                                   FOREIGN KEY (idtransporteur)REFERENCES "SCA".conducteur(idconducteur)ON DELETE CASCADE,
                                    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Bonexpedition(

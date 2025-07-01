@@ -2,19 +2,15 @@
  "SCA": {
   "Organisation": [
    { "idorganisation": "OFIRST", "nom": "Global Tech Fournisseur", "telephone": "+237699887766", "type": "fournisseur" },
-   { "idorganisation": "OTRANS", "nom": "Rapide Transport Logistique", "telephone": "+237677665544", "type": "transporteur" },
    { "idorganisation": "ODESTI", "nom": "Solutions Innovantes Cameroun", "telephone": "+237655443322", "type": "destinataire" },
    { "idorganisation": "OSACQC", "nom": "SCA Quality Control", "telephone": "+237666555444", "type": "SAC" },
    { "idorganisation": "ONEWSP", "nom": "Nouveaux Fournisseurs Unis", "telephone": "+237688776655", "type": "fournisseur" },
    { "idorganisation": "ODESTT", "nom": "Entreprise Tech Bafoussam", "telephone": "+237671234567", "type": "destinataire" },
    { "idorganisation": "OSUPPL", "nom": "Supplier Central", "telephone": "+237691112233", "type": "fournisseur" },
-   { "idorganisation": "OLOGIS", "nom": "LogiPro Express", "telephone": "+237672223344", "type": "transporteur" },
    { "idorganisation": "OCLIEN", "nom": "Client Final Garoua", "telephone": "+237653334455", "type": "destinataire" },
    { "idorganisation": "OFRACT", "nom": "Fractale Informatique", "telephone": "+237699112244", "type": "fournisseur" },
-   { "idorganisation": "OTRACK", "nom": "Track&Go Express", "telephone": "+237677889900", "type": "transporteur" },
    { "idorganisation": "ODESTB", "nom": "Bamenda Tech Client", "telephone": "+237655667788", "type": "destinataire" },
    { "idorganisation": "OFUTUR", "nom": "FuturTech Services", "telephone": "+237699334455", "type": "fournisseur" },
-   { "idorganisation": "OTIMEC", "nom": "TimeCargo", "telephone": "+237677112233", "type": "transporteur" },
    { "idorganisation": "ODESTC", "nom": "Client Central Bertoua", "telephone": "+237655998877", "type": "destinataire" }
   ],
   "Cellule": [
@@ -26,20 +22,20 @@
    { "idcellule": "CF0006", "longueur": 7.0, "largeur": 3.5, "hauteur": 2.0, "masse_maximale": 2500.0 }
   ],
   "Colis": [
-   { "idcolis": "COABC01", "date_creation": "2024-05-10", "statut": "bon etat" },
-   { "idcolis": "COXYZ02", "date_creation": "2024-05-12", "statut": "deteriore" },
-   { "idcolis": "COKLM03", "date_creation": "2024-06-15", "statut": "bon etat" },
-   { "idcolis": "COPQR04", "date_creation": "2024-07-01", "statut": "bon etat" },
-   { "idcolis": "COSTU05", "date_creation": "2024-07-05", "statut": "mauvais etat" },
-   { "idcolis": "COVWX06", "date_creation": "2024-07-10", "statut": "bon etat" },
-   { "idcolis": "COFRA07", "date_creation": "2024-07-17", "statut": "bon etat" },
-   { "idcolis": "COFUT08", "date_creation": "2024-07-22", "statut": "bon etat" },
-   { "idcolis": "COUSB09", "date_creation": "2024-07-27", "statut": "bon etat" },
-   { "idcolis": "COLOG12", "date_creation": "2024-07-27", "statut": "bon etat" },
-   { "idcolis": "COUSB13", "date_creation": "2024-07-30", "statut": "bon etat" },
-   { "idcolis": "COLOG15", "date_creation": "2024-07-30", "statut": "bon etat" },
-   { "idcolis": "COBOX18", "date_creation": "2024-07-31", "statut": "bon etat" },
-   { "idcolis": "COANT20", "date_creation": "2024-07-31", "statut": "bon etat" }
+   { "idcolis": "COABC01", "date_creation": "2024-05-10", "statut": "Attente" },
+   { "idcolis": "COXYZ02", "date_creation": "2024-05-12", "statut": "Endommagé" },
+   { "idcolis": "COKLM03", "date_creation": "2024-06-15", "statut": "Attente" },
+   { "idcolis": "COPQR04", "date_creation": "2024-07-01", "statut": "Attente" },
+   { "idcolis": "COSTU05", "date_creation": "2024-07-05", "statut": "Endommagé" },
+   { "idcolis": "COVWX06", "date_creation": "2024-07-10", "statut": "Attente" },
+   { "idcolis": "COFRA07", "date_creation": "2024-07-17", "statut": "Attente" },
+   { "idcolis": "COFUT08", "date_creation": "2024-07-22", "statut": "Attente" },
+   { "idcolis": "COUSB09", "date_creation": "2024-07-27", "statut": "Attente" },
+   { "idcolis": "COLOG12", "date_creation": "2024-07-27", "statut": "Attente" },
+   { "idcolis": "COUSB13", "date_creation": "2024-07-30", "statut": "Attente" },
+   { "idcolis": "COLOG15", "date_creation": "2024-07-30", "statut": "Attente" },
+   { "idcolis": "COBOX18", "date_creation": "2024-07-31", "statut": "Attente" },
+   { "idcolis": "COANT20", "date_creation": "2024-07-31", "statut": "Attente" }
   ],
   "Zone": [
    { "idzone": "ZRECP1", "nom": "Zone de Réception A" },
@@ -71,17 +67,14 @@
   "Repertoire": [
    { "idindividu": "IADMIN", "idorganisation": "OSACQC", "role": "Admin" },
    { "idindividu": "IMAGA1", "idorganisation": "OSACQC", "role": "magasinier" },
-   { "idindividu": "ICHFR1", "idorganisation": "OTRANS", "role": "conducteur" },
    { "idindividu": "IBUYR1", "idorganisation": "ODESTI", "role": "acheteur" },
    { "idindividu": "ILOGI1", "idorganisation": "OSACQC", "role": "logistic" },
    { "idindividu": "IMNGR1", "idorganisation": "OSACQC", "role": "manager" },
    { "idindividu": "IVEND1", "idorganisation": "ODESTI", "role": "vendeur" },
    { "idindividu": "IWRKR1", "idorganisation": "OSACQC", "role": "travailleur" },
-   { "idindividu": "ICHFR1", "idorganisation": "OLOGIS", "role": "conducteur" },
    { "idindividu": "ITECH1", "idorganisation": "OFRACT", "role": "manager" },
    { "idindividu": "ICUST2", "idorganisation": "ODESTB", "role": "acheteur" },
    { "idindividu": "ISUPP1", "idorganisation": "OFUTUR", "role": "magasinier" },
-   { "idindividu": "ITRAN1", "idorganisation": "OTIMEC", "role": "conducteur" },
    { "idindividu": "ICLTC1", "idorganisation": "ODESTC", "role": "acheteur" }
   ],
   "Produit": [
@@ -139,30 +132,30 @@
    { "idproduit": "PANT20", "version": "2024.0", "license": "Bitdefender-10PC-24" }
   ],
   "Lot": [
-   { "idlot": "LLA01A", "idproduit": "PLAP01", "quantite": 50, "date_creation": "2024-04-20", "statut": "bon etat"},
-   { "idlot": "LEB01B", "idproduit": "PEMB01", "quantite": 200, "date_creation": "2024-03-15", "statut": "bon etat" },
-   { "idlot": "LMN02A", "idproduit": "PMON02", "quantite": 30, "date_creation": "2024-06-10", "statut": "bon etat" },
-   { "idlot": "LEB02C", "idproduit": "PEMB02", "quantite": 100, "date_creation": "2024-05-30", "statut": "bon etat" },
-   { "idlot": "LKY03A", "idproduit": "PKEY03", "quantite": 150, "date_creation": "2024-07-02", "statut": "bon etat" },
-   { "idlot": "LMO04B", "idproduit": "PMOU04", "quantite": 150, "date_creation": "2024-07-02", "statut": "bon etat" },
-   { "idlot": "LLA01R", "idproduit": "PLAP01", "quantite": 5, "date_creation": "2024-07-08", "statut": "mauvais etat"},
-   { "idlot": "LSS05A", "idproduit": "PSSD05", "quantite": 40, "date_creation": "2024-07-15", "statut": "bon etat"},
-   { "idlot": "LBX06B", "idproduit": "PBOX06", "quantite": 120, "date_creation": "2024-07-16", "statut": "bon etat"},
-   { "idlot": "LTAB07", "idproduit": "PTAB07", "quantite": 25, "date_creation": "2024-07-20", "statut": "bon etat" },
-   { "idlot": "LCARTB", "idproduit": "PCART8", "quantite": 200, "date_creation": "2024-07-21", "statut": "bon etat"},
-   { "idlot": "LMN14A", "idproduit": "PMON14", "quantite": 40, "date_creation": "2024-07-31", "statut": "bon etat" },
-   { "idlot": "LSD16A", "idproduit": "PSSD16", "quantite": 30, "date_creation": "2024-07-31", "statut": "bon etat" },
-   { "idlot": "LRT17A", "idproduit": "PCART7", "quantite": 180, "date_creation": "2024-07-31", "statut": "bon etat"},
-   { "idlot": "LBX18A", "idproduit": "PBOX18", "quantite": 60, "date_creation": "2024-07-31", "statut": "bon etat"},
-   { "idlot": "LMU19A", "idproduit": "PMOU19", "quantite": 90, "date_creation": "2024-07-31", "statut": "bon etat"},
-   { "idlot": "LAN20A", "idproduit": "PANT20", "quantite": 15, "date_creation": "2024-07-31", "statut": "bon etat" },
-   { "idlot": "LBO18R", "idproduit": "PBOX18", "quantite": 5, "date_creation": "2024-07-31", "statut": "mauvais etat"},
-   { "idlot": "LLA01B", "idproduit": "PLAP01", "quantite": 2, "date_creation": "2024-07-10", "statut": "bon etat"},
-   { "idlot": "LLA01C", "idproduit": "PLAP01", "quantite": 3, "date_creation": "2024-05-12", "statut": "bon etat" },
-   { "idlot": "LUSB1B", "idproduit": "PUSB10", "quantite": 15, "date_creation": "2024-07-27", "statut": "bon etat" },
-   { "idlot": "LLOG1B", "idproduit": "PLOG11", "quantite": 2, "date_creation": "2024-07-27", "statut": "bon etat"},
-   { "idlot": "LUSB3B", "idproduit": "PUSB13", "quantite": 20, "date_creation": "2024-07-30", "statut": "bon etat" },
-   { "idlot": "LLOG5B", "idproduit": "PLOG15", "quantite": 3, "date_creation": "2024-07-30", "statut": "bon etat"}
+   { "idlot": "LLA01A", "idproduit": "PLAP01", "quantite": 50, "date_creation": "2024-04-20", "statut": "neuf"},
+   { "idlot": "LEB01B", "idproduit": "PEMB01", "quantite": 200, "date_creation": "2024-03-15", "statut": "neuf" },
+   { "idlot": "LMN02A", "idproduit": "PMON02", "quantite": 30, "date_creation": "2024-06-10", "statut": "neuf" },
+   { "idlot": "LEB02C", "idproduit": "PEMB02", "quantite": 100, "date_creation": "2024-05-30", "statut": "neuf" },
+   { "idlot": "LKY03A", "idproduit": "PKEY03", "quantite": 150, "date_creation": "2024-07-02", "statut": "neuf" },
+   { "idlot": "LMO04B", "idproduit": "PMOU04", "quantite": 150, "date_creation": "2024-07-02", "statut": "neuf" },
+   { "idlot": "LLA01R", "idproduit": "PLAP01", "quantite": 5, "date_creation": "2024-07-08", "statut": "recupere"},
+   { "idlot": "LSS05A", "idproduit": "PSSD05", "quantite": 40, "date_creation": "2024-07-15", "statut": "neuf"},
+   { "idlot": "LBX06B", "idproduit": "PBOX06", "quantite": 120, "date_creation": "2024-07-16", "statut": "neuf"},
+   { "idlot": "LTAB07", "idproduit": "PTAB07", "quantite": 25, "date_creation": "2024-07-20", "statut": "neuf" },
+   { "idlot": "LCARTB", "idproduit": "PCART8", "quantite": 200, "date_creation": "2024-07-21", "statut": "neuf"},
+   { "idlot": "LMN14A", "idproduit": "PMON14", "quantite": 40, "date_creation": "2024-07-31", "statut": "neuf" },
+   { "idlot": "LSD16A", "idproduit": "PSSD16", "quantite": 30, "date_creation": "2024-07-31", "statut": "neuf" },
+   { "idlot": "LRT17A", "idproduit": "PCART7", "quantite": 180, "date_creation": "2024-07-31", "statut": "neuf"},
+   { "idlot": "LBX18A", "idproduit": "PBOX18", "quantite": 60, "date_creation": "2024-07-31", "statut": "neuf"},
+   { "idlot": "LMU19A", "idproduit": "PMOU19", "quantite": 90, "date_creation": "2024-07-31", "statut": "neuf"},
+   { "idlot": "LAN20A", "idproduit": "PANT20", "quantite": 15, "date_creation": "2024-07-31", "statut": "neuf" },
+   { "idlot": "LBO18R", "idproduit": "PBOX18", "quantite": 5, "date_creation": "2024-07-31", "statut": "recupere"},
+   { "idlot": "LLA01B", "idproduit": "PLAP01", "quantite": 2, "date_creation": "2024-07-10", "statut": "neuf"},
+   { "idlot": "LLA01C", "idproduit": "PLAP01", "quantite": 3, "date_creation": "2024-05-12", "statut": "neuf" },
+   { "idlot": "LUSB1B", "idproduit": "PUSB10", "quantite": 15, "date_creation": "2024-07-27", "statut": "neuf" },
+   { "idlot": "LLOG1B", "idproduit": "PLOG11", "quantite": 2, "date_creation": "2024-07-27", "statut": "neuf"},
+   { "idlot": "LUSB3B", "idproduit": "PUSB13", "quantite": 20, "date_creation": "2024-07-30", "statut": "neuf" },
+   { "idlot": "LLOG5B", "idproduit": "PLOG15", "quantite": 3, "date_creation": "2024-07-30", "statut": "neuf"}
   ],
   "ContenuColis": [
    { "idcolis": "COABC01", "idlot": "LLA01A", "quantite": 10, "date_MAJ": "2024-05-10" },
@@ -207,20 +200,20 @@
    { "idcellule": "CB0002", "idlot": "LAN20A", "quantite": 12, "datemaj": "2024-07-31" }
   ],
   "Bonreception": [
-   { "idbonreception": "RABCD1", "idcolis": "COABC01", "idtransporteur": "OTRANS", "date_creation": "2024-05-11", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Colis reçu conforme, scellé intact." },
-   { "idbonreception": "RKLMN2", "idcolis": "COKLM03", "idtransporteur": "OTRANS", "date_creation": "2024-06-16", "idfournisseur": "ONEWSP", "statut": "bon etat", "remarques": "Réceptionné sans anomalie." },
-   { "idbonreception": "RPQRS3", "idcolis": "COPQR04", "idtransporteur": "OLOGIS", "date_creation": "2024-07-03", "idfournisseur": "OSUPPL", "statut": "bon etat", "remarques": "Palette complète reçue." },
-   { "idbonreception": "RFRAC4", "idcolis": "COFRA07", "idtransporteur": "OTRACK", "date_creation": "2024-07-18", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Livraison rapide, colis conforme." },
-   { "idbonreception": "RFUTU5", "idcolis": "COFUT08", "idtransporteur": "OTIMEC", "date_creation": "2024-07-23", "idfournisseur": "OFUTUR", "statut": "bon etat", "remarques": "Livraison sans incident." },
-   { "idbonreception": "RXYZ03", "idcolis": "COXYZ02", "idtransporteur": "OTRANS", "date_creation": "2024-05-13", "idfournisseur": "OFIRST", "statut": "deteriore", "remarques": "Colis reçu abîmé, à signaler." },
-   { "idbonreception": "RSTU05", "idcolis": "COSTU05", "idtransporteur": "OLOGIS", "date_creation": "2024-07-06", "idfournisseur": "OFIRST", "statut": "mauvais etat", "remarques": "Colis ouvert, articles manquants." },
-   { "idbonreception": "RVWX06", "idcolis": "COVWX06", "idtransporteur": "OTRANS", "date_creation": "2024-07-11", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Colis reçu sans anomalie." },
-   { "idbonreception": "RUSB09", "idcolis": "COUSB09", "idtransporteur": "OLOGIS", "date_creation": "2024-07-28", "idfournisseur": "OFUTUR", "statut": "bon etat", "remarques": "Livraison conforme, USB en stock." },
-   { "idbonreception": "RLOG12", "idcolis": "COLOG12", "idtransporteur": "OLOGIS", "date_creation": "2024-07-28", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Logiciel reçu, activation en cours." },
-   { "idbonreception": "RUSB13", "idcolis": "COUSB13", "idtransporteur": "OTIMEC", "date_creation": "2024-07-31", "idfournisseur": "OFUTUR", "statut": "bon etat", "remarques": "Clés USB reçues, contrôle OK." },
-   { "idbonreception": "RLOG15", "idcolis": "COLOG15", "idtransporteur": "OTIMEC", "date_creation": "2024-07-31", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Logiciel de comptabilité reçu." },
-   { "idbonreception": "RBOX18", "idcolis": "COBOX18", "idtransporteur": "OLOGIS", "date_creation": "2024-08-01", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Boîtes XXL reçues, stockage immédiat." },
-   { "idbonreception": "RANT20", "idcolis": "COANT20", "idtransporteur": "OTRANS", "date_creation": "2024-08-01", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Antivirus entreprise livré, licences valides." }
+   { "idbonreception": "RABCD1", "idcolis": "COABC01",  "date_creation": "2024-05-11", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Colis reçu conforme, scellé intact." },
+   { "idbonreception": "RKLMN2", "idcolis": "COKLM03",  "date_creation": "2024-06-16", "idfournisseur": "ONEWSP", "statut": "bon etat", "remarques": "Réceptionné sans anomalie." },
+   { "idbonreception": "RPQRS3", "idcolis": "COPQR04",  "date_creation": "2024-07-03", "idfournisseur": "OSUPPL", "statut": "bon etat", "remarques": "Palette complète reçue." },
+   { "idbonreception": "RFRAC4", "idcolis": "COFRA07",  "date_creation": "2024-07-18", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Livraison rapide, colis conforme." },
+   { "idbonreception": "RFUTU5", "idcolis": "COFUT08",  "date_creation": "2024-07-23", "idfournisseur": "OFUTUR", "statut": "bon etat", "remarques": "Livraison sans incident." },
+   { "idbonreception": "RXYZ03", "idcolis": "COXYZ02",  "date_creation": "2024-05-13", "idfournisseur": "OFIRST", "statut": "deteriore", "remarques": "Colis reçu abîmé, à signaler." },
+   { "idbonreception": "RSTU05", "idcolis": "COSTU05",  "date_creation": "2024-07-06", "idfournisseur": "OFIRST", "statut": "mauvais etat", "remarques": "Colis ouvert, articles manquants." },
+   { "idbonreception": "RVWX06", "idcolis": "COVWX06",  "date_creation": "2024-07-11", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Colis reçu sans anomalie." },
+   { "idbonreception": "RUSB09", "idcolis": "COUSB09",  "date_creation": "2024-07-28", "idfournisseur": "OFUTUR", "statut": "bon etat", "remarques": "Livraison conforme, USB en stock." },
+   { "idbonreception": "RLOG12", "idcolis": "COLOG12",  "date_creation": "2024-07-28", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Logiciel reçu, activation en cours." },
+   { "idbonreception": "RUSB13", "idcolis": "COUSB13",  "date_creation": "2024-07-31", "idfournisseur": "OFUTUR", "statut": "bon etat", "remarques": "Clés USB reçues, contrôle OK." },
+   { "idbonreception": "RLOG15", "idcolis": "COLOG15",  "date_creation": "2024-07-31", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Logiciel de comptabilité reçu." },
+   { "idbonreception": "RBOX18", "idcolis": "COBOX18",  "date_creation": "2024-08-01", "idfournisseur": "OFRACT", "statut": "bon etat", "remarques": "Boîtes XXL reçues, stockage immédiat." },
+   { "idbonreception": "RANT20", "idcolis": "COANT20",  "date_creation": "2024-08-01", "idfournisseur": "OFIRST", "statut": "bon etat", "remarques": "Antivirus entreprise livré, licences valides." }
   ],
   "Bonexpedition": [
     { "idbonexpedition": "EZYXW9", "idcolis": "COABC01", "idtransporteur": "CD0001", "date_creation": "2024-05-20", "iddestinataire": "ODESTI", "statut": "bon etat", "remarques": "Prêt pour expédition vers Yaoundé." },
@@ -230,12 +223,12 @@
     { "idbonexpedition": "EFUTU5", "idcolis": "COFUT08", "idtransporteur": "CD0005", "date_creation": "2024-07-24", "iddestinataire": "ODESTC", "statut": "bon etat", "remarques": "Expédié vers Bertoua." }
   ],
   "RapportException": [
-   { "idrapport": "RFAUAA", "idcolis": "COXYZ02", "type": "lors de la reception du colis", "date_creation": "2024-05-13", "description": "Le colis présentait une déchirure sur le côté droit. Un article endommagé.", "statut": "mauvais etat" },
-   { "idrapport": "RFAUAB", "idcolis": "COABC01", "type": "lors de la preparation du colis pour expedition", "date_creation": "2024-05-19", "description": "Erreur d'adressage découverte avant l'expédition. Adresse corrigée.", "statut": "bon etat" },
-   { "idrapport": "RFAUAC", "idcolis": "COSTU05", "type": "lors de la reception du colis", "date_creation": "2024-07-06", "description": "Colis ouvert. Manque 2 articles par rapport au bon de livraison.", "statut": "mauvais etat" },
-   { "idrapport": "RFAUAD", "idcolis": "COPQR04", "type": "lors du destockage et assemblage du colis", "date_creation": "2024-07-11", "description": "Une souris cassé lors de la préparation d'une commande.", "statut": "deteriore" },
-   { "idrapport": "RFAUAE", "idcolis": "COFRA07", "type": "lors de la verification avant expedition", "date_creation": "2024-07-19", "description": "Boîte légèrement fissurée, remplacée avant expédition.", "statut": "bon etat" },
-   { "idrapport": "RFAUAF", "idcolis": "COFUT08", "type": "lors de la confirmation du stockage", "date_creation": "2024-07-24", "description": "Cartouche d'encre manquante, signalée et remplacée.", "statut": "bon etat" }
+   { "idrapport": "RFAUAA", "idcolis": "COXYZ02", "type": "lors de la reception du colis", "date_creation": "2024-05-13", "description": "Le colis présentait une déchirure sur le côté droit. Un article endommagé.", "statut": "Ouvert" },
+   { "idrapport": "RFAUAB", "idcolis": "COABC01", "type": "lors de la preparation du colis pour expedition", "date_creation": "2024-05-19", "description": "Erreur d'adressage découverte avant l'expédition. Adresse corrigée.", "statut": "Resolu" },
+   { "idrapport": "RFAUAC", "idcolis": "COSTU05", "type": "lors de la reception du colis", "date_creation": "2024-07-06", "description": "Colis ouvert. Manque 2 articles par rapport au bon de livraison.", "statut": "Ouvert" },
+   { "idrapport": "RFAUAD", "idcolis": "COPQR04", "type": "lors du destockage et assemblage du colis", "date_creation": "2024-07-11", "description": "Une souris cassé lors de la préparation d'une commande.", "statut": "Ouvert" },
+   { "idrapport": "RFAUAE", "idcolis": "COFRA07", "type": "lors de la verification avant expedition", "date_creation": "2024-07-19", "description": "Boîte légèrement fissurée, remplacée avant expédition.", "statut": "Resolu" },
+   { "idrapport": "RFAUAF", "idcolis": "COFUT08", "type": "lors de la confirmation du stockage", "date_creation": "2024-07-24", "description": "Cartouche d'encre manquante, signalée et remplacée.", "statut": "Resolu" }
   ],
   "entrepot": [
    { "idcellule": "CA0001", "position": "ZSTOK2" },
@@ -247,12 +240,12 @@
   ],
   "LocalisationOrganisation": [
    { "idorganisation": "OFIRST", "adresse": "près de l'aéroport", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.014623, "longitude": 9.718912, "date_ajout": "2024-01-10" },
-   { "idorganisation": "OTRANS", "adresse": "Japoma", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.007820, "longitude": 9.821751, "date_ajout": "2024-01-11" },
+   { "idorganisation": "OFUTUR", "adresse": "Japoma", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.007820, "longitude": 9.821751, "date_ajout": "2024-01-11" },
    { "idorganisation": "ODESTI", "adresse": "Lendi", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.117245, "longitude": 9.775457, "date_ajout": "2024-01-12" },
    { "idorganisation": "OSACQC", "adresse": "Yansoki", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 3.970307, "longitude": 9.791949, "date_ajout": "2024-01-13" },
    { "idorganisation": "ONEWSP", "adresse": "Essos", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.869689, "longitude": 11.541228, "date_ajout": "2024-01-14" },
    { "idorganisation": "ODESTT", "adresse": "Nkolbisson", "ville": "Yaoundé", "region": "Centre", "pays": "Cameroun", "latitude": 3.870495, "longitude": 11.446176, "date_ajout": "2024-01-15" },
-   { "idorganisation": "OFRACT", "adresse": "Bonapriso", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.019980, "longitude": 9.700302, "date_ajout": "2024-01-10" }
+   { "idorganisation": "OSUPPL", "adresse": "Bonapriso", "ville": "Douala", "region": "Littoral", "pays": "Cameroun", "latitude": 4.019980, "longitude": 9.700302, "date_ajout": "2024-01-10" }
   ],
   "Conducteur": [
     {"idconducteur": "CD0001","idutilisateur": "U00003","numero_permis": "PERMIS654321","type_permis": "C","date_obtention_permis": "2017-05-10","date_expiration_permis": "2027-05-10","experience_annees": 7,"statut": "disponible","date_derniere_evaluation": "2024-01-10","note_evaluation": 4.2,"specialites": "Poids lourds, longues distances"},
@@ -260,8 +253,8 @@
     {"idconducteur": "CD0003","idutilisateur": "U00021","numero_permis": "PERMIS112233","type_permis": "D","date_obtention_permis": "2015-09-20","date_expiration_permis": "2025-09-20","experience_annees": 9,"statut": "en congé","date_derniere_evaluation": "2023-11-15","note_evaluation": 4.0,"specialites": "Transport de personnes"},
     {"idconducteur": "CD0004","idutilisateur": "U00022","numero_permis": "PERMIS445566","type_permis": "C","date_obtention_permis": "2012-04-12","date_expiration_permis": "2027-04-12","experience_annees": 12,"statut": "disponible","date_derniere_evaluation": "2024-02-01","note_evaluation": 4.8,"specialites": "Marchandises dangereuses"},
     {"idconducteur": "CD0005","idutilisateur": "U00023","numero_permis": "PERMIS778899","type_permis": "B","date_obtention_permis": "2019-07-01","date_expiration_permis": "2029-07-01","experience_annees": 5,"statut": "en formation","date_derniere_evaluation": "2024-03-10","note_evaluation": 3.9,"specialites": "Livraisons urbaines"},
-    {"idconducteur": "CD0006","idutilisateur": "U00024","numero_permis": "PERMIS334455","type_permis": "C","date_obtention_permis": "2016-11-05","date_expiration_permis": "2026-11-05","experience_annees": 8,"statut": "disponible","date_derniere_evaluation": "2024-01-20","note_evaluation": 4.5,"specialites": "Longues distances, logistique"},
-    {"idconducteur": "CD0007","idutilisateur": "U00025","numero_permis": "PERMIS556677","type_permis": "D","date_obtention_permis": "2014-02-18","date_expiration_permis": "2024-02-18","experience_annees": 10,"statut": "en livraison","date_derniere_evaluation": "2023-10-05","note_evaluation": 4.3,"specialites": "Transport scolaire"}
+    {"idconducteur": "CD0006","idutilisateur": "U00014","numero_permis": "PERMIS334455","type_permis": "C","date_obtention_permis": "2016-11-05","date_expiration_permis": "2026-11-05","experience_annees": 8,"statut": "disponible","date_derniere_evaluation": "2024-01-20","note_evaluation": 4.5,"specialites": "Longues distances, logistique"},
+    {"idconducteur": "CD0007","idutilisateur": "U00015","numero_permis": "PERMIS556677","type_permis": "D","date_obtention_permis": "2014-02-18","date_expiration_permis": "2024-02-18","experience_annees": 10,"statut": "en livraison","date_derniere_evaluation": "2023-10-05","note_evaluation": 4.3,"specialites": "Transport scolaire"}
   ],
   "Utilisateur": [
     {"idutilisateur": "U00001", "idindividu": "IADMIN", "username": "admin_principal", "date_inscription": "2023-01-10T08:00:00", "date_derniere_connexion": "2024-06-01T09:00:00", "statut": "actif", "niveau_acces": "admin"},
