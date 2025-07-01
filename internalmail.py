@@ -6,9 +6,9 @@ from email.utils import formataddr
 def send_email(subject, to_email):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    sender_email = "scarobot6@gmail.com"
-    sender_password = "vpvqjnehxkkqaykf"
-    sender_name = "SCA Robot"
+    sender_email = "scarobotinterne@gmail.com"
+    sender_password = "vzeokmezwltpoqbt"
+    sender_name = "SCA Robot Interne"
 
     # HTML body
     body = """
