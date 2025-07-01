@@ -1340,6 +1340,23 @@ begin
     return query select * from "SCA".ProduitMateriel;
 end; $$ language plpgsql;
 
+create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
+    returns table(
+                     _idtache "SCA".idtache,
+                     _idcellule "SCA".idcellule,
+                     _idlot "SCA".idlot,
+                     _date_creation date,
+                     _date_echeance date,
+                     _duree_estimé int,
+                     _description text,
+                     _statut text,
+                     _type text
+                 )
+as $$
+begin
+    return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
+end; $$ language plpgsql;
+
 -- 11. PRODUITLOGICIEL
 create or replace function "EMIR".ProduitLogiciel_EVA()
     returns table (

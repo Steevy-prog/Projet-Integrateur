@@ -344,6 +344,8 @@ CREATE TABLE "SCA".Tache(
                             idcellule "SCA".Idcellule NOT NULL ,
                             idlot "SCA".Idlot NOT NULL ,
                             date_creation DATE NOT NULL ,
+                            date_echeance DATE NOT NULL ,
+                            duree_estimee INTERVAL NOT NULL ,
                             description TEXT NOT NULL ,
                             priority text not null,
                             statut text NOT NULL DEFAULT 'en cours',

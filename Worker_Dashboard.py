@@ -17,15 +17,31 @@ import datetime
 import random
 import psycopg2
 
-worker_id = 'I34569'
+worker_id = 'TR1234'
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
 
-conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-    port=5432
-)
+if it == '1':
+    print("You have chosen the online database.")
+    conn = psycopg2.connect(
+        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+        database="projet_integrateur",
+        user="group13",
+        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+        port=5432
+    )
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
+
 cur = conn.cursor()
 
 class WorkerData:
@@ -61,14 +77,14 @@ class WorkerData:
         self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date','description','priority','status','type'])
         for i in self.expedition_tasks.itertuples():
             expedition_tasks_data.append({
-                'Order_ID': i['Task_id'],
-                'Product_ID': i['Lot'],
-                'Cell': i['Cell'],
-                'Date': i['date'],
-                'Description': i['description'],
-                'Status': i['status'],
-                'Priority': i['priority'],
-                'Type': i['type']
+                'Order_ID': i[0],
+                'Product_ID': i[2],
+                'Cell': i[1],
+                'Date': i[3],
+                'Description': i[4],
+                'Status': i[6],
+                'Priority': i[5],
+                'Type': i[7]
             })
 
 
@@ -293,13 +309,13 @@ class TaskCard(QFrame):
 
         # Header row
         header_row = QHBoxLayout()
-        order_label = QLabel(self.task_data['Order_ID'])
+        order_label = QLabel(self.task_data['Task_id'])
         order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;")
         header_row.addWidget(order_label)
         header_row.addStretch()
 
         if self.card_type == "expedition":
-            priority_label = QLabel(self.task_data['Priority'])
+            priority_label = QLabel(self.task_data['priority'])
             priority_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 11px; font-weight: bold; padding: 4px 10px;")
             header_row.addWidget(priority_label)
         info_layout.addLayout(header_row)
@@ -832,7 +848,7 @@ class WorkerMainDashboard(QWidget):
         dashboard_stats_layout = QHBoxLayout()
         dashboard_stats_layout.setSpacing(20)
 
-        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Pending'])
+        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'Pending'])
         completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Check if completed today
         #my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
         #open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
