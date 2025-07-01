@@ -17,15 +17,31 @@ import datetime
 import random
 import psycopg2
 
-worker_id = 'I34569'
+worker_id = 'TR1234'
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
 
-conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-    port=5432
-)
+if it == '1':
+    print("You have chosen the online database.")
+    conn = psycopg2.connect(
+        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+        database="projet_integrateur",
+        user="group13",
+        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+        port=5432
+    )
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
+
 cur = conn.cursor()
 
 class WorkerData:
@@ -58,17 +74,19 @@ class WorkerData:
         expedition_tasks_data = []
         cur.execute("SELECT (p).* FROM \"EMIR\".Tache_EVA(%s) AS p;", (worker_id,))
         tasks = cur.fetchall()
-        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date','description','priority','status','type'])
+        self.expedition_tasks = pd.DataFrame(tasks,columns=['Task_id','Cell','Lot','date-cre','date-ech','duree','description','priority','status','type'])
         for i in self.expedition_tasks.itertuples():
             expedition_tasks_data.append({
-                'Order_ID': i['Task_id'],
-                'Product_ID': i['Lot'],
-                'Cell': i['Cell'],
-                'Date': i['date'],
-                'Description': i['description'],
-                'Status': i['status'],
-                'Priority': i['priority'],
-                'Type': i['type']
+                'Order_ID': i[0],
+                'Product_ID': i[2],
+                'Cell': i[1],
+                'Date-Creation': i[3],
+                'Date-Echeance': i[4],
+                'Duree': i[5],
+                'Description': i[6],
+                'Status': i[8],
+                'Priority': i[7],
+                'Type': i[9]
             })
 
 
@@ -293,24 +311,25 @@ class TaskCard(QFrame):
 
         # Header row
         header_row = QHBoxLayout()
-        order_label = QLabel(self.task_data['Order_ID'])
+        order_label = QLabel(self.task_data['Task_id'])
         order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;")
         header_row.addWidget(order_label)
         header_row.addStretch()
 
         if self.card_type == "expedition":
-            priority_label = QLabel(self.task_data['Priority'])
+            priority_label = QLabel(self.task_data['priority'])
             priority_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 11px; font-weight: bold; padding: 4px 10px;")
             header_row.addWidget(priority_label)
         info_layout.addLayout(header_row)
 
         # Details row
         if self.card_type == "expedition":
-            details_text = f"Items: <b>{self.task_data['Items_Count']}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['Estimated_Time']} min</b>"
-            due_text = f"Due: <b>{self.task_data['Due_Time'].strftime('%H:%M')}</b>"
+            #details_text = f"Items: <b>{self.task_data['Items_Count']}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['Estimated_Time']} min</b>"
+            details_text = f"Items: <b>{0}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
+            due_text = f"Due: <b>{self.task_data['date-ech']}</b>"
         else: # For other card types, adjust details as needed
             details_text = f"Customer: <b>{self.task_data.get('Customer', 'N/A')}</b>"
-            due_text = f"Status: <b>{self.task_data.get('Status', 'Pending')}</b>"
+            due_text = f"Status: <b>{self.task_data.get('status', 'Pending')}</b>"
 
         details_label = QLabel(details_text)
         details_label.setStyleSheet("font-size: 13px; color: #666666;")
@@ -832,8 +851,8 @@ class WorkerMainDashboard(QWidget):
         dashboard_stats_layout = QHBoxLayout()
         dashboard_stats_layout.setSpacing(20)
 
-        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Pending'])
-        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Check if completed today
+        my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'en cours'])
+        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'Completed']) # Check if completed today
         #my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
         #open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
 
@@ -1031,9 +1050,9 @@ class ExpeditionManagementWidget(QWidget):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
-        pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'Pending'])
-        in_progress_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'In Progress'])
-        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['Status'] == 'Completed' and (datetime.datetime.now() - t['Due_Time']).total_seconds() < 86400]) # Example of checking "today"
+        pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'en cours'])
+        in_progress_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'Progress'])
+        completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'Completed']) # Example of checking "today"
 
         stats_layout.addWidget(self.create_stat_card("Pending Tasks", pending_tasks, "#FFC107"))
         stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#6C63FF"))
@@ -1047,12 +1066,12 @@ class ExpeditionManagementWidget(QWidget):
 
         # My Current Tasks
         my_tasks_section = self.create_task_section("My Current Tasks",
-            [t for t in self.data.expedition_tasks.to_dict('records') if t['Assigned_Worker'] == 'Current Worker' and t['Status'] != 'Completed'])
+            [t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] != 'Completed'])
         sections_splitter.addWidget(my_tasks_section)
 
         # High Priority Tasks
         high_priority_section = self.create_task_section("High Priority Tasks",
-            [t for t in self.data.expedition_tasks.to_dict('records') if t['Priority'] == 'High' and t['Status'] != 'Completed'])
+            [t for t in self.data.expedition_tasks.to_dict('records') if t['priority'] == 'High' and t['status'] != 'Completed'])
         sections_splitter.addWidget(high_priority_section)
 
         sections_splitter.setSizes([self.width() // 2, self.width() // 2]) # Initial sizes

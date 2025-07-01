@@ -49,19 +49,19 @@
    { "idzone": "ZEMBA5", "nom": "Zone d'Emballage E" }
   ],
   "individu": [
-   { "idindividu": "IADMIN", "nom": "Admin Principal", "adresse": "1 Admin Way, Douala", "telephone": "690123456" },
-   { "idindividu": "IMAGA1", "nom": "Jean Dupont", "adresse": "22 Rue du Magasin, Douala", "telephone": "678901234" },
-   { "idindividu": "ICHFR1", "nom": "Aisha Bello", "adresse": "33 Avenue des Chauffeurs, Yaoundé", "telephone": "654321098" },
-   { "idindividu": "IBUYR1", "nom": "Fatima Zahra", "adresse": "44 Rue du Commerce, Douala", "telephone": "698765432" },
-   { "idindividu": "ILOGI1", "nom": "Charles Manga", "adresse": "55 Impasse Logistique, Kribi", "telephone": "676543210" },
-   { "idindividu": "IMNGR1", "nom": "Manager Un", "adresse": "101 Rue du Leadership, Douala", "telephone": "699112233" },
-   { "idindividu": "IVEND1", "nom": "Vendeur Pro", "adresse": "202 Carrefour des Ventes, Yaoundé", "telephone": "677223344" },
-   { "idindividu": "IWRKR1", "nom": "Ouvrier Efficace", "adresse": "303 Atelier Central, Limbe", "telephone": "655334455" },
-   { "idindividu": "ITECH1", "nom": "Paul Tchoua", "adresse": "14 Rue des Startups, Douala", "telephone": "690998877" },
-   { "idindividu": "ICUST2", "nom": "Marie Nguimfack", "adresse": "23 Avenue du Client, Bamenda", "telephone": "677889900" },
-   { "idindividu": "ISUPP1", "nom": "Sophie Mballa", "adresse": "8 Rue des Fournisseurs, Douala", "telephone": "690334455" },
-   { "idindividu": "ITRAN1", "nom": "Eric Nguema", "adresse": "12 Route des Transports, Yaoundé", "telephone": "677112233" },
-   { "idindividu": "ICLTC1", "nom": "Clémentine Tchoua", "adresse": "3 Avenue du Client, Bertoua", "telephone": "655998877" }
+   { "idindividu": "IADMIN", "nom": "Principal", "prenom": "Admin", "adresse": "1 Admin Way, Douala", "telephone": "690123456" },
+   { "idindividu": "IMAGA1", "nom": "Dupont", "prenom": "Jean", "adresse": "22 Rue du Magasin, Douala", "telephone": "678901234" },
+   { "idindividu": "ICHFR1", "nom": "Bello", "prenom": "Aisha", "adresse": "33 Avenue des Chauffeurs, Yaoundé", "telephone": "654321098" },
+   { "idindividu": "IBUYR1", "nom": "Zahra", "prenom": "Fatima", "adresse": "44 Rue du Commerce, Douala", "telephone": "698765432" },
+   { "idindividu": "ILOGI1", "nom": "Manga", "prenom": "Charles", "adresse": "55 Impasse Logistique, Kribi", "telephone": "676543210" },
+   { "idindividu": "IMNGR1", "nom": "Un", "prenom": "Manager", "adresse": "101 Rue du Leadership, Douala", "telephone": "699112233" },
+   { "idindividu": "IVEND1", "nom": "Pro", "prenom": "Vendeur", "adresse": "202 Carrefour des Ventes, Yaoundé", "telephone": "677223344" },
+   { "idindividu": "IWRKR1", "nom": "Efficace", "prenom": "Ouvrier", "adresse": "303 Atelier Central, Limbe", "telephone": "655334455" },
+   { "idindividu": "ITECH1", "nom": "Tchoua", "prenom": "Paul", "adresse": "14 Rue des Startups, Douala", "telephone": "690998877" },
+   { "idindividu": "ICUST2", "nom": "Nguimfack", "prenom": "Marie", "adresse": "23 Avenue du Client, Bamenda", "telephone": "677889900" },
+   { "idindividu": "ISUPP1", "nom": "Mballa", "prenom": "Sophie", "adresse": "8 Rue des Fournisseurs, Douala", "telephone": "690334455" },
+   { "idindividu": "ITRAN1", "nom": "Nguema", "prenom": "Eric", "adresse": "12 Route des Transports, Yaoundé", "telephone": "677112233" },
+   { "idindividu": "ICLTC1", "nom": "Tchoua", "prenom": "Clémentine", "adresse": "3 Avenue du Client, Bertoua", "telephone": "655998877" }
   ],
   "Repertoire": [
    { "idindividu": "IADMIN", "idorganisation": "OSACQC", "role": "Admin" },
