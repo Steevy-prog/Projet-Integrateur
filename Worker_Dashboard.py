@@ -80,11 +80,13 @@ class WorkerData:
                 'Order_ID': i[0],
                 'Product_ID': i[2],
                 'Cell': i[1],
-                'Date': i[3],
-                'Description': i[4],
-                'Status': i[6],
-                'Priority': i[5],
-                'Type': i[7]
+                'Date-Creation': i[3],
+                'Date-Echeance': i[4],
+                'Duree': i[5],
+                'Description': i[6],
+                'Status': i[8],
+                'Priority': i[7],
+                'Type': i[9]
             })
 
 
@@ -322,11 +324,12 @@ class TaskCard(QFrame):
 
         # Details row
         if self.card_type == "expedition":
-            details_text = f"Items: <b>{self.task_data['Items_Count']}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['Estimated_Time']} min</b>"
-            due_text = f"Due: <b>{self.task_data['Due_Time'].strftime('%H:%M')}</b>"
+            #details_text = f"Items: <b>{self.task_data['Items_Count']}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['Estimated_Time']} min</b>"
+            details_text = f"Items: <b>{0}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
+            due_text = f"Due: <b>{self.task_data['date-ech']}</b>"
         else: # For other card types, adjust details as needed
             details_text = f"Customer: <b>{self.task_data.get('Customer', 'N/A')}</b>"
-            due_text = f"Status: <b>{self.task_data.get('Status', 'Pending')}</b>"
+            due_text = f"Status: <b>{self.task_data.get('status', 'Pending')}</b>"
 
         details_label = QLabel(details_text)
         details_label.setStyleSheet("font-size: 13px; color: #666666;")
