@@ -2691,8 +2691,8 @@ BEGIN
         idutilisateur, idindividu, username,
         statut, niveau_acces
     ) VALUES (
-        _idutilisateur, _idindividu, _username,
-        'en attente_validation', _niveau_acces
+        _idutilisateur::"SCA".idutilisateur, _idindividu::"SCA".idindividu, _username::"SCA".username,
+        'en attente_validation', _niveau_acces::"SCA".niveau_acces
     );
 
     -- Insérer les credentials (données d'authentification)

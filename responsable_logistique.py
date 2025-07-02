@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QHeaderView, QMessageBox, QGridLayout, QFileDialog, QTabWidget, QDateEdit, QProgressBar,
     QGraphicsOpacityEffect, QGraphicsBlurEffect
 )
+from PyQt6.QtCore import Qt
 import datetime
 import random
 import psycopg2
@@ -43,6 +44,68 @@ class LogisticsData:
             {'id': 'TR004', 'nom': 'Chronopost', 'contact': 'Sophie Leroy', 'tel': '+789456123', 'capacite': 4000, 'cout_km': 0.75}
         ]
         self.transporteurs_df = pd.DataFrame(transporteurs)
+
+        #daily metrics
+
+        dates = pd.date_range(start='2024-01-01', end='2024-06-19', freq='D')
+        self.daily_metrics = pd.DataFrame({
+            'Date': dates,
+            'Items_Received': np.random.poisson(50, len(dates)),
+            'Items_Shipped': np.random.poisson(45, len(dates)),
+            'Storage_Utilization': np.random.uniform(60, 95, len(dates)),
+            'Order_Fulfillment_Rate': np.random.uniform(85, 99, len(dates))
+        })
+
+
+        #reports
+        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+        products = cur.fetchall()
+        if len(products) == 0:
+            # Handle case where no products are loaded, e.g., create dummy data or log
+            print("No products loaded from the database. Generating dummy product data.")
+            self.products_df = pd.DataFrame(
+                [
+                    ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
+                    ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
+                ],
+                columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
+            )
+        else:
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+        
+        for product in self.products_df.itertuples():
+            print(f"Product ID: {product.ID}, Name: {product.Name}")
+
+        inventory_data = []
+        storage_zones = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2']
+        if not self.products_df.empty: # Only proceed if products exist
+            for _, product in self.products_df.iterrows():
+                try:
+                    cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
+                    quantity = cur.fetchone()[0]
+                    print(f"Fetched quantity for product {product['ID']}: {quantity}")
+                    cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
+                    zone = cur.fetchone()[0]
+                except Exception as e:
+                    print(f"Error fetching inventory for product {product['ID']}: {e}. Using dummy values.")
+                    quantity = random.randint(10, 200)
+                    zone = random.choice(storage_zones)
+
+                inventory_data.append({
+                    'Product_ID': product['ID'],
+                    'Product_Name': product['Name'],
+                    'Quantity': quantity,
+                    'Zone': zone,
+                    'Last_Updated': datetime.datetime.now() - datetime.timedelta(days=random.randint(0, 30)),
+                    'Value': product['Prix Unitaire']
+                })
+        else: # Fallback if no products at all
+            inventory_data.append({
+                'Product_ID': 'DUMMY_P001', 'Product_Name': 'Dummy Item', 'Quantity': 100,
+                'Zone': 'A1', 'Last_Updated': datetime.datetime.now(), 'Value': 50.0
+            })
+
+        self.inventory_df = pd.DataFrame(inventory_data)
         
         # Commandes en attente d'expédition
         expeditions = []
@@ -88,6 +151,209 @@ class LogisticsData:
             {'id_colis': 'COL003', 'etape': 'Réception', 'date': '2024-06-05 10:15', 'localisation': 'Entrepôt principal', 'statut': 'Terminé'},
             {'id_colis': 'COL003', 'etape': 'Vérification', 'date': '2024-06-05 11:30', 'localisation': 'Zone de contrôle', 'statut': 'En cours'}
         ])
+        #vehicules
+        self.vehicules_df = pd.DataFrame([
+        {
+        'immatriculation': 'AB-123-CD',
+        'marque': 'Toyota',
+        'modele': 'Hilux',
+        'capacite': 1000,
+        'disponibilite': True
+        },
+        {
+        'immatriculation': 'EF-456-GH',
+        'marque': 'Renault',
+        'modele': 'Kangoo',
+        'capacite': 750,
+        'disponibilite': False
+        },
+        {
+        'immatriculation': 'IJ-789-KL',
+        'marque': 'Mercedes',
+        'modele': 'Sprinter',
+        'capacite': 1200,
+        'disponibilite': True
+        }
+        ])
+
+    
+
+class PerformanceWidget(QWidget):
+    """Widget for performance metrics and analytics"""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.init_ui()
+
+    def init_ui(self):
+        # Clear existing layout if init_ui is called multiple times
+        if hasattr(self, '_main_layout') and self._main_layout is not None:
+            self.clear_layout(self._main_layout)
+        else:
+            self._main_layout = QVBoxLayout(self)
+
+        layout = self._main_layout
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Header
+        header_layout = QHBoxLayout()
+        title = QLabel("Performance Analytics")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
+
+        # Date range selector
+        date_layout = QHBoxLayout()
+        date_layout.addWidget(QLabel("From:"))
+        from_date = QDateEdit(QDate.currentDate().addDays(-30))
+        from_date.setCalendarPopup(True)
+        date_layout.addWidget(from_date)
+
+        date_layout.addWidget(QLabel("To:"))
+        to_date = QDateEdit(QDate.currentDate())
+        to_date.setCalendarPopup(True)
+        date_layout.addWidget(to_date)
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addLayout(date_layout)
+
+        # KPI Cards
+        kpi_layout = QHBoxLayout()
+
+        # Calculate KPIs from recent data
+        recent_data = self.data.daily_metrics.tail(30)
+        avg_received = recent_data['Items_Received'].mean()
+        avg_shipped = recent_data['Items_Shipped'].mean()
+        avg_utilization = recent_data['Storage_Utilization'].mean()
+        avg_fulfillment = recent_data['Order_Fulfillment_Rate'].mean()
+
+        kpi_layout.addWidget(MetricCard("Daily Received", f"{avg_received:.0f}", "Avg Last 30 days"))
+        kpi_layout.addWidget(MetricCard("Daily Shipped", f"{avg_shipped:.0f}", "Avg Last 30 days"))
+        kpi_layout.addWidget(MetricCard("Storage Utilization", f"{avg_utilization:.1f}%", "Current Average"))
+        kpi_layout.addWidget(MetricCard("Fulfillment Rate", f"{avg_fulfillment:.1f}%", "Order Success"))
+
+        # Charts
+        charts_layout = QGridLayout()
+        charts_layout.setContentsMargins(0, 0, 0, 0) # Ensure charts don't have excessive margins
+
+        # Daily operations trend
+        trend_chart = ChartWidget(parent=self, title='Daily Operations Trend (Last 30 Days)', y_label='Items Count', x_label='Date',
+                                  axisItems={'bottom': pg.DateAxisItem()})
+        self.create_trend_chart(trend_chart)
+        trend_chart.setMinimumHeight(300)
+        charts_layout.addWidget(trend_chart, 0, 0)
+
+        # Storage utilization
+        utilization_chart = ChartWidget(title='Storage Utilization by Zone', y_label='Utilization %', x_label='Zone')
+        self.create_utilization_chart(utilization_chart)
+        utilization_chart.setMinimumHeight(300)
+        charts_layout.addWidget(utilization_chart, 0, 1)
+
+        # Fulfillment rate trend
+        fulfillment_chart = ChartWidget(parent=self, title='Weekly Fulfillment Rate Trend', y_label='Fulfillment Rate %', x_label='Week',
+                                        axisItems={'bottom': pg.DateAxisItem()})
+        self.create_fulfillment_chart(fulfillment_chart)
+        fulfillment_chart.setMinimumHeight(300)
+        charts_layout.addWidget(fulfillment_chart, 1, 0, 1, 2)
+
+        layout.addLayout(header_layout)
+        layout.addLayout(kpi_layout)
+        layout.addLayout(charts_layout)
+        layout.addStretch() # Ensure content expands vertically
+
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
+
+    def create_trend_chart(self, chart_widget):
+        recent_data = self.data.daily_metrics.tail(30)
+        
+        # Convert pandas Timestamps to Unix timestamps for pyqtgraph DateAxisItem
+        x_vals = recent_data['Date'].apply(lambda x: x.timestamp()).values
+        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#4CAF50', width=2), name='Received')
+        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#2196F3', width=2), name='Shipped')
+        
+        chart_widget.plotItem.addLegend()
+        chart_widget.plotItem.setLabel('bottom', 'Date', axisClass=pg.DateAxisItem)
+        chart_widget.plotItem.setYRange(0, recent_data[['Items_Received', 'Items_Shipped']].max().max() * 1.1)
+
+
+    def create_utilization_chart(self, chart_widget):
+        # Storage utilization by zone (simulated)
+        zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D']
+        utilization = [85, 72, 91, 68]
+        
+        x_vals = np.arange(len(zones))
+        y_vals = np.array(utilization)
+
+        colors = [QColor('#FF5722') if u > 85 else QColor('#FF9800') if u > 75 else QColor('#4CAF50') for u in utilization]
+        brushes = [color for color in colors]
+
+        bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
+        chart_widget.addItem(bargraph)
+
+        # Set custom x-axis ticks
+        ticks = [(i, label) for i, label in enumerate(zones)]
+        chart_widget.getAxis('bottom').setTicks([ticks])
+        chart_widget.plotItem.setYRange(0, 100)
+        
+        # Add a horizontal line for target utilization
+        target_line = pg.InfiniteLine(80, angle=0, pen=pg.mkPen('r', width=2, style=Qt.PenStyle.DashLine), movable=False)
+        chart_widget.addItem(target_line)
+        # Add text label for the target line
+        target_label = pg.TextItem("Target (80%)", color='r', anchor=(0.5, 0))
+        target_label.setPos(x_vals[-1], 80)
+        chart_widget.addItem(target_label)
+
+        # Add percentage labels on bars (pyqtgraph TextItem)
+        for i, value in enumerate(y_vals):
+            text_item = pg.TextItem(text=f'{int(value)}%', anchor=(0.5, 0), color='k')
+            text_item.setPos(x_vals[i], value + 1)
+            chart_widget.addItem(text_item)
+            
+    def create_fulfillment_chart(self, chart_widget):
+        # Weekly fulfillment rate
+        weekly_data = self.data.daily_metrics.tail(42).copy()
+        weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
+        
+        weekly_summary = weekly_data.groupby('Week').agg({
+            'Order_Fulfillment_Rate': 'mean'
+        }).reset_index()
+        
+        x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
+        y_vals = weekly_summary['Order_Fulfillment_Rate'].values
+
+        chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
+        chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
+        chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
+        chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
+        chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
+
+class ChartWidget(pg.PlotWidget):
+    def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
+        super().__init__(parent=parent, axisItems=axisItems)
+        self.plotItem.setTitle(title)
+        self.plotItem.setLabel('left', y_label)
+        self.plotItem.setLabel('bottom', x_label)
+        self.plotItem.showGrid(x=True, y=True, alpha=0.3)
+        self.setBackground('w')
+        self.setAntialiasing(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(200, 200)
+
+    def plot_data(self, *args, **kwargs):
+        self.clear()
+        self.plot(*args, **kwargs)
+
+    def add_item(self, item):
+        self.addItem(item)
+
 
 class MetricCard(QFrame):
     """Card widget for displaying key metrics"""
@@ -162,8 +428,10 @@ class LogisticsOverviewWidget(QWidget):
         else:
             self._main_layout = QVBoxLayout(self)
         
-        layout = self._main_layout
-        layout.setContentsMargins(0, 0, 0, 0)
+        # Créer un widget conteneur et un layout pour le contenu
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(10, 10, 10, 10)
         
         # Header
         header_layout = QHBoxLayout()
@@ -220,15 +488,26 @@ class LogisticsOverviewWidget(QWidget):
         
         # Commandes urgentes table
         urgent_table = self.create_urgent_table()
-        table_scroll = QScrollArea()
-        table_scroll.setWidgetResizable(True)
-        table_scroll.setWidget(urgent_table)
-        table_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
+        urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
-        layout.addLayout(header_layout)
-        layout.addLayout(metrics_layout)
-        layout.addLayout(charts_layout)
-        layout.addWidget(table_scroll)
+        # Ajouter tous les éléments au layout de contenu
+        content_layout.addLayout(header_layout)
+        content_layout.addLayout(metrics_layout)
+        content_layout.addLayout(charts_layout)
+        content_layout.addWidget(urgent_table)
+        
+        # Créer la zone de défilement et y placer le widget de contenu
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(content_widget)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        # Configurer le layout principal avec la zone de défilement
+        self._main_layout.setContentsMargins(0, 0, 0, 0)
+        self._main_layout.addWidget(scroll_area)
     
     def refresh_data(self):
         self.data.generate_sample_data()
@@ -320,6 +599,7 @@ class LogisticsOverviewWidget(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+                height:600px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -344,7 +624,98 @@ class LogisticsOverviewWidget(QWidget):
         table.verticalHeader().setVisible(False)
         
         return table
-
+class ConducteurSelectionDialog(QDialog):
+    """Fenêtre de sélection des conducteurs"""
+    
+    def __init__(self, conducteurs_df, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Sélectionner un conducteur")
+        self.setFixedSize(400, 300)
+        self.selected_conducteur = None
+        self.init_ui(conducteurs_df)
+    
+    def init_ui(self, conducteurs_df):
+        layout = QVBoxLayout(self)
+        
+        # Titre
+        title = QLabel("Liste des conducteurs disponibles")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+        
+        # Tableau des conducteurs
+        self.table = QTableWidget()
+        self.table.setRowCount(len(conducteurs_df))
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(['ID', 'Nom', 'Capacité (kg)'])
+        self.table.verticalHeader().setVisible(False)
+        
+        for i, (_, row) in enumerate(conducteurs_df.iterrows()):
+            self.table.setItem(i, 0, QTableWidgetItem(row['id']))
+            self.table.setItem(i, 1, QTableWidgetItem(row['nom']))
+            self.table.setItem(i, 2, QTableWidgetItem(str(row['capacite'])))
+        
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #e0e0e0;
+                font-size: 12px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 8px;
+                border: 1px solid #dcdcdc;
+                font-weight: bold;
+                font-size: 12px;
+                color: #555;
+            }
+        """)
+        
+        self.table.resizeColumnsToContents()
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        
+        layout.addWidget(self.table)
+        
+        # Bouton de confirmation
+        btn_confirm = QPushButton("Confirmer la sélection")
+        btn_confirm.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #43A047;
+            }
+        """)
+        btn_confirm.clicked.connect(self.on_confirm)
+        layout.addWidget(btn_confirm, alignment=Qt.AlignmentFlag.AlignRight)
+        
+        # Connecter le double-clic sur une ligne
+        self.table.doubleClicked.connect(self.on_double_click)
+    
+    def on_confirm(self):
+        selected = self.table.selectedItems()
+        if selected:
+            self.selected_conducteur = {
+                'id': selected[0].text(),
+                'nom': selected[1].text(),
+                'capacite': selected[2].text()
+            }
+            self.accept()
+    
+    def on_double_click(self, index):
+        self.on_confirm()
 class TransportManagementWidget(QWidget):
     """Gestion des transporteurs et des expéditions"""
     
@@ -367,58 +738,163 @@ class TransportManagementWidget(QWidget):
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px;")
         layout.addWidget(title)
         
-        # Onglets
+        # 
+        
         tabs = QTabWidget()
         
         # Onglet Transporteurs
         transporteurs_tab = self.create_transporteurs_tab()
-        tabs.addTab(transporteurs_tab, "Transporteurs")
+        tabs.addTab(transporteurs_tab, "Colis a expedier")
         
         # Onglet Planification
-        planif_tab = self.create_planif_tab()
-        tabs.addTab(planif_tab, "Planification")
+        vehicules_tab = self.create_vehicules_table()
+        tabs.addTab(vehicules_tab, "vehicules")
         
         layout.addWidget(tabs)
+    def create_vehicules_table(self):
+        """Crée le tableau des véhicules"""
+        table = QTableWidget()
+
+        # Supposons que self.data.vehicules_df contient les données des véhicules
+        vehicules_data = self.data.vehicules_df 
+
+        table.setRowCount(len(vehicules_data))
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels(['Immatriculation', 'Marque', 'Modèle', 'Capacité (kg)', 'Disponibilité'])
+
+        for i, (_, row) in enumerate(vehicules_data.iterrows()):
+            table.setItem(i, 0, QTableWidgetItem(row['immatriculation']))
+            table.setItem(i, 1, QTableWidgetItem(row['marque']))
+            table.setItem(i, 2, QTableWidgetItem(row['modele']))
+            table.setItem(i, 3, QTableWidgetItem(str(row['capacite'])))
+
+            dispo_item = QTableWidgetItem("Disponible" if row['disponibilite'] else "Indisponible")
+            dispo_item.setForeground(QColor('green') if row['disponibilite'] else QColor('red'))
+            table.setItem(i, 4, dispo_item)
+
+        # Style du tableau
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #e0e0e0;
+                font-size: 12px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 10px 8px;
+                border: 1px solid #dcdcdc;
+                font-weight: bold;
+                font-size: 13px;
+                color: #555;
+            }
+        """)
+
+        table.setAlternatingRowColors(True)
+        table.resizeColumnsToContents()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+
+        return table
     
     def create_transporteurs_tab(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
-        # Tableau des transporteurs
-        transporteurs_table = self.create_transporteurs_table()
-        
-        # Boutons d'action
-        btn_layout = QHBoxLayout()
-        add_btn = QPushButton("Ajouter")
-        edit_btn = QPushButton("Modifier")
-        remove_btn = QPushButton("Supprimer")
-        
-        for btn in [add_btn, edit_btn, remove_btn]:
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #2196F3;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    font-weight: bold;
-                    margin-right: 5px;
-                }
-                QPushButton:hover {
-                    background-color: #1976D2;
+
+        # Titre section
+        title = QLabel("Colis à expédier")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        layout.addWidget(title)
+
+        # Scroll area pour les frames
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(10)
+
+        # Création des frames pour chaque colis
+        for idx, (_, colis) in enumerate(self.data.expeditions_df.iterrows()):
+            frame = QFrame()
+            frame.setFrameShape(QFrame.Shape.StyledPanel)
+            frame.setStyleSheet("""
+                QFrame {
+                    background-color: white;
+                    border-radius: 5px;
+                    border: 1px solid #e0e0e0;
+                    padding: 10px;
                 }
             """)
-        
-        btn_layout.addWidget(add_btn)
-        btn_layout.addWidget(edit_btn)
-        btn_layout.addWidget(remove_btn)
-        btn_layout.addStretch()
-        
-        layout.addWidget(transporteurs_table)
-        layout.addLayout(btn_layout)
-        
+
+            frame_layout = QHBoxLayout(frame)
+
+            # Infos colis
+            info_layout = QVBoxLayout()
+            info_layout.setSpacing(5)
+
+            id_label = QLabel(f"ID Colis: {colis['id_commande']}")
+            dest_label = QLabel(f"Destination: {colis['destination']}")
+            date_label = QLabel(f"Date expédition: {str(colis['date_expedition'])}")
+
+            for label in [id_label, dest_label, date_label]:
+                label.setStyleSheet("font-size: 12px; color: #555;")
+                info_layout.addWidget(label)
+
+            frame_layout.addLayout(info_layout)
+            frame_layout.addStretch()
+
+            # Bouton assigner
+            assign_btn = QPushButton("Assigner conducteur")
+            assign_btn.setFixedWidth(150)
+            assign_btn.setProperty("colis_index", idx)  # Stocker l'index du colis
+            assign_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #43A047;
+                }
+            """)
+
+            # Connecter le bouton à l'ouverture de la fenêtre de sélection
+            assign_btn.clicked.connect(lambda _, b=assign_btn: self.open_conducteur_dialog(b))
+
+            frame_layout.addWidget(assign_btn)
+            scroll_layout.addWidget(frame)
+
+        scroll_layout.addStretch()
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
+
         return widget
-    
+
+    def open_conducteur_dialog(self, button):
+        """Ouvre la fenêtre de sélection des conducteurs"""
+        colis_index = button.property("colis_index")
+        dialog = ConducteurSelectionDialog(self.data.transporteurs_df, self)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected = dialog.selected_conducteur
+            if selected:
+                # Mettre à jour l'assignation du conducteur pour ce colis
+                self.data.expeditions_df.at[colis_index, 'id_transporteur'] = selected['id']
+                self.data.expeditions_df.at[colis_index, 'nom_transporteur'] = selected['nom']
+
+                # Afficher un message de confirmation
+                QMessageBox.information(
+                    self, 
+                    "Assignation réussie",
+                    f"Le conducteur {selected['nom']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
+                    QMessageBox.StandardButton.Ok
+                )
+
     def create_planif_tab(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
@@ -785,43 +1261,40 @@ class TraceabilityWidget(QWidget):
                     self.clear_layout(item.layout())
 
 class LogisticsReportsWidget(QWidget):
-    """Widget pour les rapports logistiques"""
-    
+    """Widget for generating various reports"""
     def __init__(self, data):
         super().__init__()
         self.data = data
         self.init_ui()
-    
+
     def init_ui(self):
+        # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
             self._main_layout = QVBoxLayout(self)
-        
+
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Header
-        title = QLabel("Rapports logistiques")
+
+        title = QLabel("Generate Reports")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
         layout.addWidget(title)
-        
-        # Date range selection
-        date_layout = QHBoxLayout()
-        date_layout.addWidget(QLabel("Période:"))
-        
-        self.from_date = QDateEdit(QDate.currentDate().addMonths(-1))
-        self.from_date.setCalendarPopup(True)
-        date_layout.addWidget(self.from_date)
-        
-        date_layout.addWidget(QLabel("à"))
-        
-        self.to_date = QDateEdit(QDate.currentDate())
-        self.to_date.setCalendarPopup(True)
-        date_layout.addWidget(self.to_date)
-        
-        generate_btn = QPushButton("Générer rapport")
-        generate_btn.setStyleSheet("""
+
+        tabs = QTabWidget()
+
+        # Stock Reports
+        stock_reports_widget = QWidget()
+        stock_reports_layout = QVBoxLayout()
+        stock_reports_layout.addWidget(QLabel("<h4>Stock Reports</h4>"))
+        stock_reports_layout.addWidget(QLabel("Generate reports on current stock levels, low stock items, and inventory value."))
+
+        self.stock_summary_table = self.create_stock_summary_table()
+        stock_reports_layout.addWidget(self.stock_summary_table)
+
+        # Add Save button for Stock Reports
+        save_stock_btn = QPushButton("Save Stock Report to CSV")
+        save_stock_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
@@ -829,43 +1302,135 @@ class LogisticsReportsWidget(QWidget):
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-weight: bold;
+                margin-top: 10px;
             }
             QPushButton:hover {
                 background-color: #43A047;
             }
         """)
-        generate_btn.clicked.connect(self.generate_report)
+        save_stock_btn.clicked.connect(self.save_stock_report_to_csv)
+        stock_reports_layout.addWidget(save_stock_btn)
+
+
+        stock_reports_widget.setLayout(stock_reports_layout)
+        tabs.addTab(stock_reports_widget, "Stock Reports")
+
+        # Performance Reports (reusing PerformanceWidget logic)
+        self.performance_reports_widget = PerformanceWidget(self.data)
+        tabs.addTab(self.performance_reports_widget, "Performance Reports")
+
+        # Exception Reports
+        exception_reports_widget = QWidget()
+        exception_reports_layout = QVBoxLayout()
+        exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
+        exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
+        # Example: Low Stock Exception # Make it an instance variable
+
+        exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
+
+        exception_reports_widget.setLayout(exception_reports_layout)
+        tabs.addTab(exception_reports_widget, "Exception Reports")
+
+        layout.addWidget(tabs)
+        layout.addStretch()
         
-        date_layout.addWidget(generate_btn)
-        date_layout.addStretch()
-        layout.addLayout(date_layout)
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
+
+    def create_stock_summary_table(self):
+        table = QTableWidget()
+        table.setRowCount(len(self.data.inventory_df))
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
+
+        self.stock_summary_data = []
+        for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
+            product_info = self.data.products_df[self.data.products_df['ID'] == row['Product_ID']].iloc[0] if not self.data.products_df.empty else {'Category': 'N/A'}
+            current_value = row['Quantity'] * row['Value']
+            table.setItem(i, 0, QTableWidgetItem(row['Product_Name']))
+            table.setItem(i, 1, QTableWidgetItem(product_info['Category']))
+            table.setItem(i, 2, QTableWidgetItem(str(row['Quantity'])))
+            table.setItem(i, 3, QTableWidgetItem(f"${current_value:,.2f}"))
+            self.stock_summary_data.append({
+                'Product': row['Product_Name'],
+                'Category': product_info['Category'],
+                'Quantity': row['Quantity'],
+                'Current Value': current_value
+            })
+        self.stock_summary_df = pd.DataFrame(self.stock_summary_data)
         
-        # Report tabs
-        self.report_tabs = QTabWidget()
-        layout.addWidget(self.report_tabs)
-        
-        # Generate initial report
-        self.generate_report()
-    
-    def generate_report(self):
-        # Clear previous tabs
-        while self.report_tabs.count() > 0:
-            self.report_tabs.removeTab(0)
-        
-        from_date = self.from_date.date().toString("yyyy-MM-dd")
-        to_date = self.to_date.date().toString("yyyy-MM-dd")
-        
-        # Performance tab
-        perf_tab = self.create_performance_tab(from_date, to_date)
-        self.report_tabs.addTab(perf_tab, "Performance")
-        
-        # Costs tab
-        costs_tab = self.create_costs_tab(from_date, to_date)
-        self.report_tabs.addTab(costs_tab, "Coûts")
-        
-        # Transport tab
-        transport_tab = self.create_transport_tab(from_date, to_date)
-        self.report_tabs.addTab(transport_tab, "Transporteurs")
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #e0e0e0;
+                font-size: 12px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 10px 8px;
+                border: 1px solid #dcdcdc;
+                font-weight: bold;
+                font-size: 13px;
+                color: #555;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #cce7ff;
+                color: #333;
+            }
+        """)
+        table.setAlternatingRowColors(True)
+        table.resizeColumnsToContents()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+        return table
+
+    def save_stock_report_to_csv(self):
+        if not self.stock_summary_df.empty:
+            options = QFileDialog.Option.DontUseNativeDialog  # option facultative
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Stock Report",
+                "stock_report.csv",
+                "CSV Files (*.csv);;All Files (*)",
+                options=options
+            )
+            if file_name:
+                try:
+                    self.stock_summary_df.to_csv(file_name, index=False)
+                    QMessageBox.information(self, "Success", f"Stock report saved to:\n{file_name}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to save stock report: {e}")
+        else:
+            QMessageBox.warning(self, "No Data", "No stock data to save.")
+
+    def save_low_stock_report_to_csv(self):
+        if not hasattr(self, 'low_stock_exceptions') or self.low_stock_exceptions.empty:
+            QMessageBox.warning(self, "No Data", "No low stock exceptions to save.")
+            return
+
+        options = QFileDialog.options()
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Low Stock Report", "low_stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
+        if file_name:
+            try:
+                report_df = self.low_stock_exceptions[['Product_Name', 'Quantity']]
+                report_df.to_csv(file_name, index=False)
+                QMessageBox.information(self, "Success", f"Low stock report saved to:\n{file_name}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save low stock report: {e}")
+
     
     def create_performance_tab(self, from_date, to_date):
         widget = QWidget()

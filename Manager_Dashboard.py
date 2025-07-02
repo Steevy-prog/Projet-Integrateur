@@ -244,19 +244,28 @@ class RealtimeInventoryViewWidget(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # Clear existing layout if init_ui is called multiple times (e.g., on refresh)
+        # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QVBoxLayout(self) # Set QVBoxLayout for the widget
+            self._main_layout = QVBoxLayout(self)
+            self._main_layout.setContentsMargins(0, 0, 0, 0)
 
-        layout = self._main_layout
-        layout.setContentsMargins(0, 0, 0, 0) # Remove outer margins for better scroll area fit
+        # Create main content widget that will be scrollable
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(15)
 
-        # Header
+        # Header section
         header_layout = QHBoxLayout()
         title = QLabel("Real-time Inventory View")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
+        title.setStyleSheet("""
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #333;
+            margin-bottom: 10px;
+        """)
 
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setStyleSheet("""
@@ -277,98 +286,98 @@ class RealtimeInventoryViewWidget(QWidget):
         header_layout.addWidget(title)
         header_layout.addStretch()
         header_layout.addWidget(refresh_btn)
+        content_layout.addLayout(header_layout)
 
-        # Metrics cards
+        # Metrics cards section
         metrics_layout = QHBoxLayout()
-        # Handle potential psycopg2.ProgrammingError if function doesn't exist or returns no rows
+        metrics_layout.setSpacing(15)
+
         try:
             cur.execute("SELECT \"EMIR\".total();")
-            total_items = cur.fetchone()[0]
-            if total_items is None:
-                print("fuck")
-                total_items = 0
+            total_items = cur.fetchone()[0] or 0
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching total_items: {e}. Using dummy value.")
+            print(f"Error fetching total_items: {e}")
             total_items = 0
 
         try:
             cur.execute("SELECT \"EMIR\".valeur();")
-            total_value = cur.fetchone()[0]
-            if total_value is None:
-                print("fuck")
-                total_value = 0
+            total_value = cur.fetchone()[0] or 0
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching total_value: {e}. Using dummy value.")
+            print(f"Error fetching total_value: {e}")
             total_value = 0
 
         try:
             cur.execute("SELECT \"EMIR\".available_cells();")
-            available_cells = cur.fetchone()[0]
-            if available_cells is None:
-                print("fuck")
-                available_cells = 0
+            available_cells = cur.fetchone()[0] or 0
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching available_cells: {e}. Using dummy value.")
+            print(f"Error fetching available_cells: {e}")
             available_cells = 0
 
         try:
             cur.execute("SELECT \"EMIR\".numzones();")
-            zones_used = cur.fetchone()[0]
-            if zones_used is None:
-                print("fuck")
-                zones_used = 0
+            zones_used = cur.fetchone()[0] or 0
         except (psycopg2.Error, TypeError) as e:
-            print(f"Error fetching numzones: {e}. Using dummy value.")
+            print(f"Error fetching numzones: {e}")
             zones_used = 0
-
 
         metrics_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "In Stock"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Inventory Worth"))
         metrics_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "Cells Not In Use", "#FF9800"))
         metrics_layout.addWidget(MetricCard("Storage Zones", str(zones_used), "Active Zones"))
+        content_layout.addLayout(metrics_layout)
 
         # Charts section
         charts_layout = QHBoxLayout()
-        charts_layout.setStretchFactor(charts_layout, 1) # Ensure charts stretch
+        charts_layout.setSpacing(15)
 
-        # Stock by category bar chart (pyqtgraph does not have native pie chart)
         category_chart = ChartWidget(title="Inventory by Category", y_label="Quantity", x_label="Category")
         self.create_category_chart(category_chart)
-        category_chart.setMinimumHeight(300) # Ensure charts have a minimum height
+        category_chart.setMinimumHeight(300)
 
-        # Stock levels bar chart
         stock_chart = ChartWidget(title="Stock Levels - Top Products", y_label="Quantity", x_label="Products")
         self.create_stock_levels_chart(stock_chart)
         stock_chart.setMinimumHeight(300)
 
         charts_layout.addWidget(category_chart)
         charts_layout.addWidget(stock_chart)
+        content_layout.addLayout(charts_layout)
 
-        # Inventory table (can be considered a detailed view for Product Details and Location Details)
+        # Inventory table
         self.inventory_table = self.create_inventory_table()
-        # Wrap table in scroll area if it might exceed vertical space
-        table_scroll_area = QScrollArea()
-        table_scroll_area.setWidgetResizable(True)
-        table_scroll_area.setWidget(self.inventory_table)
-        table_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        table_scroll_area.setMinimumHeight(200) # Give table a minimum height
+        self.inventory_table.setMinimumHeight(300)
+        content_layout.addWidget(self.inventory_table)
 
-
-        # Placeholder for Stock Movements (New section)
+        # Stock Movements placeholder
         stock_movements_label = QLabel("Stock Movements (Not Implemented Yet)")
-        stock_movements_label.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 15px;")
-        # In a real application, this would be a table or chart showing recent movements.
+        stock_movements_label.setStyleSheet("""
+            font-size: 16px; 
+            font-weight: bold; 
+            margin-top: 10px;
+            color: #555;
+        """)
+        content_layout.addWidget(stock_movements_label)
+        content_layout.addStretch()
 
-        layout.addLayout(header_layout)
-        layout.addLayout(metrics_layout)
-        layout.addLayout(charts_layout)
-        layout.addWidget(table_scroll_area) # Add the scrollable table
-        layout.addWidget(stock_movements_label) # Add the placeholder
-        layout.addStretch() # Push everything to the top
+        # Create and configure main scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(content_widget)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
 
-        # Set the layout of the widget only once
-        if self.layout() is None:
-            self.setLayout(layout)
+        # Hide scroll bars but keep scrolling functionality
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        # Ensure scrolling still works with mouse wheel
+        scroll_area.verticalScrollBar().setEnabled(True)
+        scroll_area.horizontalScrollBar().setEnabled(True)
+
+        # Set minimum sizes
+        content_widget.setMinimumWidth(800)
+        self.setMinimumSize(850, 600)
+
+        # Add scroll area to main layout
+        self._main_layout.addWidget(scroll_area)
 
     def refresh_data(self):
         # This method can be called to re-render the UI with fresh data
