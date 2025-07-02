@@ -1,6 +1,7 @@
 import sys
 import threading
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QFrame
+from PyQt6.QtGui import QFont
 from PyQt6.QtCore import QThread, pyqtSignal
 from pynput import keyboard
 import google.generativeai as genai
@@ -37,19 +38,53 @@ class ChatBot(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Gemini Help Chatbot")
-        self.resize(600, 400)
+        self.resize(400, 450)
 
-        layout = QVBoxLayout(self)
+        # Card frame
+        card = QFrame(self)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #4683B7;
+                border-radius: 18px;
+                border: 1.5px solid #E0E0E0;
+                padding: 18px;
+                box-shadow: 0 6px 24px rgba(108,99,255,0.10);
+            }
+        """)
+
+        card_layout = QVBoxLayout(card)
+        card_layout.setSpacing(12)
+        card_layout.setContentsMargins(18, 18, 18, 18)
 
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
-        layout.addWidget(self.chat_display)
+        self.chat_display.setStyleSheet("background: #fff; border-radius: 8px; padding: 8px;")
+        card_layout.addWidget(self.chat_display)
 
         self.input_line = QLineEdit()
-        layout.addWidget(self.input_line)
+        self.input_line.setStyleSheet("background: #FFFFFF; border-radius: 8px; padding: 8px;")
+        card_layout.addWidget(self.input_line)
 
         self.send_button = QPushButton("Send")
-        layout.addWidget(self.send_button)
+        self.send_button.setStyleSheet("""
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                font-weight: bold;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 8px 20px;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+            }
+        """)
+        card_layout.addWidget(self.send_button)
+
+        # Main layout for the widget
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.addWidget(card)
 
         self.send_button.clicked.connect(self.on_send)
         self.input_line.returnPressed.connect(self.on_send)
@@ -57,6 +92,7 @@ class ChatBot(QWidget):
         self.append_message("System", "Welcome! Ask me anything about your app.")
 
         self.worker_thread = None
+
 
     def append_message(self, sender, message):
         self.chat_display.append(f"<b>{sender}:</b> {message}")
