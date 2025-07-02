@@ -3435,3 +3435,51 @@ return query
     where "SCA".ContenuColis.idcolis = _idcolis;
 end;
 $$ language plpgsql;
+
+create or replace procedure "EMIR".supprimer_utilisateur(_idutilisateur "SCA".idutilisateur)
+as $$
+begin
+delete from "EMIR".Utilisateur where idutilisateur = _idutilisateur;
+end;
+$$ language plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Modifier_utilisateur(
+    _idutilisateuranc "SCA".idutilisateur,
+    _idutilisateurnouv "SCA".idutilisateur,
+    nom "SCA".nom,
+    prenom "SCA".nom,
+    email "SCA".email,
+    _niveau_acces text,
+    _mot_de_passe text
+)
+AS $$
+BEGIN
+    -- Vérification du mot de passe
+    IF encode(digest(_mot_de_passe, 'sha256'), 'hex') = (
+        SELECT mot_de_passe
+        FROM "CREDENTIALS".Credentials
+        WHERE idutilisateur = _idutilisateuranc
+    ) THEN
+        -- Appel de la procédure Utilisateur_MOD
+        CALL "EMIR".Utilisateur_MOD(
+            _idutilisateurnouv,
+            nom, -- si nom = username
+            'actif', -- ou autre valeur de statut à définir
+            _niveau_acces
+        );
+
+        -- Si ID utilisateur change, mise à jour des IDs liés
+        IF _idutilisateuranc <> _idutilisateurnouv THEN
+            UPDATE "SCA".Utilisateur
+            SET idutilisateur = _idutilisateurnouv
+            WHERE idutilisateur = _idutilisateuranc;
+
+            UPDATE "CREDENTIALS".Credentials
+            SET idutilisateur = _idutilisateurnouv
+            WHERE idutilisateur = _idutilisateuranc;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
