@@ -172,6 +172,7 @@ CREATE TABLE "SCA".individu(
                                idindividu "SCA".IDindividu NOT NULL ,
                                nom "SCA".Nom NOT NULL ,
                                prenom "SCA".Nom NOT NULL ,
+                               adresse "SCA".Adresse NOT NULL ,
                                telephone "SCA".Numero NOT NULL ,
                                CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
 );
@@ -1423,11 +1424,12 @@ create or replace procedure "EMIR".Individu_INS(
     _idindividu text,
     _nom text,
     _prenom text,
-    _telephone text
+    _telephone text,
+    _adresse text
 )
 as $$
 begin
-    insert into "SCA".Individu(idindividu, nom, prenom, telephone) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone));
+    insert into "SCA".Individu(idindividu, nom, prenom, telephone, adresse) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone), "SCA".adresse_conv(_adresse));
 end; $$ language plpgsql;
 
 -- 8. REPERTOIRE
@@ -1727,6 +1729,7 @@ create or replace function "EMIR".Individu_EVA()
                       idindividu "SCA".IDindividu,
                       nom "SCA".Nom,
                       prenom "SCA".Nom,
+                      adresse "SCA".Adresse,
                       telephone "SCA".Numero
                   ) as $$
 begin
@@ -2311,12 +2314,14 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Individu_MOD(
     _idindividu "SCA".IDindividu,
     _nom "SCA".Nom,
+    _adresse "SCA".Adresse,
     _telephone "SCA".Numero
 )
 as $$
 begin
     update "SCA".Individu
     SET nom = "SCA".Nom_CONV(_nom),
+        adresse = "SCA".Adresse_CONV(_adresse),
         telephone = "SCA".Numero_CONV(_telephone)
     WHERE idindividu = "SCA".IDindividu_CONV(_idindividu);
 end; $$ language plpgsql;
@@ -3309,9 +3314,9 @@ INSERT INTO "SCA".Organisation(idorganisation, nom, telephone, type) VALUES
 ('OFGHIJ', 'Logistique Nord', '697987654', 'destinataire'),
 ('OKLMNO', 'SAC Central', '695112233', 'SAC');
 
-INSERT INTO "SCA".individu(idindividu, nom, prenom, telephone) VALUES
-('IABCDE', 'TONGOUE', 'Steevy',  '699556677'),
-('I12345', 'Ndongo', 'Paul',  '690112233');
+INSERT INTO "SCA".individu(idindividu, nom, prenom, adresse, telephone) VALUES
+('IABCDE', 'TONGOUE', 'Steevy', 'Douala', '699556677'),
+('I12345', 'Ndongo', 'Paul', 'Yaoundé', '690112233');
 
 INSERT INTO "SCA".Utilisateur(idutilisateur, idindividu, username) VALUES
 ('UAAAAA', 'IABCDE', 'steevy'),
