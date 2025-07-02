@@ -437,6 +437,15 @@ CREATE TABLE "SCA".LocalisationOrganisation (
                                                 CONSTRAINT LocalisationOrganisation_CR0 FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
 
+CREATE TABLE "SCA".LivraisonConducteurColis (
+    idlivraison SERIAL PRIMARY KEY,
+    idconducteur "SCA".idconducteur NOT NULL,
+    idbonexpedition "SCA".Bonexped NOT NULL,
+    date_affectation DATE DEFAULT CURRENT_DATE,
+    statut "SCA".etatcolis DEFAULT 'Attente',
+    CONSTRAINT fk_conducteur FOREIGN KEY (idconducteur) REFERENCES "SCA".Conducteur(idconducteur) ON DELETE CASCADE,
+    CONSTRAINT fk_colis FOREIGN KEY (idbonexpedition) REFERENCES "SCA".Bonexpedition(idbonexpedition) ON DELETE CASCADE
+);
 
 CREATE TABLE "EXTERNE".Colis(
                             idorg "SCA".idorg not null,
