@@ -1,6 +1,8 @@
 import rstr
-class idgenerator:
-
+class idgenerator():
+    def __init__(self):
+        pass
+    
     def generate_id(pattern: str, existing_ids: list) -> str:
         """
         Generate a random string that matches the given regex pattern.
@@ -18,5 +20,6 @@ class idgenerator:
 # Example usage
 if __name__ == "__main__":
     pattern = r'^P[A-Z0-9]{5}$'  # e.g., AB123
-    random_id = generate_id(pattern)
+    id_instance = idgenerator()
+    random_id = id_instance.generate_id(pattern)
     print("Generated ID:", random_id)
