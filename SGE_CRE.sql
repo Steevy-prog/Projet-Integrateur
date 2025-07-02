@@ -439,12 +439,14 @@ CREATE TABLE "SCA".LocalisationOrganisation (
 
 
 CREATE TABLE "EXTERNE".Colis(
+                            idorg "SCA".idorg not null,
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
 CREATE TABLE "EXTERNE".Lot(
+                          idorg "SCA".idorg not null,
                           idplot "EXTERNE".idplot NOT NULL ,
                           idproduit "SCA".Idproduit NOT NULL ,
                           quantite "SCA".dims NOT NULL ,
