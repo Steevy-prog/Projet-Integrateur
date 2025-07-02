@@ -1,6 +1,7 @@
  --script de création du schéma de base
 --domaines, types, tables
-
+DROP SCHEMA IF EXISTS "EXTERNE" CASCADE;
+CREATE SCHEMA "EXTERNE";
 DROP SCHEMA IF EXISTS "SCA" CASCADE;
 CREATE SCHEMA "SCA";
 DROP SCHEMA IF EXISTS "CREDENTIALS" CASCADE;
@@ -44,6 +45,9 @@ CREATE DOMAIN "SCA".Bonrecep TEXT CHECK (
 CREATE DOMAIN "SCA".Idcolis TEXT CHECK (
     VALUE~ '^CO[A-Z0-9]{5}$'
     );
+CREATE DOMAIN "EXTERNE".Idpcolis TEXT CHECK (
+    VALUE~ '^PCO[A-Z0-9]{5}$'
+    );
 CREATE DOMAIN "SCA".Idcellule TEXT CHECK (
     VALUE~ '^C[A-Z0-9]{5}$'
     );
@@ -62,6 +66,9 @@ CREATE DOMAIN "SCA".Adresse TEXT CHECK (
     );
 CREATE DOMAIN "SCA".Idlot TEXT CHECK(
     VALUE ~ '^L[A-Z0-9]{5}$'
+    );
+CREATE DOMAIN "EXTERNE".Idplot TEXT CHECK(
+    VALUE ~ '^PL[A-Z0-9]{5}$'
     );
 CREATE DOMAIN "SCA".Idproduit TEXT CHECK(
     VALUE ~ '^P[A-Z0-9]{5}$'
@@ -163,6 +170,13 @@ CREATE TABLE "SCA".Colis(
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
 );
+CREATE TABLE "EXTERNE".Colis(
+                            idorg "SCA".idorg NOT NULL,
+                            idpcolis "EXTERNE".Idpcolis NOT NULL ,
+                            date_creation date NOT NULL ,
+                            statut "SCA".etatcolis NOT NULL ,
+                            CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
+);
 CREATE TABLE "SCA".Zone(
                            idzone "SCA".Idzone NOT NULL ,
                            nom "SCA".Nom NOT NULL ,
@@ -208,14 +222,12 @@ CREATE TABLE "SCA".Conducteur(
 CREATE TABLE "SCA".Bonreception(
                                    idbonreception "SCA".Bonrecep NOT NULL ,
                                    idcolis "SCA".Idcolis NOT NULL ,
-                                   idtransporteur "SCA".idconducteur NOT NULL ,
                                    date_creation DATE NOT NULL ,
                                    idfournisseur "SCA".idorg NOT NULL ,
                                    statut "SCA".etat NOT NULL ,
                                    remarques TEXT NOT NULL ,
                                    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
                                    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-                                   FOREIGN KEY (idtransporteur)REFERENCES "SCA".conducteur(idconducteur)ON DELETE CASCADE,
                                    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Bonexpedition(
@@ -277,15 +289,38 @@ CREATE TABLE "SCA".Lot(
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
                               ON DELETE CASCADE
 );
+CREATE TABLE "EXTERNE".Lot(
+                          idorg "SCA".idorg NOT NULL,
+                          idplot "EXTERNE".idplot NOT NULL ,
+                          idproduit "SCA".Idproduit NOT NULL ,
+                          quantite "SCA".dims NOT NULL ,
+                          date_creation date NOT NULL ,
+                          statut "SCA".etat_lot DEFAULT 'standard',
+                          CONSTRAINT PLot_CC0 PRIMARY KEY (idplot),
+                          FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
+                              ON DELETE CASCADE
+);
 
 CREATE TABLE "SCA".ContenuColis(
                                    idcolis "SCA".Idcolis NOT NULL ,
                                    idlot "SCA".Idlot NOT NULL ,
                                    quantite "SCA".dims NOT NULL ,
                                    date_MAJ date NOT NULL ,
-                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot,quantite),
+                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot),
                                    CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE,
                                    FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot)
+                                       ON DELETE CASCADE
+);
+CREATE TABLE "EXTERNE".ContenuColis(
+                                   idorg "SCA".idorg not null,
+                                   idpcolis "EXTERNE".Idpcolis NOT NULL ,
+                                   idplot "EXTERNE".Idplot NOT NULL ,
+                                   quantite "SCA".dims NOT NULL ,
+                                   date_MAJ date NOT NULL ,
+                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idorg,idpcolis,idplot),
+                                   CONSTRAINT contenucolis_cr1 foreign key (idorg) references  "SCA".organisation(idorganisation),
+                                   CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idpcolis) REFERENCES "EXTERNE".Colis(idpcolis) ON DELETE CASCADE,
+                                   FOREIGN KEY (idplot) REFERENCES "EXTERNE".Lot(idplot)
                                        ON DELETE CASCADE
 );
 
@@ -850,6 +885,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idpcolis_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^PCO[A-Z0-9]{5}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idpcolis_VAL(v TEXT)
+    RETURNS "EXTERNE".Idpcolis AS $$
+BEGIN
+    IF NOT "EXTERNE".Idpcolis_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour Idcolis: %', v;
+    END IF;
+    RETURN v::"EXTERNE".Idpcolis;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idpcolis_CONV(v TEXT)
+    RETURNS "EXTERNE".Idpcolis AS $$
+BEGIN
+    IF "EXTERNE".Idpcolis_CONF(v) THEN
+        RETURN v::"EXTERNE".Idpcolis;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Functions for domain Idcellule
 
 CREATE OR REPLACE FUNCTION "SCA".Idcellule_CONF(v TEXT)
@@ -1061,6 +1125,35 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^PL[A-Z0-9]{5}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_VAL(v TEXT)
+    RETURNS "EXTERNE".Idplot AS $$
+BEGIN
+    IF NOT "EXTERNE".Idplot_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour Idlot: %', v;
+    END IF;
+    RETURN v::"EXTERNE".Idplot;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_CONV(v TEXT)
+    RETURNS "EXTERNE".Idplot AS $$
+BEGIN
+    IF "SCA".Idlot_CONF(v) THEN
+        RETURN v::"EXTERNE".Idplot;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 
 
 -- Functions for domain Idproduit
@@ -1390,7 +1483,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_INS(
     _idbonreception text,
     _idcolis text,
-    _idtransporteur text,
     _date_creation text,
     _idfournisseur text,
     _statut text,
@@ -1398,7 +1490,7 @@ create or replace procedure "EMIR".Bonreception_INS(
 )
 as $$
 begin
-    insert into "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
+    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -1486,14 +1578,11 @@ create or replace procedure "EMIR".Lot_INS(
     _idproduit text,
     _quantite text,
     _date_creation text,
-    _statut text,
-    _origine text,
-    _nbUses INT,
-    _cond text
+    _statut text
 )
 as $$
 begin
-    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,origine,nombre_utilisations,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_origine::"SCA".etat_lot,_nbUses::int,_cond::"SCA".condition_materiel);
+    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat_lot);
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1600,7 +1689,7 @@ create or replace procedure "EMIR".Vehicule_INS(
 )
 as $$
 begin
-    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, type, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne)
+    insert into "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, types, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne)
     values ("SCA".idvehicule_CONV(_idvehicule), "SCA".Nom_CONV(_immatriculation), "SCA".Nom_CONV(_marque), "SCA".Nom_CONV(_modele), _annee_fabrication::integer, _type::"SCA".type_vehicule, "SCA".dims_CONV(_capacite_charge), "SCA".dims_CONV(_capacite_volume), _date_acquisition::date, _statut::"SCA".statut_vehicule, _kilometrage_actuel::decimal, _date_derniere_maintenance::date, _prochaine_maintenance::date, _carburant, _consommation_moyenne::decimal);
 end; $$ language plpgsql;
 
@@ -1695,7 +1784,6 @@ create or replace function "EMIR".Bonreception_EVA()
     returns table (
                       idbonreception "SCA".Bonrecep,
                       idcolis "SCA".Idcolis,
-                      idtransporteur "SCA".idconducteur,
                       date_creation date,
                       idfournisseur "SCA".idOrg,
                       statut "SCA".etat,
@@ -2207,7 +2295,6 @@ create or replace procedure "EMIR".Organisation_MOD(
     _idorganisation "SCA".idOrg,
     _nom "SCA".Nom,
     _telephone "SCA".Numero,
-    _adresse "SCA".Adresse,
     _type "SCA".typeOrg
 )
 as $$
@@ -2215,7 +2302,6 @@ begin
     update "SCA".Organisation
     set nom = "SCA".nom_conv(_nom),
         telephone = "SCA".Numero_CONV(_telephone),
-        adresse = "SCA".adresse_conv(_adresse),
         type = _type::"SCA".typeOrg
     where idorganisation = "SCA".idorg_conv(_idorganisation);
 end; $$ language plpgsql;
@@ -2267,7 +2353,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_MOD(
     _idbonreception "SCA".Bonrecep,
     _idcolis "SCA".Idcolis,
-    _idtransporteur "SCA".idOrg,
     _date_creation date,
     _idfournisseur "SCA".idOrg,
     _statut "SCA".etat,
@@ -2277,7 +2362,6 @@ as $$
 begin
     update "SCA".Bonreception
     SET idcolis = "SCA".Idcolis_CONV(_idcolis),
-        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
         date_creation = _date_creation::date,
         idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
         statut = _statut::"SCA".etat,
@@ -2519,7 +2603,7 @@ begin
         marque = "SCA".Nom_CONV(_marque),
         modele = "SCA".Nom_CONV(_modele),
         annee_fabrication = _annee_fabrication::integer,
-        type = _type::"SCA".type_vehicule,
+        types = _type::"SCA".type_vehicule,
         capacite_charge = "SCA".dims_CONV(_capacite_charge),
         capacite_volume = "SCA".dims_CONV(_capacite_volume),
         date_acquisition = _date_acquisition::date,
@@ -2605,10 +2689,10 @@ BEGIN
     -- Insérer l'utilisateur (données de profil uniquement)
     INSERT INTO "SCA".Utilisateur(
         idutilisateur, idindividu, username,
-        statut, _niveau_acces
+        statut, niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
-        'en attente_validation', _niveau_access
+        'en attente_validation', _niveau_acces
     );
 
     -- Insérer les credentials (données d'authentification)
@@ -2678,7 +2762,6 @@ BEGIN
                 uc.username,
                 uc.nom,
                 uc.prenom,
-                uc.email,
                 uc.niveau_acces,
                 uc.statut,
                 uc.type_utilisateur
@@ -2839,7 +2922,6 @@ BEGIN
         uc.username,
         uc.nom,
         uc.prenom,
-        uc.email,
         uc.niveau_acces,
         uc.statut,
         uc.date_inscription,
@@ -3360,8 +3442,8 @@ INSERT INTO "CREDENTIALS".Credentials (email, mot_de_passe_hash, idutilisateur)
 VALUES ('steevy@example.com', 'motdepasse', 'UAAAAA');
 
 -- Réception de colis
-INSERT INTO "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) VALUES
-('RABCDE', 'CO12345', 'CD1234', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
+INSERT INTO "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) VALUES
+('RABCDE', 'CO12345', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
 
 -- Expédition de colis
 INSERT INTO "SCA".Bonexpedition(idbonexpedition, idcolis, idtransporteur, date_creation, iddestinataire, statut, remarques) VALUES
@@ -3458,7 +3540,7 @@ AS $$
 BEGIN
     -- Vérification du mot de passe
     IF encode(digest(_mot_de_passe, 'sha256'), 'hex') = (
-        SELECT mot_de_passe
+        SELECT mot_de_passe_hash
         FROM "CREDENTIALS".Credentials
         WHERE idutilisateur = _idutilisateuranc
     ) THEN
@@ -3484,4 +3566,77 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+drop function "EMIR".Organisation_EVA();
 
+create or replace function "EMIR".Organisation_EVA()
+    returns table (
+                      idorganisation "SCA".idOrg,
+                      nom "SCA".Nom,
+                      telephone "SCA".Numero,
+                      type "SCA".typeOrg
+                  ) as $$
+begin
+    return query select * from "SCA".Organisation;
+end; $$ language plpgsql;
+
+drop function "EMIR".Colis_EVA();
+create or replace function "EMIR".Colis_EVA()
+    returns table (
+                      idcolis "SCA".Idcolis,
+                      date_creation date,
+                      statut "SCA".etatcolis
+                  ) as $$
+begin
+    return query select * from "SCA".Colis;
+end; $$ language plpgsql;
+
+
+create or replace procedure "EMIR".PLot_INS(
+    _idorg text,
+    _idplot text,
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text
+)
+as $$
+begin
+    insert into "EXTERNE".Lot(idorg,idplot, idproduit, quantite, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idplot_conv(_idplot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat_lot);
+end; $$ language plpgsql;
+
+create or replace function "EMIR".PLot_EVA(_idorg "SCA".idorg)
+returns table (
+    _idplot text,
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text
+)
+as $$
+begin
+   select * from "EXTERNE".Lot where idorg = _idorg;
+end; $$ language plpgsql;
+
+
+create or replace procedure "EMIR".PColis_INS(
+    _idorg text,
+    _idpcolis text,
+    _date_creation text,
+    _statut text
+)
+as $$
+begin
+    insert into "EXTERNE".Colis(idorg,idpcolis, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), _date_creation::date, _statut::"SCA".etatcolis);
+end; $$ language plpgsql;
+
+create or replace procedure "EMIR".PContenuColis_INS(
+    _idorg text,
+    _idcolis text,
+    _idlot text,
+    _quantite text,
+    _date_MAJ text
+)
+as $$
+begin
+    insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, quantite, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idcolis), "EXTERNE".idplot_conv(_idlot), "SCA".dims_conv(_quantite), _date_MAJ::date);
+end; $$ language plpgsql;

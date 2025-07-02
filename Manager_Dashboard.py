@@ -36,7 +36,6 @@ import random
 import psycopg2
 
 idorg = 'OABCDE'
-
 conn = psycopg2.connect(
     host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
     database="projet_integrateur",
@@ -542,7 +541,7 @@ class CircularProgress(QWidget):
 class ZoneEmballage(QWidget):
     def __init__(self, data):
         super().__init__()
-        self.data = data
+        self.data = data                                                                                  
         self.init_ui()
 
     def init_ui(self):
@@ -897,13 +896,12 @@ class MenuExpedition(QWidget):
         layout = self._main_layout
         expedition_summary_table = self.create_expedition_summary_table()
         bouton = QPushButton("chatte")
-        bouton.setFixedWidth(500) # This fixed width might constrain layout
         bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
+                    QPushButton { background-color: #2196F3; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
                     QPushButton:hover { background-color: #1976D2; }
                 """)
         layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(bouton,1,0)
+        layout.addWidget(bouton,1,0,Qt.AlignmentFlag.AlignBottom)
 
         
     def clear_layout(self, layout):
@@ -936,6 +934,7 @@ class MenuExpedition(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+                width:90%;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -959,7 +958,7 @@ class MenuExpedition(QWidget):
         table.verticalHeader().setVisible(False)
         return table
 
-class MenuExpedition(QWidget):
+class MenuReception(QWidget):
     def __init__(self,data):
         super().__init__()
         self.data=data
@@ -1013,6 +1012,7 @@ class MenuExpedition(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+                width:200px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1030,7 +1030,7 @@ class MenuExpedition(QWidget):
                 color: #333;
             }
         """)
-        table.setAlternatingRowColors(True)
+
         table.resizeColumnsToContents()
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
@@ -1749,21 +1749,26 @@ class PerformanceWidget(QWidget):
         chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
         chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
         chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
-class MainDashboardWidget(QWidget):
-    """Dashboard avec menu déroulant latéral et barre supérieure"""
 
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
-        self.current_widget = None
-        self.is_menu_expanded = True
-        self.animation=None
-        self.init_ui()
+        
+class ChartWidget(pg.PlotWidget):
+    def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
+        super().__init__(parent=parent, axisItems=axisItems)
+        self.plotItem.setTitle(title)
+        self.plotItem.setLabel('left', y_label)
+        self.plotItem.setLabel('bottom', x_label)
+        self.plotItem.showGrid(x=True, y=True, alpha=0.3)
+        self.setBackground('w')
+        self.setAntialiasing(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(200, 200)
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                            QLabel, QSizePolicy, QMessageBox)
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt
+    def plot_data(self, *args, **kwargs):
+        self.clear()
+        self.plot(*args, **kwargs)
+
+    def add_item(self, item):
+        self.addItem(item)
 
 class MainDashboardWidget(QWidget):
     """Dashboard with sidebar menu and top bar"""
@@ -1808,7 +1813,7 @@ class MainDashboardWidget(QWidget):
                 background: #3d566e;
             }
         """)
-        
+
         # Title
         title_label = QLabel("Warehouse Manager Dashboard")
         title_label.setStyleSheet("""
@@ -1818,7 +1823,7 @@ class MainDashboardWidget(QWidget):
                 font-weight: bold;
             }
         """)
-        
+
         top_bar_layout.addWidget(self.toggle_btn)
         top_bar_layout.addWidget(title_label)
         top_bar_layout.addStretch()
@@ -1858,7 +1863,7 @@ class MainDashboardWidget(QWidget):
         for text, icon in menu_items:
             btn = QPushButton(text)
             btn.setIcon(QIcon.fromTheme(icon))
-            
+
             # Style différent pour le bouton Logout
             if text == "Logout":
                 btn.setStyleSheet("""
@@ -1890,7 +1895,7 @@ class MainDashboardWidget(QWidget):
                     }
                 """)
                 btn.clicked.connect(lambda _, t=text: self.switch_content(t))
-            
+
             self.menu_buttons.append(btn)
             sidebar_layout.addWidget(btn)
 
@@ -1909,7 +1914,7 @@ class MainDashboardWidget(QWidget):
         metrics_layout.addWidget(self.create_metric_item("Total Items", "1,785"))
         metrics_layout.addWidget(self.create_metric_item("Total Value", "$93,521,250"))
         metrics_layout.addWidget(self.create_metric_item("Available Cells", "1"))
-        
+
         # Insérer les métriques avant le bouton Logout
         sidebar_layout.insertWidget(len(menu_items) - 1, metrics_widget)
         sidebar_layout.addStretch(1)  # Ajoute un stretch pour pousser Logout en bas
@@ -1958,17 +1963,17 @@ class MainDashboardWidget(QWidget):
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 5, 0, 5)
-        
+
         name_label = QLabel(name)
         name_label.setStyleSheet("color: #bdc3c7;")
-        
+
         value_label = QLabel(value)
         value_label.setStyleSheet("color: white; font-weight: bold;")
-        
+
         layout.addWidget(name_label)
         layout.addStretch()
         layout.addWidget(value_label)
-        
+
         return widget
 
     def toggle_menu(self):
@@ -1982,7 +1987,7 @@ class MainDashboardWidget(QWidget):
     def switch_content(self, menu_item):
         if self.current_widget:
             self.current_widget.deleteLater()
-        
+
         if menu_item == "Real-time Inventory":
             widget = RealtimeInventoryViewWidget(self.data)
         elif menu_item == "Daily Operations Planning":
@@ -2017,7 +2022,11 @@ class MainWindow(QMainWindow):
     def refresh_data(self):
         print("Refreshing data...")
         self.data.generate_sample_data()
+        if hasattr(self.central_widget, 'init_ui'):
+            self.central_widget.init_ui()
         print("UI update complete.")
+        
+        
 
 if __name__ == '__main__':
     # It is recommended to install PySide6 as the primary Qt binding for pyqtgraph

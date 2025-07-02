@@ -18,13 +18,29 @@ with open(os.path.join(os.path.dirname(script_path), 'jdd.JSON'), 'r', encoding=
 #    port=5432
 #)
 
-conn = psycopg2.connect(
-    host="localhost",
-    database="postgres",
-    user = "postgres",
-    password = "steevy",
-    port=5432
-)
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
+
+if it == '1':
+    print("You have chosen the online database.")
+    conn = psycopg2.connect(
+        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+        database="projet_integrateur",
+        user="group13",
+        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+        port=5432
+    )
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
 
 cur = conn.cursor()
 # Schéma cible
@@ -208,7 +224,7 @@ insert('"SCA".InventaireEmplacement',
         for i in sc["InventaireEmplacement"]])
 
 insert('"SCA".Tache',
-       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
+       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estime", "description", "priority", "statut", "type"],
        [(
            t["idtache"],
            t["idtravailleur"],
@@ -216,7 +232,7 @@ insert('"SCA".Tache',
            t["idcolis"],
            t["date_creation"],
            t["date_echeance"],
-           t["duree_estimee"],
+           t["duree_estime"],
            t["description"],
            t["priority"],
            t["statut"],

@@ -1,6 +1,7 @@
 --script de création du schéma de base
 --domaines, types, tables
-
+DROP SCHEMA IF EXISTS "EXTERNE" CASCADE;
+CREATE SCHEMA "EXTERNE";
 DROP SCHEMA IF EXISTS "SCA" CASCADE;
 CREATE SCHEMA "SCA";
 DROP SCHEMA IF EXISTS "CREDENTIALS" CASCADE;
@@ -89,6 +90,12 @@ CREATE DOMAIN "SCA".idutilisateur TEXT CHECK (
     );
 CREATE DOMAIN "SCA".username TEXT CHECK (
     VALUE~ '^[a-zA-Z0-9_]{3,20}$'
+    );
+CREATE DOMAIN "EXTERNE".Idpcolis TEXT CHECK (
+    VALUE~ '^PCO[A-Z0-9]{5}$'
+    );
+CREATE DOMAIN "EXTERNE".Idplot TEXT CHECK(
+    VALUE ~ '^PL[A-Z0-9]{5}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
 CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livre','Perdu','Endommagé');
@@ -428,4 +435,33 @@ CREATE TABLE "SCA".LocalisationOrganisation (
                                                 longitude DOUBLE PRECISION,
                                                 date_ajout DATE DEFAULT CURRENT_DATE,
                                                 CONSTRAINT LocalisationOrganisation_CR0 FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
+);
+
+
+CREATE TABLE "EXTERNE".Colis(
+                            idorg "SCA".idorg not null,
+                            idpcolis "EXTERNE".Idpcolis NOT NULL ,
+                            date_creation date NOT NULL ,
+                            statut "SCA".etatcolis NOT NULL ,
+                            CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
+);
+CREATE TABLE "EXTERNE".Lot(
+                          idorg "SCA".idorg not null,
+                          idplot "EXTERNE".idplot NOT NULL ,
+                          idproduit "SCA".Idproduit NOT NULL ,
+                          quantite "SCA".dims NOT NULL ,
+                          date_creation date NOT NULL ,
+                          statut "SCA".etat_lot DEFAULT 'standard',
+                          CONSTRAINT PLot_CC0 PRIMARY KEY (idplot),
+                          FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit) ON DELETE CASCADE
+);
+CREATE TABLE "EXTERNE".ContenuColis(
+                                   idorg "SCA".idorg NOT NULL,
+                                   idpcolis "EXTERNE".Idpcolis NOT NULL ,
+                                   idplot "EXTERNE".Idplot NOT NULL ,
+                                   quantite "SCA".dims NOT NULL ,
+                                   date_MAJ date NOT NULL ,
+                                   CONSTRAINT pcontenucolis_CC0 PRIMARY KEY (idorg,idpcolis,idplot),
+                                   CONSTRAINT pContenuColis_CR0 FOREIGN KEY (idpcolis) REFERENCES "EXTERNE".Colis(idpcolis) ON DELETE CASCADE,
+                                   CONSTRAINT pContenuColis_CR1 FOREIGN KEY (idplot) REFERENCES "EXTERNE".Lot(idplot) ON DELETE CASCADE
 );
