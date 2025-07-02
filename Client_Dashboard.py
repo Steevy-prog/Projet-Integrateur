@@ -1,5 +1,5 @@
 
-import sys
+import sys,os
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
@@ -26,7 +26,13 @@ client_org_id = 'OABCDE' # Example client organization ID
 # --- START OF BACKEND/DATABASE INITIALIZATION (DO NOT TOUCH) ---
 # This section establishes the database connection and fetches initial data.
 # It is intended to remain as provided in its initial configuration.
-try:
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
+
+if it == '1':
+    print("You have chosen the online database.")
     conn = psycopg2.connect(
         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
         database="projet_integrateur",
@@ -34,10 +40,17 @@ try:
         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
         port=5432
     )
-    cur = conn.cursor()
-except psycopg2.Error as e:
-    print(f"Error connecting to the database: {e}")
-    sys.exit(1) # Exit if connection fails
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
+
+cur = conn.cursor()
 
 # Fetch initial data for product, lot, and package IDs to ensure uniqueness
 # These queries fetch existing data from the database at startup.
@@ -47,20 +60,27 @@ orgs = cur.fetchall() # All organizations from the database
 cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
+#cur.execute("SELECT (p).* FROM \"EMIR\".PLot_EVA() AS p;")
+#lots_db = cur.fetchall() # Existing products from the database
+
 cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
 produits_db = cur.fetchall() # Existing products from the database
 
 # Global lists to keep track of generated IDs for uniqueness checks
 # Populated with existing IDs from the database to prevent collisions.
-productids = [p[0] for p in produits_db]
+productids = []
 lotids = [l[0] for l in colis_db] # Assuming colis_db contains lot IDs, this might need adjustment
 packageids = [c[0] for c in colis_db] # Assuming package IDs are in colis_db
+
+print(idgenerator.generate_id('^P[A-Z0-9]{5}$',productids))
+os.system("pause")
 
 # Dictionaries to store in-memory additions (for demonstration purposes only)
 # These are not persisted to the database automatically by these dictionaries.
 added_products = {}
 added_lots = {}
 added_packages = {}
+names = []
 # --- END OF BACKEND/DATABASE INITIALIZATION ---
 
 class Product:
@@ -999,6 +1019,19 @@ class ClientLogisticsWidget(QWidget):
         layout.addWidget(add_product_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
         return section
+    def clear_package_rows(self):
+        while self.package_items_layout.count():
+            item = self.package_items_layout.takeAt(0)
+            if item.layout():
+                child_layout = item.layout()
+                while child_layout.count():
+                    sub_item = child_layout.takeAt(0)
+                    if sub_item.widget():
+                        sub_item.widget().deleteLater()
+                child_layout.deleteLater()
+            elif item.widget():
+                item.widget().deleteLater()
+        self.package_input_rows.clear()
 
     def create_package_section(self, name):
         section = QFrame()
@@ -1118,43 +1151,32 @@ class ClientLogisticsWidget(QWidget):
         package_name = dialog.get_name()
         if not package_name:
             return
+        while package_name in names:
+            QMessageBox.information(
+            self,
+            "ERROR",
+            f"The package name {package_name} is already existent" 
+            )
+            dialog = NameInputDialog()
+            package_name = dialog.get_name()
+        names.append(package_name)
+        added_packages[package_name] = package_contents
 
-        packageid = idgenerator.generate_id("^C[A-Z0-9]{5}$", packageids)
-        packageids.append(packageid)
-
-        try:
-            # Insert package into DB
-            cur.execute('CALL "EMIR".Colis_INS(%s, %s)', (packageid, package_name))
-
-            for lot_obj in package_contents:
-                lot_id = idgenerator.generate_id("^L[A-Z0-9]{5}$", lotids)
-                lotids.append(lot_id)
-                # Insert lot into DB
-                cur.execute('CALL "EMIR".Lot_INS(%s, %s, %s)', (lot_id, lot_obj.quantity, lot_obj.product_id))
-                # Link lot to package
-                cur.execute('CALL "EMIR".Contenir_INS(%s, %s)', (lot_id, packageid))
-            conn.commit()
-
-            added_packages[package_name] = package_contents # Store in memory for immediate use
 
             # Update the package combo box in the 'Send a Package' section
-            send_widget = self.parent().findChild(ClientLogisticsWidget, "clientLogisticsWidget")
-            if send_widget and hasattr(send_widget, 'package_to_send_combo'): # Corrected attribute name
-                send_widget.package_to_send_combo.addItem(package_name, packageid)
+        send_widget = self.parent().findChild(ClientLogisticsWidget, "clientLogisticsWidget")
+        if send_widget and hasattr(send_widget, 'package_to_send_combo'): # Corrected attribute name
+            send_widget.package_to_send_combo.addItem(package_name)
 
-            QMessageBox.information(
-                self,
-                "Package Created",
-                f"Package '{package_name}' (ID: {packageid}) created successfully with:\n" + "\n".join([str(lot) for lot in package_contents])
-            )
+        QMessageBox.information(
+            self,
+            "Package Created",
+            f"Package '{package_name}' created successfully with:\n" + "\n".join([str(lot) for lot in package_contents])
+        )
 
             # Clear the package creation rows after successful creation
-            for row_layout in list(self.package_input_rows): # Iterate over a copy
-                self.remove_product_row(row_layout)
+        self.clear_package_rows()
 
-        except psycopg2.Error as e:
-            conn.rollback()
-            QMessageBox.critical(self, "Database Error", f"Failed to create package: {e}")
 
     def create_send_section(self, name):
         section = QFrame()
@@ -1195,15 +1217,13 @@ class ClientLogisticsWidget(QWidget):
         self.package_to_send_combo = QComboBox()
         self.package_to_send_combo.addItem("— Select a package —", None)
         # Populate with existing packages from DB
-        for pkg in colis_db:
-             self.package_to_send_combo.addItem(str(pkg[1]), pkg[0]) # Assuming pkg[1] is name, pkg[0] is ID
+        for i, pkg in added_packages.items():
+            self.package_to_send_combo.addItem(i)  # pkg = nom visible, i = ID
 
-        form.addWidget(QLabel("Transporting Org:"), 0, 0)
-        form.addWidget(self.transporting_org_combo, 0, 1)
-        form.addWidget(QLabel("Receiving Org:"), 1, 0)
-        form.addWidget(self.receiving_org_combo, 1, 1)
-        form.addWidget(QLabel("Choose a Package:"), 2, 0)
-        form.addWidget(self.package_to_send_combo, 2, 1)
+        form.addWidget(QLabel("Receiving Org:"), 0, 0)
+        form.addWidget(self.receiving_org_combo, 0, 1)
+        form.addWidget(QLabel("Choose a Package:"), 1, 0)
+        form.addWidget(self.package_to_send_combo, 1, 1)
         layout.addLayout(form)
 
         # Apply styling to combos
@@ -1254,27 +1274,51 @@ class ClientLogisticsWidget(QWidget):
         layout.addStretch()
         return section
 
+
     def send_package(self):
-        transport_org_id = self.transporting_org_combo.currentData()
         receive_org_id = self.receiving_org_combo.currentData()
-        package_id = self.package_to_send_combo.currentData()
-
-        if not transport_org_id or not receive_org_id or not package_id:
-            QMessageBox.warning(self, "Input Error", "Please select a transporting organization, receiving organization, and a package.")
+        package_id = self.package_to_send_combo.currentText()  # key from added_packages is the name, not the ID
+        lots = added_packages.get(package_id)
+    
+        if not lots:
+            QMessageBox.warning(self, "Missing", "No lots found for selected package.")
             return
-
+    
+        for lot in lots:
+            try:
+                cur.execute(
+                    'CALL "EMIR".PLot_INS(%s, %s, %s, %s, %s)',
+                    (
+                        idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids),
+                        lot.id,                         # _idproduit
+                        str(lot.quantity),              # _quantite
+                        datetime.date.today().isoformat(),  # _date_creation
+                        "envoyé"                        # _statut
+                    )
+                )
+            except psycopg2.Error as e:
+                conn.rollback()
+                QMessageBox.critical(self, "Database Error", f"Failed to send lot: {e}")
+                return
+    
         try:
-            cur.execute('CALL "EMIR".BonExpedition_INS(%s, %s, %s, %s, %s)',
-                        (idgenerator.generate_id("^BE[0-9]{4}$", []), # Dummy ID for BonExpedition
-                         datetime.datetime.now().strftime('%Y-%m-%d'),
-                         transport_org_id,
-                         receive_org_id,
-                         package_id))
+            cur.execute('CALL "EMIR".PC_INS(%s, %s, %s, %s)',
+                (
+                    idgenerator.generate_id("^BE[0-9]{4}$", []),  # Dummy ID for BonExpedition
+                    datetime.date.today().isoformat(),
+                    receive_org_id,
+                    package_id
+                )
+            )
             conn.commit()
-            QMessageBox.information(self, "Success", f"Package {self.package_to_send_combo.currentText()} sent successfully from {self.transporting_org_combo.currentText()} to {self.receiving_org_combo.currentText()}.")
+            QMessageBox.information(
+                self,
+                "Success",
+                f"Package '{package_id}' sent successfully from {self.transporting_org_combo.currentText()} to {self.receiving_org_combo.currentText()}."
+            )
         except psycopg2.Error as e:
             conn.rollback()
-            QMessageBox.critical(self, "Database Error", f"Failed to send package: {e}")
+            QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
 
 class ClientOrderManagementWidget(QWidget):
     """Widget for managing client orders."""
