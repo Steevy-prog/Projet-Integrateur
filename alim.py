@@ -22,7 +22,7 @@ conn = psycopg2.connect(
     host="localhost",
     database="postgres",
     user = "postgres",
-    password = "1234",
+    password = "steevy",
     port=5432
 )
 
@@ -208,15 +208,15 @@ insert('"SCA".InventaireEmplacement',
         for i in sc["InventaireEmplacement"]])
 
 insert('"SCA".Tache',
-       ["idtache", "idtravailleur", "idcellule", "idlot", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
+       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estime", "description", "priority", "statut", "type"],
        [(
            t["idtache"],
            t["idtravailleur"],
            t["idcellule"],
-           t["idlot"],
+           t["idcolis"],
            t["date_creation"],
            t["date_echeance"],
-           t["duree_estimee"],
+           t["duree_estime"],
            t["description"],
            t["priority"],
            t["statut"],

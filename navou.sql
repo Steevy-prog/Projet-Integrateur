@@ -172,6 +172,7 @@ CREATE TABLE "SCA".individu(
                                idindividu "SCA".IDindividu NOT NULL ,
                                nom "SCA".Nom NOT NULL ,
                                prenom "SCA".Nom NOT NULL ,
+                               adresse "SCA".Adresse NOT NULL ,
                                telephone "SCA".Numero NOT NULL ,
                                CONSTRAINT individu_CC0 PRIMARY KEY (idindividu)
 );
@@ -207,14 +208,12 @@ CREATE TABLE "SCA".Conducteur(
 CREATE TABLE "SCA".Bonreception(
                                    idbonreception "SCA".Bonrecep NOT NULL ,
                                    idcolis "SCA".Idcolis NOT NULL ,
-                                   idtransporteur "SCA".idconducteur NOT NULL ,
                                    date_creation DATE NOT NULL ,
                                    idfournisseur "SCA".idorg NOT NULL ,
                                    statut "SCA".etat NOT NULL ,
                                    remarques TEXT NOT NULL ,
                                    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
                                    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-                                   FOREIGN KEY (idtransporteur)REFERENCES "SCA".conducteur(idconducteur)ON DELETE CASCADE,
                                    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Bonexpedition(
@@ -271,10 +270,7 @@ CREATE TABLE "SCA".Lot(
                           idproduit "SCA".Idproduit NOT NULL ,
                           quantite "SCA".dims NOT NULL ,
                           date_creation date NOT NULL ,
-                          statut "SCA".etat NOT NULL ,
-                          origine "SCA".etat_lot DEFAULT 'standard',
-                          nombre_utilisations INTEGER DEFAULT 0,
-                          condition "SCA".condition_materiel DEFAULT 'utilisable',
+                          statut "SCA".etat_lot DEFAULT 'standard',
                           CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
                               ON DELETE CASCADE
@@ -1392,7 +1388,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_INS(
     _idbonreception text,
     _idcolis text,
-    _idtransporteur text,
     _date_creation text,
     _idfournisseur text,
     _statut text,
@@ -1400,7 +1395,7 @@ create or replace procedure "EMIR".Bonreception_INS(
 )
 as $$
 begin
-    insert into "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
+    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -1424,10 +1419,11 @@ create or replace procedure "EMIR".Individu_INS(
     _nom text,
     _prenom text,
     _telephone text,
+    _adresse text
 )
 as $$
 begin
-    insert into "SCA".Individu(idindividu, nom, prenom, telephone) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone));
+    insert into "SCA".Individu(idindividu, nom, prenom, telephone, adresse) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone), "SCA".adresse_conv(_adresse));
 end; $$ language plpgsql;
 
 -- 8. REPERTOIRE
@@ -1696,7 +1692,6 @@ create or replace function "EMIR".Bonreception_EVA()
     returns table (
                       idbonreception "SCA".Bonrecep,
                       idcolis "SCA".Idcolis,
-                      idtransporteur "SCA".idconducteur,
                       date_creation date,
                       idfournisseur "SCA".idOrg,
                       statut "SCA".etat,
@@ -1727,6 +1722,7 @@ create or replace function "EMIR".Individu_EVA()
                       idindividu "SCA".IDindividu,
                       nom "SCA".Nom,
                       prenom "SCA".Nom,
+                      adresse "SCA".Adresse,
                       telephone "SCA".Numero
                   ) as $$
 begin
@@ -2267,7 +2263,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_MOD(
     _idbonreception "SCA".Bonrecep,
     _idcolis "SCA".Idcolis,
-    _idtransporteur "SCA".idOrg,
     _date_creation date,
     _idfournisseur "SCA".idOrg,
     _statut "SCA".etat,
@@ -2277,7 +2272,6 @@ as $$
 begin
     update "SCA".Bonreception
     SET idcolis = "SCA".Idcolis_CONV(_idcolis),
-        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
         date_creation = _date_creation::date,
         idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
         statut = _statut::"SCA".etat,
@@ -2311,12 +2305,14 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Individu_MOD(
     _idindividu "SCA".IDindividu,
     _nom "SCA".Nom,
+    _adresse "SCA".Adresse,
     _telephone "SCA".Numero
 )
 as $$
 begin
     update "SCA".Individu
     SET nom = "SCA".Nom_CONV(_nom),
+        adresse = "SCA".Adresse_CONV(_adresse),
         telephone = "SCA".Numero_CONV(_telephone)
     WHERE idindividu = "SCA".IDindividu_CONV(_idindividu);
 end; $$ language plpgsql;
@@ -2586,7 +2582,8 @@ CREATE OR REPLACE FUNCTION "EMIR".inscrire_utilisateur(
     _nom TEXT,
     _prenom TEXT,
     _email TEXT,
-    _mot_de_passe TEXT
+    _mot_de_passe TEXT,
+    _niveau_acces TEXT
 )
 RETURNS TEXT AS $$
 DECLARE
@@ -2602,10 +2599,10 @@ BEGIN
     -- Insérer l'utilisateur (données de profil uniquement)
     INSERT INTO "SCA".Utilisateur(
         idutilisateur, idindividu, username,
-        statut, niveau_acces
+        statut, _niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
-        'en attente_validation', 'employe'
+        'en attente_validation', _niveau_access
     );
 
     -- Insérer les credentials (données d'authentification)
@@ -3308,9 +3305,9 @@ INSERT INTO "SCA".Organisation(idorganisation, nom, telephone, type) VALUES
 ('OFGHIJ', 'Logistique Nord', '697987654', 'destinataire'),
 ('OKLMNO', 'SAC Central', '695112233', 'SAC');
 
-INSERT INTO "SCA".individu(idindividu, nom, prenom, telephone) VALUES
-('IABCDE', 'TONGOUE', 'Steevy',  '699556677'),
-('I12345', 'Ndongo', 'Paul',  '690112233');
+INSERT INTO "SCA".individu(idindividu, nom, prenom, adresse, telephone) VALUES
+('IABCDE', 'TONGOUE', 'Steevy', 'Douala', '699556677'),
+('I12345', 'Ndongo', 'Paul', 'Yaoundé', '690112233');
 
 INSERT INTO "SCA".Utilisateur(idutilisateur, idindividu, username) VALUES
 ('UAAAAA', 'IABCDE', 'steevy'),
@@ -3338,8 +3335,8 @@ INSERT INTO "SCA".ProduitLogiciel(idproduit, version, license) VALUES
 ('PBBBBB', 'v2.1', 'LIC-STK-21');
 
 INSERT INTO "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) VALUES
-('LAAAAA', 'PAAAAA', 200.0, '2025-06-01', 'bon etat'),
-('LBBBBB', 'PBBBBB', 50.0, '2025-06-02', 'bon etat');
+('LAAAAA', 'PAAAAA', 200.0, '2025-06-01', 'neuf'),
+('LBBBBB', 'PBBBBB', 50.0, '2025-06-02', 'neuf');
 
 INSERT INTO "SCA".Colis(idcolis, date_creation, statut) VALUES
 ('CO12345', '2025-06-10', 'Attente'),
@@ -3357,8 +3354,8 @@ INSERT INTO "CREDENTIALS".Credentials (email, mot_de_passe_hash, idutilisateur)
 VALUES ('steevy@example.com', 'motdepasse', 'UAAAAA');
 
 -- Réception de colis
-INSERT INTO "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) VALUES
-('RABCDE', 'CO12345', 'CD1234', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
+INSERT INTO "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) VALUES
+('RABCDE', 'CO12345', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
 
 -- Expédition de colis
 INSERT INTO "SCA".Bonexpedition(idbonexpedition, idcolis, idtransporteur, date_creation, iddestinataire, statut, remarques) VALUES
@@ -3434,3 +3431,51 @@ return query
     where "SCA".ContenuColis.idcolis = _idcolis;
 end;
 $$ language plpgsql;
+
+create or replace procedure "EMIR".supprimer_utilisateur(_idutilisateur "SCA".idutilisateur)
+as $$
+begin
+delete from "EMIR".Utilisateur where idutilisateur = _idutilisateur;
+end;
+$$ language plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Modifier_utilisateur(
+    _idutilisateuranc "SCA".idutilisateur,
+    _idutilisateurnouv "SCA".idutilisateur,
+    nom "SCA".nom,
+    prenom "SCA".nom,
+    email "SCA".email,
+    _niveau_acces text,
+    _mot_de_passe text
+)
+AS $$
+BEGIN
+    -- Vérification du mot de passe
+    IF encode(digest(_mot_de_passe, 'sha256'), 'hex') = (
+        SELECT mot_de_passe
+        FROM "CREDENTIALS".Credentials
+        WHERE idutilisateur = _idutilisateuranc
+    ) THEN
+        -- Appel de la procédure Utilisateur_MOD
+        CALL "EMIR".Utilisateur_MOD(
+            _idutilisateurnouv,
+            nom, -- si nom = username
+            'actif', -- ou autre valeur de statut à définir
+            _niveau_acces
+        );
+
+        -- Si ID utilisateur change, mise à jour des IDs liés
+        IF _idutilisateuranc <> _idutilisateurnouv THEN
+            UPDATE "SCA".Utilisateur
+            SET idutilisateur = _idutilisateurnouv
+            WHERE idutilisateur = _idutilisateuranc;
+
+            UPDATE "CREDENTIALS".Credentials
+            SET idutilisateur = _idutilisateurnouv
+            WHERE idutilisateur = _idutilisateuranc;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
