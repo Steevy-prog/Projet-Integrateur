@@ -60,8 +60,8 @@ orgs = cur.fetchall() # All organizations from the database
 cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".PLot_EVA() AS p;")
-lots_db = cur.fetchall() # Existing products from the database
+#cur.execute("SELECT (p).* FROM \"EMIR\".PLot_EVA() AS p;")
+#lots_db = cur.fetchall() # Existing products from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
 produits_db = cur.fetchall() # Existing products from the database
