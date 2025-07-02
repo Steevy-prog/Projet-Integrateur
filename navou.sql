@@ -2909,7 +2909,6 @@ RETURNS TABLE (
     username "SCA".username,
     nom "SCA".Nom,
     prenom "SCA".Nom,
-    email "SCA".email,
     niveau_acces "SCA".niveau_acces,
     statut "SCA".statut_utilisateur,
     date_inscription timestamp,
