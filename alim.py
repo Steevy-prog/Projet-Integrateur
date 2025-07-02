@@ -287,7 +287,23 @@ insert('"CREDENTIALS".application_theme',
        [(t["theme_name"], t["window"], t["theme_qss"])
         for t in data["application_theme"]])
 
+ext = data["EXTERNE"]
 
+insert('"EXTERNE".Lot',
+       ["idlot", "idproduit", "quantite", "date_creation", "statut"],
+       [(l["idlot"], l["idproduit"], l["quantite"], l["date_creation"],
+         l["statut"])
+        for l in sc["Lot"]])
+
+insert('"EXTERNE".Colis',
+       ["idpcolis", "date_creation", "statut"],
+       [(c["idcolis"], c["date_creation"], c["statut"])
+        for c in sc["Colis"]])
+
+insert('"EXTERNE".ContenuColis',
+       ["idcolis", "idlot", "quantite", "date_maj"],
+       [(c["idorg"],c["idcolis"], c["idlot"], c["quantite"], c["date_MAJ"])
+        for c in ext["ContenuColis"]])
 
 
 # ✅ Finalisation

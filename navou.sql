@@ -3639,3 +3639,15 @@ as $$
 begin
     insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, quantite, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idcolis), "EXTERNE".idplot_conv(_idlot), "SCA".dims_conv(_quantite), _date_MAJ::date);
 end; $$ language plpgsql;
+
+create or replace procedure "EMIR".getnameandid()
+returns table(
+id "SCA".idindividu,
+name "SCA"nom,
+prenom "SCA".nom
+)
+as $$
+begin
+select idindividu,nom,prenom from "SCA".individu;
+end;
+$$ language plpgsql;

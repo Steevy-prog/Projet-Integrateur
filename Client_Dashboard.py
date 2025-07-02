@@ -1283,27 +1283,10 @@ class ClientLogisticsWidget(QWidget):
         if not lots:
             QMessageBox.warning(self, "Missing", "No lots found for selected package.")
             return
-    
-        for lot in lots:
-            try:
-                cur.execute(
-                    'CALL "EMIR".PLot_INS(%s, %s, %s, %s, %s)',
-                    (
-                        idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids),
-                        lot.id,                         # _idproduit
-                        str(lot.quantity),              # _quantite
-                        datetime.date.today().isoformat(),  # _date_creation
-                        "envoyé"                        # _statut
-                    )
-                )
-            except psycopg2.Error as e:
-                conn.rollback()
-                QMessageBox.critical(self, "Database Error", f"Failed to send lot: {e}")
-                return
-    
+        
         try:
-            cur.execute('CALL "EMIR".PC_INS(%s, %s, %s, %s)',
-                (
+            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s)',
+                (   client_org_id,
                     idgenerator.generate_id("^BE[0-9]{4}$", []),  # Dummy ID for BonExpedition
                     datetime.date.today().isoformat(),
                     receive_org_id,
@@ -1311,14 +1294,45 @@ class ClientLogisticsWidget(QWidget):
                 )
             )
             conn.commit()
+        except psycopg2.Error as e:
+            conn.rollback()
+            QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
+    
+        for lot in lots:
+            try:
+                cur.execute(
+                    'CALL "EMIR".PLot_INS(%s, %s, %s, %s, %s)',
+                    (   client_org_id,
+                        idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids),
+                        lot.id,                         # _idproduit
+                        str(lot.quantity),              # _quantite
+                        datetime.date.today().isoformat(),  # _date_creation
+                        "envoyé"                        # _statut
+                    )
+                )
+                conn.commit()
+                cur.execute(
+                    'CALL "EMIR".PLot_INS(%s, %s, %s, %s, %s)',
+                    (   client_org_id,
+                        idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids),
+                        lot.id,                         # _idproduit
+                        str(lot.quantity),              # _quantite
+                        datetime.date.today().isoformat(),  # _date_creation
+                        "envoyé"                        # _statut
+                    )
+                )
+                conn.commit()
+            except psycopg2.Error as e:
+                conn.rollback()
+                QMessageBox.critical(self, "Database Error", f"Failed to send lot: {e}")
+                return
+    
             QMessageBox.information(
                 self,
                 "Success",
                 f"Package '{package_id}' sent successfully from {self.transporting_org_combo.currentText()} to {self.receiving_org_combo.currentText()}."
             )
-        except psycopg2.Error as e:
-            conn.rollback()
-            QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
+
 
 class ClientOrderManagementWidget(QWidget):
     """Widget for managing client orders."""
