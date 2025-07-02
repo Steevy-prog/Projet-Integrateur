@@ -1423,7 +1423,7 @@ create or replace procedure "EMIR".Individu_INS(
     _idindividu text,
     _nom text,
     _prenom text,
-    _telephone text,
+    _telephone text
 )
 as $$
 begin
@@ -2586,7 +2586,7 @@ CREATE OR REPLACE FUNCTION "EMIR".inscrire_utilisateur(
     _nom TEXT,
     _prenom TEXT,
     _email TEXT,
-    _mot_de_passe TEXT
+    _mot_de_passe TEXT,
     _niveau_acces TEXT
 )
 RETURNS TEXT AS $$
