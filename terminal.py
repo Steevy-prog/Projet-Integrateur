@@ -547,11 +547,6 @@ class AutomationPage(QWidget):
         self.btn_generate_monthly_report.clicked.connect(self._generate_monthly_report)
         tasks_layout.addWidget(self.btn_generate_monthly_report)
 
-        self.btn_low_stock_notification = QPushButton("Trigger Low Stock Notifications")
-        self.btn_low_stock_notification.setObjectName("primaryButton")
-        self.btn_low_stock_notification.clicked.connect(self._trigger_low_stock_notifications)
-        tasks_layout.addWidget(self.btn_low_stock_notification)
-
         # Add a few more placeholder buttons to ensure scrolling is evident
         self.btn_data_backup = QPushButton("Perform Database Backup")
         self.btn_data_backup.setObjectName("primaryButton")
