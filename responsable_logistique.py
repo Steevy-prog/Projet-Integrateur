@@ -1298,10 +1298,6 @@ class LogisticsMainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         
         # Timer pour le rafraîchissement des données
-        self.timer = QTimer(self)
-        self.timer.setInterval(60000)  # 1 minute
-        self.timer.timeout.connect(self.refresh_data)
-        self.timer.start()
     
     def refresh_data(self):
         print("Actualisation des données...")

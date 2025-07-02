@@ -1,6 +1,7 @@
  --script de création du schéma de base
 --domaines, types, tables
-
+DROP SCHEMA IF EXISTS "EXTERNE" CASCADE;
+CREATE SCHEMA "EXTERNE";
 DROP SCHEMA IF EXISTS "SCA" CASCADE;
 CREATE SCHEMA "SCA";
 DROP SCHEMA IF EXISTS "CREDENTIALS" CASCADE;
@@ -44,6 +45,9 @@ CREATE DOMAIN "SCA".Bonrecep TEXT CHECK (
 CREATE DOMAIN "SCA".Idcolis TEXT CHECK (
     VALUE~ '^CO[A-Z0-9]{5}$'
     );
+CREATE DOMAIN "EXTERNE".Idpcolis TEXT CHECK (
+    VALUE~ '^PCO[A-Z0-9]{5}$'
+    );
 CREATE DOMAIN "SCA".Idcellule TEXT CHECK (
     VALUE~ '^C[A-Z0-9]{5}$'
     );
@@ -62,6 +66,9 @@ CREATE DOMAIN "SCA".Adresse TEXT CHECK (
     );
 CREATE DOMAIN "SCA".Idlot TEXT CHECK(
     VALUE ~ '^L[A-Z0-9]{5}$'
+    );
+CREATE DOMAIN "EXTERNE".Idplot TEXT CHECK(
+    VALUE ~ '^PL[A-Z0-9]{5}$'
     );
 CREATE DOMAIN "SCA".Idproduit TEXT CHECK(
     VALUE ~ '^P[A-Z0-9]{5}$'
@@ -162,6 +169,12 @@ CREATE TABLE "SCA".Colis(
                             date_creation date NOT NULL ,
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
+);
+CREATE TABLE "EXTERNE".Colis(
+                            idpcolis "EXTERNE".Idpcolis NOT NULL ,
+                            date_creation date NOT NULL ,
+                            statut "SCA".etatcolis NOT NULL ,
+                            CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
 CREATE TABLE "SCA".Zone(
                            idzone "SCA".Idzone NOT NULL ,
@@ -275,15 +288,36 @@ CREATE TABLE "SCA".Lot(
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
                               ON DELETE CASCADE
 );
+CREATE TABLE "EXTERNE".Lot(
+                          idplot "EXTERNE".idplot NOT NULL ,
+                          idproduit "SCA".Idproduit NOT NULL ,
+                          quantite "SCA".dims NOT NULL ,
+                          date_creation date NOT NULL ,
+                          statut "SCA".etat_lot DEFAULT 'standard',
+                          CONSTRAINT PLot_CC0 PRIMARY KEY (idplot),
+                          FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
+                              ON DELETE CASCADE
+);
 
 CREATE TABLE "SCA".ContenuColis(
                                    idcolis "SCA".Idcolis NOT NULL ,
                                    idlot "SCA".Idlot NOT NULL ,
                                    quantite "SCA".dims NOT NULL ,
                                    date_MAJ date NOT NULL ,
-                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot,quantite),
+                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot),
                                    CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE,
                                    FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot)
+                                       ON DELETE CASCADE
+);
+CREATE TABLE "EXTERNE".ContenuColis(
+                                   idorg "SCA".idorg,
+                                   idpcolis "EXTERNE".Idpcolis NOT NULL ,
+                                   idplot "EXTERNE".Idplot NOT NULL ,
+                                   quantite "SCA".dims NOT NULL ,
+                                   date_MAJ date NOT NULL ,
+                                   CONSTRAINT contenucolis_CC0 PRIMARY KEY (idorg,idpcolis,idplot),
+                                   CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idpcolis) REFERENCES "EXTERNE".Colis(idpcolis) ON DELETE CASCADE,
+                                   FOREIGN KEY (idplot) REFERENCES "EXTERNE".Lot(idplot)
                                        ON DELETE CASCADE
 );
 
@@ -1646,7 +1680,6 @@ create or replace function "EMIR".Organisation_EVA()
                       idorganisation "SCA".idOrg,
                       nom "SCA".Nom,
                       telephone "SCA".Numero,
-                      adresse "SCA".Adresse,
                       type "SCA".typeOrg
                   ) as $$
 begin
@@ -1671,7 +1704,7 @@ create or replace function "EMIR".Colis_EVA()
     returns table (
                       idcolis "SCA".Idcolis,
                       date_creation date,
-                      statut "SCA".etat
+                      statut "SCA".etatcolis
                   ) as $$
 begin
     return query select * from "SCA".Colis;
