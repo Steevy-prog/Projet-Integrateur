@@ -208,14 +208,12 @@ CREATE TABLE "SCA".Conducteur(
 CREATE TABLE "SCA".Bonreception(
                                    idbonreception "SCA".Bonrecep NOT NULL ,
                                    idcolis "SCA".Idcolis NOT NULL ,
-                                   idtransporteur "SCA".idconducteur NOT NULL ,
                                    date_creation DATE NOT NULL ,
                                    idfournisseur "SCA".idorg NOT NULL ,
                                    statut "SCA".etat NOT NULL ,
                                    remarques TEXT NOT NULL ,
                                    CONSTRAINT Bonreception_CC0 PRIMARY KEY(idbonreception),
                                    FOREIGN KEY (idcolis)REFERENCES "SCA".Colis(idcolis),
-                                   FOREIGN KEY (idtransporteur)REFERENCES "SCA".conducteur(idconducteur)ON DELETE CASCADE,
                                    FOREIGN KEY (idfournisseur)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Bonexpedition(
@@ -1390,7 +1388,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_INS(
     _idbonreception text,
     _idcolis text,
-    _idtransporteur text,
     _date_creation text,
     _idfournisseur text,
     _statut text,
@@ -1398,7 +1395,7 @@ create or replace procedure "EMIR".Bonreception_INS(
 )
 as $$
 begin
-    insert into "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
+    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -1695,7 +1692,6 @@ create or replace function "EMIR".Bonreception_EVA()
     returns table (
                       idbonreception "SCA".Bonrecep,
                       idcolis "SCA".Idcolis,
-                      idtransporteur "SCA".idconducteur,
                       date_creation date,
                       idfournisseur "SCA".idOrg,
                       statut "SCA".etat,
@@ -2267,7 +2263,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_MOD(
     _idbonreception "SCA".Bonrecep,
     _idcolis "SCA".Idcolis,
-    _idtransporteur "SCA".idOrg,
     _date_creation date,
     _idfournisseur "SCA".idOrg,
     _statut "SCA".etat,
@@ -2277,7 +2272,6 @@ as $$
 begin
     update "SCA".Bonreception
     SET idcolis = "SCA".Idcolis_CONV(_idcolis),
-        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
         date_creation = _date_creation::date,
         idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
         statut = _statut::"SCA".etat,
@@ -3360,8 +3354,8 @@ INSERT INTO "CREDENTIALS".Credentials (email, mot_de_passe_hash, idutilisateur)
 VALUES ('steevy@example.com', 'motdepasse', 'UAAAAA');
 
 -- Réception de colis
-INSERT INTO "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) VALUES
-('RABCDE', 'CO12345', 'CD1234', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
+INSERT INTO "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) VALUES
+('RABCDE', 'CO12345', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
 
 -- Expédition de colis
 INSERT INTO "SCA".Bonexpedition(idbonexpedition, idcolis, idtransporteur, date_creation, iddestinataire, statut, remarques) VALUES

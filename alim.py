@@ -208,7 +208,7 @@ insert('"SCA".InventaireEmplacement',
         for i in sc["InventaireEmplacement"]])
 
 insert('"SCA".Tache',
-       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
+       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estime", "description", "priority", "statut", "type"],
        [(
            t["idtache"],
            t["idtravailleur"],
@@ -216,7 +216,7 @@ insert('"SCA".Tache',
            t["idcolis"],
            t["date_creation"],
            t["date_echeance"],
-           t["duree_estimee"],
+           t["duree_estime"],
            t["description"],
            t["priority"],
            t["statut"],
