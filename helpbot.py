@@ -37,7 +37,7 @@ class WorkerThread(QThread):
 class ChatBot(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gemini Help Chatbot")
+        self.setWindowTitle("SCA AI help Chatbot")
         self.resize(400, 450)
 
         # Card frame

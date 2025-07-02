@@ -2587,6 +2587,7 @@ CREATE OR REPLACE FUNCTION "EMIR".inscrire_utilisateur(
     _prenom TEXT,
     _email TEXT,
     _mot_de_passe TEXT
+    _niveau_acces TEXT
 )
 RETURNS TEXT AS $$
 DECLARE
@@ -2602,10 +2603,10 @@ BEGIN
     -- Insérer l'utilisateur (données de profil uniquement)
     INSERT INTO "SCA".Utilisateur(
         idutilisateur, idindividu, username,
-        statut, niveau_acces
+        statut, _niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
-        'en attente_validation', 'employe'
+        'en attente_validation', _niveau_access
     );
 
     -- Insérer les credentials (données d'authentification)
