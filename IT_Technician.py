@@ -1,4 +1,6 @@
 import sys
+import re
+import rstr
 import psycopg2
 from psycopg2 import Error
 from PyQt6.QtWidgets import (
@@ -59,6 +61,7 @@ class AccountSettingsPage(QWidget):
             "password_expiration_days": 0
         }
         self.db_connection = db_connection
+        self.id_bank = []
         self._setup_ui()
 
     def _setup_ui(self):
@@ -99,10 +102,24 @@ class AccountSettingsPage(QWidget):
         self.main_layout.addLayout(self.content_grid_layout)
         self._load_password_policy()
 
+    def generate_id(self, pattern: str, existing_ids: list[str]) -> str:
+        """
+        Generate a random string that matches the given regex pattern.
+        Example pattern: '[A-Z]{3}[0-9]{4}'
+        """
+        try:
+            new_id = rstr.xeger(pattern)
+            while new_id in existing_ids:
+                new_id = rstr.xeger(pattern)
+            return new_id
+        except Exception as e:
+            QMessageBox.information(self, "Error", f"{e}")
+            return None
+        
     def extract_employee_data(self, connection):
         try:
             cursor = connection.cursor()
-            query = f"SELECT * FROM Users"
+            query = f"SELECT nom, prenom, username, email, niveau_acces, idutilisateur FROM \"EMIR\".lister_utilisateurs()"
             cursor.execute(query)
             rows = cursor.fetchall()
             employee_data = []
@@ -111,8 +128,11 @@ class AccountSettingsPage(QWidget):
                     "first_name": row[0],
                     "last_name": row[1],
                     "username": row[2],
-                    "access_level": row[3],
+                    "email": row[3],
+                    "access_level": row[4],
+                    "id": row[5]
                 }
+                self.id_bank.append(row[5])
                 employee_data.append(employee)
             return employee_data
         except Error as e:
@@ -186,48 +206,46 @@ class AccountSettingsPage(QWidget):
     def is_employee_present(self, username):
         try:
             cursor = db_connection.cursor()
-            query = f"SELECT * FROM Users WHERE username = %s"
-            cursor.execute(query, (username,))
+            query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
+            cursor.execute(query, (username))
             result = cursor.fetchone()
             if result:
                 return True
         except Error as e:
-            print(f"Error checking for existing employee: {e}")
-            QMessageBox.critical(self, "Database Error", "Failed to check for existing employee in the database.")
+            QMessageBox.critical(self, "Database Error", f"Failed to check for existing employee in the database.\n {e}")
         finally:
             if cursor:
                 cursor.close()
         return False
 
-    def add_employee_to_db(self, first_name, last_name, username, access_level):
+    def add_employee_to_db(self, id, first_name, last_name, username, email, password, access_level):
         try:
             cursor = db_connection.cursor()
             insert_query = f"""
-                INSERT INTO Users (first_name, last_name, username, access_level)
-                VALUES (%s, %s, %s, %s);
+                SELECT "EMIR".inscrire_utilisateur ({id}, {username}, {first_name}, {last_name}, {email}, {password}, {access_level});
             """
-            cursor.execute(insert_query, (first_name, last_name, username, access_level))
+            cursor.execute(insert_query)
             db_connection.commit()
-            print(f"Employee {username} added successfully.")
+            cursor.close()
+            return True
         except Error as e:
-            print(f"Error adding employee: {e}")
-        finally:
-            if cursor:
-                cursor.close()
+            QMessageBox.warning(self, "Database Error", f"Error adding employee: {e}")
+            return False
+                
+                
 
-    def update_employee_in_db(self, original_username, first_name, last_name, username, access_level):
+    def update_employee_in_db(self, original_username, first_name, last_name, username, access_level, email, password):
         try:
             cursor = db_connection.cursor()
             update_query = f"""
-                UPDATE Users
-                SET first_name = %s, last_name = %s, username = %s, access_level = %s
-                WHERE username = %s;
+                SELECT "EMIR".Modifier_utilisateur({original_username}, {username}, {first_name}, {last_name}, {email}, {access_level}, {password});
+            )
             """
-            cursor.execute(update_query, (first_name, last_name, username, access_level, original_username))
+            cursor.execute(update_query)
             db_connection.commit()
-            print(f"Employee {username} updated successfully.")
+            QMessageBox.information(f"Employee {username} updated successfully.")
         except Error as e:
-            print(f"Error updating employee: {e}")
+            QMessageBox.warning(self, "Database Error", f"Error updating employee: {e}")
         finally:
             if cursor:
                 cursor.close()
@@ -255,14 +273,12 @@ class AccountSettingsPage(QWidget):
     def delete_employee_from_db(self, username):
         try:
             cursor = db_connection.cursor()
-            delete_query = f"DELETE FROM Users WHERE username = %s;"
-            cursor.execute(delete_query, (username,))
+            delete_query = f"SELECT \"EMIR\".supprimer_utilisateur({username});"
+            cursor.execute(delete_query)
             db_connection.commit()
-            print(f"Employee {username} deleted successfully.")
             return True
         except Error as e:
-            print(f"Error deleting employee: {e}")
-            QMessageBox.critical(self, "Database Error", "Failed to delete employee from the database.")
+            QMessageBox.critical(self, "Database Error", f"Error deleting employee: {e}")
             return False
         finally:
             if cursor:
@@ -277,11 +293,18 @@ class AccountSettingsPage(QWidget):
         self.edit_last_name_input.clear()
         self.edit_username_input.clear()
         self.edit_access_level_combobox.setCurrentIndex(0)
+        self.edit_email_input.clear()
+ 
+        self.edit_password_input.clear()
         self.save_changes_button.setEnabled(False)
+        
         self.delete_first_name.clear()
         self.delete_last_name.clear()
         self.delete_username.clear()
         self.delete_access_level.clear()
+        self.delete_email.clear()
+
+        
         self.delete_account_button.setEnabled(False)
 
     def _create_employee_card_widget(self, employee_data):
@@ -294,6 +317,7 @@ class AccountSettingsPage(QWidget):
         card_layout.addWidget(QLabel(f"<b>First Name:</b> {employee_data['first_name']}"))
         card_layout.addWidget(QLabel(f"<b>Last Name:</b> {employee_data['last_name']}"))
         card_layout.addWidget(QLabel(f"<b>Username:</b> {employee_data['username']}"))
+        card_layout.addWidget(QLabel(f"<b>Email:</b> {employee_data['email']}"))
         card_layout.addWidget(QLabel(f"<b>Access Level:</b> {employee_data['access_level']}"))
         return card_frame
 
@@ -308,26 +332,35 @@ class AccountSettingsPage(QWidget):
         layout.addWidget(title)
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
-        self.create_first_name_input = QLineEdit()
-        self.create_last_name_input = QLineEdit()
-        self.create_username_input = QLineEdit()
+
         self.create_password_input = QLineEdit()
         self.create_password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.create_confirm_password_input = QLineEdit()
         self.create_confirm_password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.create_admin_checkbox = QCheckBox("Create as admin account")
+        self.create_first_name_input = QLineEdit()
+        self.create_last_name_input = QLineEdit()
+        self.create_username_input = QLineEdit()
+        self.create_email_input = QLineEdit()
+        self.create_access_level_combobox = QComboBox()
+        self.create_access_level_combobox.addItems(["employee", "manager", "admin"])
         form_layout.addWidget(QLabel("First Name :"), 0, 0)
         form_layout.addWidget(self.create_first_name_input, 0, 1)
         form_layout.addWidget(QLabel("Last Name :"), 1, 0)
         form_layout.addWidget(self.create_last_name_input, 1, 1)
         form_layout.addWidget(QLabel("Username :"), 2, 0)
         form_layout.addWidget(self.create_username_input, 2, 1)
-        form_layout.addWidget(QLabel("Password :"), 3, 0)
-        form_layout.addWidget(self.create_password_input, 3, 1)
-        form_layout.addWidget(QLabel("Confirm :"), 4, 0)
-        form_layout.addWidget(self.create_confirm_password_input, 4, 1)
+        form_layout.addWidget(QLabel("Email :"), 3, 0)
+        form_layout.addWidget(self.create_email_input, 3, 1)
+        # form_layout.addWidget(QLabel("Telephone :"), 5, 0)
+        # form_layout.addWidget(self.create_telephone_input, 5, 1)
+        form_layout.addWidget(QLabel("Password :"), 4, 0)
+        form_layout.addWidget(self.create_password_input, 4, 1)
+        form_layout.addWidget(QLabel("Confirm Password:"), 5, 0)
+        form_layout.addWidget(self.create_confirm_password_input, 5, 1)
+        form_layout.addWidget(QLabel("Access Level :"), 6, 0)
+        form_layout.addWidget(self.create_access_level_combobox, 6, 1)
         layout.addLayout(form_layout)
-        layout.addWidget(self.create_admin_checkbox)
+        
         self.create_account_button = QPushButton("Create Account")
         self.create_account_button.setObjectName("primaryButton")
         self.create_account_button.clicked.connect(self._create_new_account)
@@ -336,6 +369,9 @@ class AccountSettingsPage(QWidget):
         return frame
 
     def _create_edit_account_section(self):
+        """
+        To Modify
+        """
         frame = QFrame()
         frame.setObjectName("sectionFrame")
         layout = QVBoxLayout(frame)
@@ -347,19 +383,29 @@ class AccountSettingsPage(QWidget):
         layout.addWidget(QLabel("Click on an employee card on the left to select an employee account."))
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
+        self.edit_password_input = QLineEdit()
+        self.edit_password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.edit_first_name_input = QLineEdit()
         self.edit_last_name_input = QLineEdit()
         self.edit_username_input = QLineEdit()
+        self.edit_email_input = QLineEdit()
         self.edit_access_level_combobox = QComboBox()
-        self.edit_access_level_combobox.addItems(["Employee", "Admin"])
+        self.edit_access_level_combobox.addItems(["employee", "manager", "admin"])
         form_layout.addWidget(QLabel("First Name :"), 0, 0)
         form_layout.addWidget(self.edit_first_name_input, 0, 1)
         form_layout.addWidget(QLabel("Last Name :"), 1, 0)
         form_layout.addWidget(self.edit_last_name_input, 1, 1)
         form_layout.addWidget(QLabel("Username :"), 2, 0)
         form_layout.addWidget(self.edit_username_input, 2, 1)
-        form_layout.addWidget(QLabel("Access Level :"), 3, 0)
-        form_layout.addWidget(self.edit_access_level_combobox, 3, 1)
+        form_layout.addWidget(QLabel("Email :"), 3, 0)
+        form_layout.addWidget(self.edit_email_input, 3, 1)
+        # form_layout.addWidget(QLabel("Telephone :"), 5, 0)
+        # form_layout.addWidget(self.edit_telephone_input, 5, 1)
+        form_layout.addWidget(QLabel("Password :"), 4, 0)
+        form_layout.addWidget(self.edit_password_input, 4, 1)
+        form_layout.addWidget(QLabel("Access Level :"), 6, 0)
+        form_layout.addWidget(self.edit_access_level_combobox, 6, 1)
+        
         layout.addLayout(form_layout)
         self.save_changes_button = QPushButton("Save Changes")
         self.save_changes_button.setObjectName("primaryButton")
@@ -385,14 +431,20 @@ class AccountSettingsPage(QWidget):
         self.delete_last_name = QLabel()
         self.delete_username = QLabel()
         self.delete_access_level = QLabel()
+        self.delete_email = QLabel()
+        
         form_layout.addWidget(QLabel("First Name :"), 0, 0)
         form_layout.addWidget(self.delete_first_name, 0, 1)
         form_layout.addWidget(QLabel("Last Name :"), 1, 0)
         form_layout.addWidget(self.delete_last_name, 1, 1)
         form_layout.addWidget(QLabel("Username :"), 2, 0)
         form_layout.addWidget(self.delete_username, 2, 1)
-        form_layout.addWidget(QLabel("Access Level :"), 3, 0)
-        form_layout.addWidget(self.delete_access_level, 3, 1)
+        form_layout.addWidget(QLabel("Email :"), 3, 0)
+        form_layout.addWidget(self.delete_email, 3, 1)
+        # form_layout.addWidget(QLabel("Telephone :"), 5, 0)
+        # form_layout.addWidget(self.delete_telephone, 5, 1)
+        form_layout.addWidget(QLabel("Access Level :"), 4, 0)
+        form_layout.addWidget(self.delete_access_level, 4, 1)
         layout.addLayout(form_layout)
         self.delete_account_button = QPushButton("Delete Account")
         self.delete_account_button.setObjectName("deleteButton")
@@ -403,7 +455,6 @@ class AccountSettingsPage(QWidget):
         return frame
 
     def _on_employee_card_clicked(self, employee_data, clicked_card):
-        print(f"Employee card clicked: {employee_data['username']}")
         for card in self.employee_cards:
             card.setProperty("selected", False)
             card.style().polish(card)
@@ -412,29 +463,48 @@ class AccountSettingsPage(QWidget):
         self.edit_first_name_input.setText(employee_data['first_name'])
         self.edit_last_name_input.setText(employee_data['last_name'])
         self.edit_username_input.setText(employee_data['username'])
-        index = self.edit_access_level_combobox.findText(employee_data['access_level'])
-        if index != -1:
-            self.edit_access_level_combobox.setCurrentIndex(index)
+        self.edit_email_input.setText(employee_data['email'])
+        self.edit_password_input.setText(employee_data['password'])
+        self.edit_access_level_combobox.setCurrentText(employee_data['access_level'])
         self.save_changes_button.setEnabled(True)
+        
         self.delete_first_name.setText(employee_data['first_name'])
         self.delete_last_name.setText(employee_data['last_name'])
         self.delete_username.setText(employee_data['username'])
+        self.delete_email.setText(employee_data['email'])
         self.delete_access_level.setText(employee_data['access_level'])
         self.delete_account_button.setEnabled(True)
+        
         self.current_selected_employee = employee_data
+    
+    def is_email_valid(self, email):
+        email_pattern = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
+        if email_pattern.match(email):
+            return True
+        else:
+            return False
     def _create_new_account(self):
         first_name = self.create_first_name_input.text().strip()
         last_name = self.create_last_name_input.text().strip()
         username = self.create_username_input.text().strip()
         password = self.create_password_input.text()
         confirm_password = self.create_confirm_password_input.text()
-        is_admin = self.create_admin_checkbox.isChecked()
+        access_level = self.create_access_level_combobox.currentText()
+        email = self.create_email_input.text().strip()
+        ID  = self.generate_id('^I[A-Z0-9]{5}$', self.id_bank)
+        
+        if ID not in self.id_bank:
+            self.id_bank.append(ID)
+        
         if self.is_employee_present(username):
             QMessageBox.warning(self, "Duplicate Username", f"An employee with username '{username}' already exists.")
             return
-        if not (first_name and last_name and username and password and confirm_password):
+        if not (first_name and last_name and username and password and confirm_password and email):
             QMessageBox.warning(self, "Input Error", "All fields must be filled to create an account.")
+            return
+        if not self.is_email_valid(email):
+            QMessageBox.warning(self, "Email Error", "Invalid email format.")
             return
         if password != confirm_password:
             QMessageBox.warning(self, "Input Error", "Passwords do not match.")
@@ -445,15 +515,16 @@ class AccountSettingsPage(QWidget):
             for error in error_list:
                 error_message += error + f"\n"
             QMessageBox.warning(self, "Invalid Password", error_message)
-        self.add_employee_to_db(first_name, last_name, username, "Admin" if is_admin else "Employee")
-        QMessageBox.information(self, "Account Created", f"Account for {username} created successfully!")
-        self.create_first_name_input.clear()
-        self.create_last_name_input.clear()
-        self.create_username_input.clear()
-        self.create_password_input.clear()
-        self.create_confirm_password_input.clear()
-        self.create_admin_checkbox.setChecked(False)
-        self._load_employee_data_from_db()
+            return
+        if self.add_employee_to_db(ID, first_name, last_name, username, email, password, access_level) :
+            QMessageBox.information(self, "Account Created", f"Account for {username} created successfully!")
+            self.create_first_name_input.clear()
+            self.create_last_name_input.clear()
+            self.create_username_input.clear()
+            self.create_password_input.clear()
+            self.create_confirm_password_input.clear()
+            self.create_email_input.clear()
+            self._load_employee_data_from_db()
 
     def _load_password_policy(self):
         cursor = None
@@ -507,11 +578,14 @@ class AccountSettingsPage(QWidget):
         new_first_name = self.edit_first_name_input.text().strip()
         new_last_name = self.edit_last_name_input.text().strip()
         new_username = self.edit_username_input.text().strip()
+        new_email = self.edit_email_input.text().strip()
+        new_password = self.edit_password_input.text().strip()
         new_access_level = self.edit_access_level_combobox.currentText()
-        if not (new_first_name and new_last_name and new_username):
+        
+        if not (new_first_name and new_last_name and new_username and  new_email):
             QMessageBox.warning(self, "Input Error", "First Name, Last Name, and Username cannot be empty.")
             return
-        self.update_employee_in_db(original_username, new_first_name, new_last_name, new_username, new_access_level)
+        self.update_employee_in_db(original_username, new_first_name, new_last_name, new_username, new_access_level, new_email, new_password)
         QMessageBox.information(self, "Changes Saved", f"Changes for {new_username} saved successfully!")
         self._load_employee_data_from_db()
         self._clear_selection_and_forms()

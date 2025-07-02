@@ -11,7 +11,7 @@ CREATE SCHEMA "CREDENTIALS";
 REVOKE ALL ON SCHEMA "SCA" FROM PUBLIC;
 REVOKE ALL ON SCHEMA "CREDENTIALS" FROM PUBLIC;
 -- Créer un nouveau rôle
-CREATE ROLE ITAdmin LOGIN PASSWORD 'hungry';
+-- CREATE ROLE ITAdmin LOGIN PASSWORD 'hungry';
 
 -- Accorder l'usage du schéma SCA au rôle
 GRANT USAGE ON SCHEMA "SCA" TO ITAdmin ;
@@ -146,7 +146,7 @@ CREATE TYPE "SCA".statut_utilisateur AS ENUM (
 CREATE TYPE "SCA".niveau_acces AS ENUM (
     'admin',
     'manager',
-    'employe'
+    'employee'
     );
 CREATE TABLE "SCA".Organisation(
                                    idorganisation "SCA".idOrg NOT NULL ,
@@ -197,7 +197,7 @@ CREATE TABLE "SCA".Utilisateur(
     date_inscription TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     date_derniere_connexion TIMESTAMP,
     statut "SCA".statut_utilisateur DEFAULT 'en attente_validation',
-    niveau_acces "SCA".niveau_acces DEFAULT 'employe',
+    niveau_acces "SCA".niveau_acces DEFAULT 'employee',
     CONSTRAINT Utilisateur_CC0 PRIMARY KEY (idutilisateur),
     CONSTRAINT Utilisateur_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE
 );
@@ -430,7 +430,7 @@ CREATE TABLE "CREDENTIALS".PasswordPolicies (
                                                 setting_name VARCHAR(100) NOT NULL UNIQUE,
                                                 setting_value VARCHAR(100) NOT NULL,
                                                 setting_group VARCHAR(100) NOT NULL,
-                                                description VARCHAR(100) NOT NULL,
+                                                description VARCHAR(100),
                                                 CONSTRAINT PK_PasswordPolicies PRIMARY KEY (setting_name)
 );
 
@@ -2909,7 +2909,6 @@ RETURNS TABLE (
     username "SCA".username,
     nom "SCA".Nom,
     prenom "SCA".Nom,
-    email "SCA".email,
     niveau_acces "SCA".niveau_acces,
     statut "SCA".statut_utilisateur,
     date_inscription timestamp,
@@ -3520,10 +3519,10 @@ return query
 end;
 $$ language plpgsql;
 
-create or replace procedure "EMIR".supprimer_utilisateur(_idutilisateur "SCA".idutilisateur)
+create or replace procedure "EMIR".supprimer_utilisateur(_username text)
 as $$
 begin
-delete from "SCA".Utilisateur where idutilisateur = _idutilisateur;
+delete from "EMIR".Utilisateur where username = _username;
 end;
 $$ language plpgsql;
 
