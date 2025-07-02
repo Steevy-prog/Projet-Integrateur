@@ -272,10 +272,7 @@ CREATE TABLE "SCA".Lot(
                           idproduit "SCA".Idproduit NOT NULL ,
                           quantite "SCA".dims NOT NULL ,
                           date_creation date NOT NULL ,
-                          statut "SCA".etat NOT NULL ,
-                          origine "SCA".etat_lot DEFAULT 'standard',
-                          nombre_utilisations INTEGER DEFAULT 0,
-                          condition "SCA".condition_materiel DEFAULT 'utilisable',
+                          statut "SCA".etat_lot DEFAULT 'standard',
                           CONSTRAINT Lot_CC0 PRIMARY KEY (idlot),
                           FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit)
                               ON DELETE CASCADE
@@ -3344,8 +3341,8 @@ INSERT INTO "SCA".ProduitLogiciel(idproduit, version, license) VALUES
 ('PBBBBB', 'v2.1', 'LIC-STK-21');
 
 INSERT INTO "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) VALUES
-('LAAAAA', 'PAAAAA', 200.0, '2025-06-01', 'bon etat'),
-('LBBBBB', 'PBBBBB', 50.0, '2025-06-02', 'bon etat');
+('LAAAAA', 'PAAAAA', 200.0, '2025-06-01', 'neuf'),
+('LBBBBB', 'PBBBBB', 50.0, '2025-06-02', 'neuf');
 
 INSERT INTO "SCA".Colis(idcolis, date_creation, statut) VALUES
 ('CO12345', '2025-06-10', 'Attente'),
