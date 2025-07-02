@@ -36,28 +36,29 @@ import random
 import psycopg2
 
 idorg = 'OABCDE'
-conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-    port=5432
-)
-#conn = psycopg2.connect(
-#    host="dpg-d1c2p8muk2gs73a9onng-a.oregon-postgres.render.com",
-#    database="steevy1",
-#    user="steevy",
-#    password="T0vTIntru5D9SqS1qWnp2nxp7B9aOaWw",
-#   port=5432
-#)
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
 
-#conn = psycopg2.connect(
-#    host="localhost",
-#    database="postgres",
-#    user="postgres",
-#    password="steevy",
-#    port=5432
-#)
+if it == '1':
+    print("You have chosen the online database.")
+    conn = psycopg2.connect(
+        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+        database="projet_integrateur",
+        user="group13",
+        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+        port=5432
+    )
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
 cur = conn.cursor()
 
 class WarehouseData:
@@ -319,6 +320,7 @@ class RealtimeInventoryViewWidget(QWidget):
         except (psycopg2.Error, TypeError) as e:
             print(f"Error fetching numzones: {e}")
             zones_used = 0
+        
 
         metrics_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "In Stock"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Inventory Worth"))
@@ -1917,12 +1919,32 @@ class MainDashboardWidget(QWidget):
         """)
         metrics_layout = QVBoxLayout(metrics_widget)
         metrics_layout.setContentsMargins(10, 10, 10, 10)
+        try:
+            cur.execute("SELECT \"EMIR\".total();")
+            total_items = cur.fetchone()[0] or 0
+        except (psycopg2.Error, TypeError) as e:
+            print(f"Error fetching total_items: {e}")
+            total_items = 0
+        try:
+            cur.execute("SELECT \"EMIR\".valeur();")
+            total_value = cur.fetchone()[0] or 0
+        except (psycopg2.Error, TypeError) as e:
+            print(f"Error fetching total_value: {e}")
+            total_value = 0
+
+        try:
+            cur.execute("SELECT \"EMIR\".available_cells();")
+            available_cells = cur.fetchone()[0] or 0
+        except (psycopg2.Error, TypeError) as e:
+            print(f"Error fetching available_cells: {e}")
+            available_cells = 0
+
 
         # Add metrics data
         metrics_layout.addWidget(self.create_metric_label("Quick Stats"))
-        metrics_layout.addWidget(self.create_metric_item("Total Items", "1,785"))
-        metrics_layout.addWidget(self.create_metric_item("Total Value", "$93,521,250"))
-        metrics_layout.addWidget(self.create_metric_item("Available Cells", "1"))
+        metrics_layout.addWidget(self.create_metric_item("Total Items", f"{total_items:,}"))
+        metrics_layout.addWidget(self.create_metric_item("Total Value", f"${total_value}"))
+        metrics_layout.addWidget(self.create_metric_item("Available Cells", f"{available_cells}"))
 
         # Insérer les métriques avant le bouton Logout
         sidebar_layout.insertWidget(len(menu_items) - 1, metrics_widget)

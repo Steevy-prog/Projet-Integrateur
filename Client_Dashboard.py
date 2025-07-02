@@ -1279,6 +1279,7 @@ class ClientLogisticsWidget(QWidget):
         receive_org_id = self.receiving_org_combo.currentData()
         package_id = self.package_to_send_combo.currentText()  # key from added_packages is the name, not the ID
         lots = added_packages.get(package_id)
+        idcolis = idgenerator.generate_id("^PCO[0-9]{5}$", [])
     
         if not lots:
             QMessageBox.warning(self, "Missing", "No lots found for selected package.")
@@ -1287,10 +1288,9 @@ class ClientLogisticsWidget(QWidget):
         try:
             cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s)',
                 (   client_org_id,
-                    idgenerator.generate_id("^BE[0-9]{4}$", []),  # Dummy ID for BonExpedition
-                    datetime.date.today().isoformat(),
-                    receive_org_id,
-                    package_id
+                    idcolis,  # Dummy ID for BonExpedition
+                    str(datetime.date.today().isoformat()),
+                    'en attente'
                 )
             )
             conn.commit()
@@ -1299,26 +1299,26 @@ class ClientLogisticsWidget(QWidget):
             QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
     
         for lot in lots:
+            lotid = idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids)
             try:
                 cur.execute(
-                    'CALL "EMIR".PLot_INS(%s, %s, %s, %s, %s)',
+                    'CALL "EMIR".PLot_INS(%s,%s, %s, %s, %s, %s)',
                     (   client_org_id,
-                        idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids),
-                        lot.id,                         # _idproduit
+                        lotid,
+                        lot.product_id,                         # _idproduit
                         str(lot.quantity),              # _quantite
-                        datetime.date.today().isoformat(),  # _date_creation
+                        str(datetime.date.today().isoformat()),  # _date_creation
                         "envoyé"                        # _statut
                     )
                 )
                 conn.commit()
                 cur.execute(
-                    'CALL "EMIR".PLot_INS(%s, %s, %s, %s, %s)',
+                    'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s, %s)',
                     (   client_org_id,
-                        idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids),
-                        lot.id,                         # _idproduit
-                        str(lot.quantity),              # _quantite
-                        datetime.date.today().isoformat(),  # _date_creation
-                        "envoyé"                        # _statut
+                        idcolis,
+                        lotid,                         # _idproduit
+                        str(len(lots)),              # _quantite
+                        str(datetime.date.today().isoformat()),  #                     # _statut
                     )
                 )
                 conn.commit()
