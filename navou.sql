@@ -2692,7 +2692,7 @@ BEGIN
         statut, niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
-        'en attente_validation', _niveau_acces
+        'en attente_validation', _niveau_acces::"SCA".niveau_acces
     );
 
     -- Insérer les credentials (données d'authentification)
