@@ -541,7 +541,7 @@ class CircularProgress(QWidget):
 class ZoneEmballage(QWidget):
     def __init__(self, data):
         super().__init__()
-        self.data = data
+        self.data = data                                                                                  
         self.init_ui()
 
     def init_ui(self):
@@ -896,13 +896,12 @@ class MenuExpedition(QWidget):
         layout = self._main_layout
         expedition_summary_table = self.create_expedition_summary_table()
         bouton = QPushButton("chatte")
-        bouton.setFixedWidth(500) # This fixed width might constrain layout
         bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
+                    QPushButton { background-color: #2196F3; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
                     QPushButton:hover { background-color: #1976D2; }
                 """)
         layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(bouton,1,0)
+        layout.addWidget(bouton,1,0,Qt.AlignmentFlag.AlignBottom)
 
         
     def clear_layout(self, layout):
@@ -935,7 +934,7 @@ class MenuExpedition(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
-                width:200px;
+                width:90%;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -959,7 +958,7 @@ class MenuExpedition(QWidget):
         table.verticalHeader().setVisible(False)
         return table
 
-class MenuExpedition(QWidget):
+class MenuReception(QWidget):
     def __init__(self,data):
         super().__init__()
         self.data=data
