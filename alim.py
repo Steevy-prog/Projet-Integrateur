@@ -290,19 +290,19 @@ insert('"CREDENTIALS".application_theme',
 ext = data["EXTERNE"]
 
 insert('"EXTERNE".Lot',
-       ["idlot", "idproduit", "quantite", "date_creation", "statut"],
-       [(l["idlot"], l["idproduit"], l["quantite"], l["date_creation"],
+       ["idorg","idplot", "idproduit", "quantite", "date_creation", "statut"],
+       [(l["idorg"],l["idplot"], l["idproduit"], l["quantite"], l["date_creation"],
          l["statut"])
-        for l in sc["Lot"]])
+        for l in ext["Lot"]])
 
 insert('"EXTERNE".Colis',
-       ["idpcolis", "date_creation", "statut"],
-       [(c["idcolis"], c["date_creation"], c["statut"])
-        for c in sc["Colis"]])
+       ["idorg","idpcolis", "date_creation", "statut"],
+       [(c["idorg"],c["idpcolis"], c["date_creation"], c["statut"])
+        for c in ext["Colis"]])
 
 insert('"EXTERNE".ContenuColis',
-       ["idcolis", "idlot", "quantite", "date_maj"],
-       [(c["idorg"],c["idcolis"], c["idlot"], c["quantite"], c["date_MAJ"])
+       ["idorg","idpcolis", "idplot", "quantite", "date_maj"],
+       [(c["idorg"],c["idpcolis"], c["idplot"], c["quantite"], c["date_MAJ"])
         for c in ext["ContenuColis"]])
 
 

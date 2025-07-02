@@ -57,11 +57,11 @@ cur = conn.cursor()
 cur.execute("SELECT (p).* FROM \"EMIR\".Organisation_EVA() AS p;")
 orgs = cur.fetchall() # All organizations from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".Colis_EVA() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA(%s) AS p;",(client_org_id,))
 colis_db = cur.fetchall() # Existing packages from the database
 
-#cur.execute("SELECT (p).* FROM \"EMIR\".PLot_EVA() AS p;")
-#lots_db = cur.fetchall() # Existing products from the database
+cur.execute("SELECT (p).* FROM \"EMIR\".PLot_EVA(%s) AS p;",(client_org_id,))
+lots_db = cur.fetchall() # Existing products from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
 produits_db = cur.fetchall() # Existing products from the database
@@ -69,7 +69,7 @@ produits_db = cur.fetchall() # Existing products from the database
 # Global lists to keep track of generated IDs for uniqueness checks
 # Populated with existing IDs from the database to prevent collisions.
 productids = []
-lotids = [l[0] for l in colis_db] # Assuming colis_db contains lot IDs, this might need adjustment
+lotids = [l[0] for l in lots_db] # Assuming colis_db contains lot IDs, this might need adjustment
 packageids = [c[0] for c in colis_db] # Assuming package IDs are in colis_db
 
 print(idgenerator.generate_id('^P[A-Z0-9]{5}$',productids))
@@ -865,6 +865,7 @@ class ProductInputRow(QHBoxLayout):
         self.remove_callback = remove_callback
 
         self.product_combo = QComboBox()
+        self.product_combo.setFixedWidth(150)
         self.product_combo.addItem("— Select a product —", None)
         self.product_combo.setStyleSheet("background-color: 5472AE")
         for p in self.products_data:
@@ -1211,9 +1212,8 @@ class ClientLogisticsWidget(QWidget):
         self.transporting_org_combo = QComboBox()
         self.receiving_org_combo = QComboBox()
         for org in orgs:
-            self.transporting_org_combo.addItem(org[1], org[0])
-            self.receiving_org_combo.addItem(org[1], org[0])
-
+            if org[0] != client_org_id:
+                self.receiving_org_combo.addItem(org[1], org[0])
         self.package_to_send_combo = QComboBox()
         self.package_to_send_combo.addItem("— Select a package —", None)
         # Populate with existing packages from DB
@@ -1293,35 +1293,35 @@ class ClientLogisticsWidget(QWidget):
                     'en attente'
                 )
             )
-            conn.commit()
+            print("sucess")
         except psycopg2.Error as e:
             conn.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
     
         for lot in lots:
-            lotid = idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids)
+            nlotid = idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids)
             try:
                 cur.execute(
                     'CALL "EMIR".PLot_INS(%s,%s, %s, %s, %s, %s)',
                     (   client_org_id,
-                        lotid,
+                        nlotid,
                         lot.product_id,                         # _idproduit
                         str(lot.quantity),              # _quantite
                         str(datetime.date.today().isoformat()),  # _date_creation
-                        "envoyé"                        # _statut
+                        "neuf"                        # _statut
                     )
                 )
-                conn.commit()
+                print("sucess")
                 cur.execute(
                     'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s, %s)',
                     (   client_org_id,
                         idcolis,
-                        lotid,                         # _idproduit
+                        nlotid,                         # _idproduit
                         str(len(lots)),              # _quantite
                         str(datetime.date.today().isoformat()),  #                     # _statut
                     )
                 )
-                conn.commit()
+                print("sucess")
             except psycopg2.Error as e:
                 conn.rollback()
                 QMessageBox.critical(self, "Database Error", f"Failed to send lot: {e}")

@@ -11,7 +11,7 @@ CREATE SCHEMA "CREDENTIALS";
 REVOKE ALL ON SCHEMA "SCA" FROM PUBLIC;
 REVOKE ALL ON SCHEMA "CREDENTIALS" FROM PUBLIC;
 -- Créer un nouveau rôle
--- CREATE ROLE ITAdmin LOGIN PASSWORD 'hungry';
+CREATE ROLE ITAdmin LOGIN PASSWORD 'hungry';
 
 -- Accorder l'usage du schéma SCA au rôle
 GRANT USAGE ON SCHEMA "SCA" TO ITAdmin ;
@@ -99,6 +99,7 @@ CREATE DOMAIN "SCA".username TEXT CHECK (
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
 CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livre','Perdu','Endommagé');
+CREATE TYPE "SCA".retatcolis AS ENUM('Accepte','Refuse');
 CREATE TYPE "SCA".etatexception AS ENUM('Progress','Resolu','Ouvert','Fermé');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -146,7 +147,7 @@ CREATE TYPE "SCA".statut_utilisateur AS ENUM (
 CREATE TYPE "SCA".niveau_acces AS ENUM (
     'admin',
     'manager',
-    'employee'
+    'employe'
     );
 CREATE TABLE "SCA".Organisation(
                                    idorganisation "SCA".idOrg NOT NULL ,
@@ -174,7 +175,7 @@ CREATE TABLE "EXTERNE".Colis(
                             idorg "SCA".idorg NOT NULL,
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
-                            statut "SCA".etatcolis NOT NULL ,
+                            statut "SCA".retatcolis NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
 CREATE TABLE "SCA".Zone(
@@ -197,7 +198,7 @@ CREATE TABLE "SCA".Utilisateur(
     date_inscription TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     date_derniere_connexion TIMESTAMP,
     statut "SCA".statut_utilisateur DEFAULT 'en attente_validation',
-    niveau_acces "SCA".niveau_acces DEFAULT 'employee',
+    niveau_acces "SCA".niveau_acces DEFAULT 'employe',
     CONSTRAINT Utilisateur_CC0 PRIMARY KEY (idutilisateur),
     CONSTRAINT Utilisateur_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE
 );
@@ -430,7 +431,7 @@ CREATE TABLE "CREDENTIALS".PasswordPolicies (
                                                 setting_name VARCHAR(100) NOT NULL UNIQUE,
                                                 setting_value VARCHAR(100) NOT NULL,
                                                 setting_group VARCHAR(100) NOT NULL,
-                                                description VARCHAR(100),
+                                                description VARCHAR(100) NOT NULL,
                                                 CONSTRAINT PK_PasswordPolicies PRIMARY KEY (setting_name)
 );
 
@@ -2691,8 +2692,8 @@ BEGIN
         idutilisateur, idindividu, username,
         statut, niveau_acces
     ) VALUES (
-        _idutilisateur::"SCA".idutilisateur, _idindividu::"SCA".idindividu, _username::"SCA".username,
-        'en attente_validation', _niveau_acces::"SCA".niveau_acces
+        _idutilisateur, _idindividu, _username,
+        'en attente_validation', _niveau_acces
     );
 
     -- Insérer les credentials (données d'authentification)
@@ -3519,10 +3520,10 @@ return query
 end;
 $$ language plpgsql;
 
-create or replace procedure "EMIR".supprimer_utilisateur(_username text)
+create or replace procedure "EMIR".supprimer_utilisateur(_idutilisateur "SCA".idutilisateur)
 as $$
 begin
-delete from "EMIR".Utilisateur where username = _username;
+delete from "SCA".Utilisateur where idutilisateur = _idutilisateur;
 end;
 $$ language plpgsql;
 
@@ -3613,9 +3614,19 @@ returns table (
 )
 as $$
 begin
-   select * from "EXTERNE".Lot where idorg = _idorg;
+   select idplot,idproduit,quantite,date_creation,statut from "EXTERNE".Lot where idorg = _idorg;
 end; $$ language plpgsql;
 
+create or replace function "EMIR".PColis_EVA(_idorg "SCA".idorg)
+returns table (
+    _idpcolis text,
+    _date_creation text,
+    _statut text
+)
+as $$
+begin
+   select idpcolis,date_creation,statut from "EXTERNE".Colis where idorg = _idorg;
+end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PColis_INS(
     _idorg text,
@@ -3626,6 +3637,18 @@ create or replace procedure "EMIR".PColis_INS(
 as $$
 begin
     insert into "EXTERNE".Colis(idorg,idpcolis, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), _date_creation::date, _statut::"SCA".etatcolis);
+end; $$ language plpgsql;
+
+create or replace function "EMIR".PContenuColis_EVA(_idorg "SCA".idorg)
+returns table (
+    _idpcolis text,
+    _idplot text,
+    _quantite text,
+    _date_maj text
+)
+as $$
+begin
+   select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PContenuColis_INS(
@@ -3639,15 +3662,3 @@ as $$
 begin
     insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, quantite, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idcolis), "EXTERNE".idplot_conv(_idlot), "SCA".dims_conv(_quantite), _date_MAJ::date);
 end; $$ language plpgsql;
-
-create or replace procedure "EMIR".getnameandid()
-returns table(
-id "SCA".idindividu,
-name "SCA"nom,
-prenom "SCA".nom
-)
-as $$
-begin
-select idindividu,nom,prenom from "SCA".individu;
-end;
-$$ language plpgsql;
