@@ -455,3 +455,90 @@ return query
     where "SCA".ContenuColis.idcolis = _idcolis;
 end;
 $$ language plpgsql;
+
+--TRIGGER AUTOMATIQUE POUR nbuses
+CREATE OR REPLACE FUNCTION "SCA".lotemballage_set_recycle() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.nbuses >= 3 THEN
+        NEW.condition := 'a recycler';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_lotemballage_nbuses ON "SCA".LotEmballage;
+CREATE TRIGGER trg_lotemballage_nbuses
+BEFORE INSERT OR UPDATE ON "SCA".LotEmballage
+FOR EACH ROW
+EXECUTE FUNCTION "SCA".lotemballage_set_recycle();
+
+-- TRIGGER pour Travailleur
+CREATE OR REPLACE FUNCTION "SCA".check_travailleur_dates() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.date_derniere_evaluation IS NOT NULL AND NEW.date_derniere_evaluation < NEW.date_embauche THEN
+        RAISE EXCEPTION 'La date de dernière évaluation (%), ne peut pas être antérieure à la date d''embauche (%)', NEW.date_derniere_evaluation, NEW.date_embauche;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_travailleur_dates ON "SCA".Travailleur;
+CREATE TRIGGER trg_travailleur_dates
+BEFORE INSERT OR UPDATE ON "SCA".Travailleur
+FOR EACH ROW
+EXECUTE FUNCTION "SCA".check_travailleur_dates();
+
+-- TRIGGER pour Conducteur
+CREATE OR REPLACE FUNCTION "SCA".check_conducteur_dates() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.date_expiration_permis < NEW.date_obtention_permis THEN
+        RAISE EXCEPTION 'La date d''expiration du permis (%) ne peut pas être antérieure à la date d''obtention (%)', NEW.date_expiration_permis, NEW.date_obtention_permis;
+    END IF;
+    IF NEW.date_derniere_evaluation IS NOT NULL AND NEW.date_derniere_evaluation < NEW.date_obtention_permis THEN
+        RAISE EXCEPTION 'La date de dernière évaluation (%) ne peut pas être antérieure à la date d''obtention du permis (%)', NEW.date_derniere_evaluation, NEW.date_obtention_permis;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_conducteur_dates ON "SCA".Conducteur;
+CREATE TRIGGER trg_conducteur_dates
+BEFORE INSERT OR UPDATE ON "SCA".Conducteur
+FOR EACH ROW
+EXECUTE FUNCTION "SCA".check_conducteur_dates();
+
+-- TRIGGER pour Vehicule
+CREATE OR REPLACE FUNCTION "SCA".check_vehicule_dates() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.date_derniere_maintenance IS NOT NULL AND NEW.date_derniere_maintenance < NEW.date_acquisition THEN
+        RAISE EXCEPTION 'La date de dernière maintenance (%) ne peut pas être antérieure à la date d''acquisition (%)', NEW.date_derniere_maintenance, NEW.date_acquisition;
+    END IF;
+    IF NEW.prochaine_maintenance IS NOT NULL AND NEW.date_derniere_maintenance IS NOT NULL AND NEW.prochaine_maintenance < NEW.date_derniere_maintenance THEN
+        RAISE EXCEPTION 'La prochaine maintenance (%) ne peut pas être antérieure à la dernière maintenance (%)', NEW.prochaine_maintenance, NEW.date_derniere_maintenance;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_vehicule_dates ON "SCA".Vehicule;
+CREATE TRIGGER trg_vehicule_dates
+BEFORE INSERT OR UPDATE ON "SCA".Vehicule
+FOR EACH ROW
+EXECUTE FUNCTION "SCA".check_vehicule_dates();
+
+-- TRIGGER pour Tache
+CREATE OR REPLACE FUNCTION "SCA".check_tache_dates() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.date_echeance < NEW.date_creation THEN
+        RAISE EXCEPTION 'La date d''échéance (%) ne peut pas être antérieure à la date de création (%)', NEW.date_echeance, NEW.date_creation;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_tache_dates ON "SCA".Tache;
+CREATE TRIGGER trg_tache_dates
+BEFORE INSERT OR UPDATE ON "SCA".Tache
+FOR EACH ROW
+EXECUTE FUNCTION "SCA".check_tache_dates();
+

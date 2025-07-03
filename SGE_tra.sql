@@ -376,3 +376,24 @@ begin
     WHERE idutilisateur = "SCA".idutilisateur_CONV(_idutilisateur);
 end; $$ language plpgsql;
 
+-- 22. LOTEMBALLAGE MODIFICATION
+create or replace procedure "EMIR".LotEmballage_MOD(
+    _idlotemballage integer,
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text,
+    _nbuses int,
+    _condition text
+)
+as $$
+begin
+    update "SCA".LotEmballage
+    set idproduit = "SCA".idproduit_conv(_idproduit),
+        quantite = "SCA".dims_conv(_quantite),
+        date_creation = _date_creation::date,
+        statut = _statut::"SCA".etat_lot,
+        nbuses = _nbuses,
+        condition = _condition::"SCA".condition_materiel
+    where idlotemballage = _idlotemballage;
+end; $$ language plpgsql;

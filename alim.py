@@ -300,8 +300,8 @@ insert('"EXTERNE".Lot',
         for l in ext["Lot"]])
 
 insert('"EXTERNE".Colis',
-       ["idorg","idpcolis", "date_creation", "statut"],
-       [(c["idorg"],c["idpcolis"], c["date_creation"], c["statut"])
+       ["idorg","idpcolis", "date_creation", "expected_date", "statut"],
+       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"], c["statut"])
         for c in ext["Colis"]])
 
 insert('"EXTERNE".ContenuColis',
