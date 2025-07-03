@@ -108,9 +108,9 @@ insert('"SCA".Cellule',
         for c in sc["Cellule"]])
 
 insert('"SCA".Colis',
-       ["idcolis", "date_creation", "statut"],
-       [(c["idcolis"], c["date_creation"], c["statut"])
-        for c in sc["Colis"]])
+       ["idcolis", "date_creation","expected_date","receiving_org", "statut"],
+       [(c["idcolis"], c["date_creation"],c["expected_date"], c["receiving_org"],c["statut"])
+        for c in sc["Colis"]])                                 
 
 insert('"SCA".Zone',
        ["idzone", "nom"],
@@ -300,8 +300,8 @@ insert('"EXTERNE".Lot',
         for l in ext["Lot"]])
 
 insert('"EXTERNE".Colis',
-       ["idorg","idpcolis", "date_creation", "expected_date", "statut"],
-       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"], c["statut"])
+       ["idorg","idpcolis", "date_creation", "expected_date","receiving_org", "statut"],
+       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"],c["receiving_org"], c["statut"])
         for c in ext["Colis"]])
 
 insert('"EXTERNE".ContenuColis',

@@ -47,16 +47,24 @@ cur = conn.cursor()
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
 conducteurs = cur.fetchall()
+if conducteurs is None:
+  print("noiyo1")
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Colis_eva() AS p;")
 colis = cur.fetchall()
+if colis is None:
+  print("noiyo2")
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Bonexpedition_eva() AS p;")
 bonexp = cur.fetchall()
+if bonexp is None:
+  print("noiyo3")
 
 
 cur.execute("SELECT (p).* FROM \"EMIR\".ContenuColis_eva() AS p;")
 contenucolis = cur.fetchall()
+if contenucolis is None:
+  print("noiyo4")
 
 
 
@@ -67,8 +75,9 @@ class LogisticsData:
         self.generate_sample_data()
     def generate_sample_data(self):
         self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva','spec'])
-        self.colis_df = pd.DataFrame('id','date_cre','statut')
-        self.bonexp_df = pd.DataFrame('id','idcol','idtrans','date_cre','iddest','statut','remarque')
+        self.colis_df = pd.DataFrame(colis,columns=['id','date_cre','exp_date','receiving_org','statut'])
+        self.bonexp_df = pd.DataFrame(bonexp,columns=['id','idcol','idtrans','date_cre','iddest','statut','remarque'])
+        self.contenu_df = pd.DataFrame(contenucolis,columns=['idcol','idlot','quantity','date_maj'])
 
         #daily metrics
 
@@ -108,6 +117,9 @@ class LogisticsData:
                 try:
                     cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
                     quantity = cur.fetchone()[0]
+                    if quantity is None:
+                        print("cul")
+
                     print(f"Fetched quantity for product {product['ID']}: {quantity}")
                     cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
                     zone = cur.fetchone()[0]
@@ -137,7 +149,7 @@ class LogisticsData:
         statuts = ['En préparation', 'Prête à expédier', 'En transit', 'Livrée']
         destinations = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Toulouse', 'Nantes']
         
-        for i in range(15):
+        for i in self.colis_df.itertuples():
             transporteur = random.choice(self.transporteurs_df['id'].values)
             expeditions.append({
                 'id_commande': f'CMD{i+1:03d}',
@@ -147,9 +159,8 @@ class LogisticsData:
                 'statut': random.choice(statuts),
                 'poids': random.randint(5, 50),
                 'volume': random.randint(1, 10),
-                'id_transporteur': "NONE",
                 'cout_estime': round(random.uniform(50, 500), 2),
-                'urgence': random.choice(['Standard', 'Express', 'Prioritaire'])
+                #'urgence': random.choice(['Standard', 'Express', 'Prioritaire'])
             })
         self.expeditions_df = pd.DataFrame(expeditions)
         
@@ -344,21 +355,24 @@ class PerformanceWidget(QWidget):
             
     def create_fulfillment_chart(self, chart_widget):
         # Weekly fulfillment rate
-        weekly_data = self.data.daily_metrics.tail(42).copy()
-        weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
-        
-        weekly_summary = weekly_data.groupby('Week').agg({
-            'Order_Fulfillment_Rate': 'mean'
-        }).reset_index()
-        
-        x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
-        y_vals = weekly_summary['Order_Fulfillment_Rate'].values
-
-        chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
-        chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
-        chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
-        chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
-        chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
+        try:
+           weekly_data = self.data.daily_metrics.tail(42).copy()
+           weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
+           
+           weekly_summary = weekly_data.groupby('Week').agg({
+               'Order_Fulfillment_Rate': 'mean'
+           }).reset_index()
+           
+           x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
+           y_vals = weekly_summary['Order_Fulfillment_Rate'].values
+   
+           chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
+           chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
+           chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
+           chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
+           chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
+        except Exception as e:
+            print(e)
 
 class ChartWidget(pg.PlotWidget):
     def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
@@ -512,15 +526,15 @@ class LogisticsOverviewWidget(QWidget):
         charts_layout.addWidget(perf_chart)
         
         # Commandes urgentes table
-        urgent_table = self.create_urgent_table()
-        urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
-        urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        #urgent_table = self.create_urgent_table()
+        #urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
+        #urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Ajouter tous les éléments au layout de contenu
         content_layout.addLayout(header_layout)
         content_layout.addLayout(metrics_layout)
         content_layout.addLayout(charts_layout)
-        content_layout.addWidget(urgent_table)
+        #content_layout.addWidget(urgent_table)
         
         # Créer la zone de défilement et y placer le widget de contenu
         scroll_area = QScrollArea()
@@ -585,14 +599,14 @@ class LogisticsOverviewWidget(QWidget):
         chart_widget.addItem(target_label)
     
     def create_urgent_table(self):
-        urgent_df = self.data.expeditions_df[self.data.expeditions_df['urgence'] != 'Standard'].sort_values('date_expedition')
+        #urgent_df = self.data.expeditions_df[self.data.expeditions_df['urgence'] != 'Standard'].sort_values('date_expedition')
         
         table = QTableWidget()
         table.setRowCount(len(urgent_df))
         table.setColumnCount(6)
-        table.setHorizontalHeaderLabels(['ID Commande', 'Destination', 'Date expédition', 'Urgence', 'Transporteur', 'Statut'])
+        table.setHorizontalHeaderLabels(['ID Commande', 'Destination', 'Date expédition', 'Transporteur', 'Statut'])
         
-        for i, (_, row) in enumerate(urgent_df.iterrows()):
+       for i, in self.colis_df.iterrows():
             table.setItem(i, 0, QTableWidgetItem(row['id_commande']))
             table.setItem(i, 1, QTableWidgetItem(row['destination']))
             table.setItem(i, 2, QTableWidgetItem(str(row['date_expedition'])))
@@ -604,7 +618,11 @@ class LogisticsOverviewWidget(QWidget):
                 urgency_item.setBackground(QColor('#FFF9C4'))  # Jaune clair
             table.setItem(i, 3, urgency_item)
             
-            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['idutil'].values[0]
+            match = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]
+            if not match.empty:
+                transporteur = match['idutil'].values[0]
+            else:
+                transporteur = "Inconnu"
             table.setItem(i, 4, QTableWidgetItem(transporteur))
             
             status_item = QTableWidgetItem(row['statut'])
