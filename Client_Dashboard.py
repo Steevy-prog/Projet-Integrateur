@@ -161,7 +161,7 @@ class ClientData:
                 ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
             ]
         self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
-        self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','statut'])
+        self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','expected_date','receiving_org','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
         self.inq_df = pd.DataFrame(inq_db,columns=['id','type','period','status','description'])
 
