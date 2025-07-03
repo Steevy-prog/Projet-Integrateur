@@ -3747,3 +3747,16 @@ BEGIN
     WHERE i.idorg = _idorg;
 END;
 $$ LANGUAGE plpgsql;
+
+ 
+create or replace procedure "EMIR".getnameandid()
+returns table(
+id "SCA".idindividu,
+name "SCA"nom,
+prenom "SCA".nom
+)
+as $$
+begin
+select idindividu,nom,prenom from "SCA".individu;
+end;
+$$ language plpgsql;
