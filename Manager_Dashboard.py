@@ -62,7 +62,7 @@ elif it == '2':
     )
 cur = conn.cursor()
 
-cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA1() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".PContenuColis_EVA() AS p;")
@@ -78,7 +78,7 @@ class WarehouseData:
         # Products data
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
-        self.colis_df = pd.DataFrame(colis_db,columns=['idprg','id','date_cre','exp_date','statut'])
+        self.colis_df = pd.DataFrame(colis_db,columns=['idorg','id','date_cre','exp_date','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idorg','idcol','idlot','quantity','date_maj'])
         if len(products) == 0:
             # Handle case where no products are loaded, e.g., create dummy data or log
@@ -133,7 +133,7 @@ class WarehouseData:
         suppliers = ['Dell Corp', 'Apple Inc', 'IKEA', 'Samsung', 'Logitech']
         statuses = ['Pending', 'In Transit', 'Received', 'Processing']
 
-        for i in self.colis_df:
+        for i in self.colis_df.itertuples():
             cur.execute("SELECT \"EMIR\".getvaluecol(%s,%s);",(i.idorg,i.id))
             total = cur.fetchone()[0]
             items = [t for t in self.contenu_df.to_dict('records') if t['idcol'] == i.id]

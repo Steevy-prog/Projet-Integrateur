@@ -234,7 +234,6 @@
    { "idcellule": "CB0002", "position": "ZSTOK2" },
    { "idcellule": "CC0003", "position": "ZRECP1" },
    { "idcellule": "CD0004", "position": "ZSTOK2" },
-   { "idcellule": "CE0005", "position": "ZRETR4" },
    { "idcellule": "CF0006", "position": "ZEMBA5" }
   ],
   "LocalisationOrganisation": [

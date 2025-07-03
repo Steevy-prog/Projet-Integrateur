@@ -20,30 +20,55 @@ from PyQt6.QtGui import QBrush
 import login as login
 
 # Configuration de la base de données
-conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-    port=5432
-)
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
+
+if it == '1':
+    print("You have chosen the online database.")
+    conn = psycopg2.connect(
+        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+        database="projet_integrateur",
+        user="group13",
+        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+        port=5432
+    )
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
 cur = conn.cursor()
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
+conducteurs = cur.fetchall()
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Colis_eva() AS p;")
+colis = cur.fetchall()
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Bonexpedition_eva() AS p;")
+bonexp = cur.fetchall()
+
+
+cur.execute("SELECT (p).* FROM \"EMIR\".ContenuColis_eva() AS p;")
+contenucolis = cur.fetchall()
+
+
 
 class LogisticsData:
     """Data generator and manager for logistics operations"""
     
     def __init__(self):
         self.generate_sample_data()
-    
     def generate_sample_data(self):
-        # Données des transporteurs
-        transporteurs = [
-            {'id': 'TR001', 'nom': 'DHL Express', 'contact': 'Jean Dupont', 'tel': '+123456789', 'capacite': 5000, 'cout_km': 0.85},
-            {'id': 'TR002', 'nom': 'FedEx', 'contact': 'Marie Martin', 'tel': '+987654321', 'capacite': 4500, 'cout_km': 0.78},
-            {'id': 'TR003', 'nom': 'UPS', 'contact': 'Pierre Lambert', 'tel': '+456123789', 'capacite': 6000, 'cout_km': 0.92},
-            {'id': 'TR004', 'nom': 'Chronopost', 'contact': 'Sophie Leroy', 'tel': '+789456123', 'capacite': 4000, 'cout_km': 0.75}
-        ]
-        self.transporteurs_df = pd.DataFrame(transporteurs)
+        self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva','spec'])
+        self.colis_df = pd.DataFrame('id','date_cre','statut')
+        self.bonexp_df = pd.DataFrame('id','idcol','idtrans','date_cre','iddest','statut','remarque')
 
         #daily metrics
 
@@ -122,7 +147,7 @@ class LogisticsData:
                 'statut': random.choice(statuts),
                 'poids': random.randint(5, 50),
                 'volume': random.randint(1, 10),
-                'id_transporteur': transporteur,
+                'id_transporteur': "NONE",
                 'cout_estime': round(random.uniform(50, 500), 2),
                 'urgence': random.choice(['Standard', 'Express', 'Prioritaire'])
             })
@@ -579,7 +604,7 @@ class LogisticsOverviewWidget(QWidget):
                 urgency_item.setBackground(QColor('#FFF9C4'))  # Jaune clair
             table.setItem(i, 3, urgency_item)
             
-            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['nom'].values[0]
+            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['idutil'].values[0]
             table.setItem(i, 4, QTableWidgetItem(transporteur))
             
             status_item = QTableWidgetItem(row['statut'])
@@ -646,13 +671,13 @@ class ConducteurSelectionDialog(QDialog):
         self.table = QTableWidget()
         self.table.setRowCount(len(conducteurs_df))
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(['ID', 'Nom', 'Capacité (kg)'])
+        self.table.setHorizontalHeaderLabels(['ID', 'ID Util', 'Années d\'exp'])
         self.table.verticalHeader().setVisible(False)
         
         for i, (_, row) in enumerate(conducteurs_df.iterrows()):
             self.table.setItem(i, 0, QTableWidgetItem(row['id']))
-            self.table.setItem(i, 1, QTableWidgetItem(row['nom']))
-            self.table.setItem(i, 2, QTableWidgetItem(str(row['capacite'])))
+            self.table.setItem(i, 1, QTableWidgetItem(row['idutil']))
+            self.table.setItem(i, 2, QTableWidgetItem(str(row['annee_xp'])))
         
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -709,8 +734,8 @@ class ConducteurSelectionDialog(QDialog):
         if selected:
             self.selected_conducteur = {
                 'id': selected[0].text(),
-                'nom': selected[1].text(),
-                'capacite': selected[2].text()
+                'idutil': selected[1].text(),
+                'annee_xp': selected[2].text()
             }
             self.accept()
     
@@ -885,13 +910,13 @@ class TransportManagementWidget(QWidget):
             if selected:
                 # Mettre à jour l'assignation du conducteur pour ce colis
                 self.data.expeditions_df.at[colis_index, 'id_transporteur'] = selected['id']
-                self.data.expeditions_df.at[colis_index, 'nom_transporteur'] = selected['nom']
+                self.data.expeditions_df.at[colis_index, 'idutil_transporteur'] = selected['idutil']
 
                 # Afficher un message de confirmation
                 QMessageBox.information(
                     self, 
                     "Assignation réussie",
-                    f"Le conducteur {selected['nom']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
+                    f"Le conducteur {selected['id']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
                     QMessageBox.StandardButton.Ok
                 )
 
@@ -933,14 +958,14 @@ class TransportManagementWidget(QWidget):
         table = QTableWidget()
         table.setRowCount(len(self.data.transporteurs_df))
         table.setColumnCount(5)
-        table.setHorizontalHeaderLabels(['ID', 'Nom', 'Contact', 'Téléphone', 'Capacité (kg)'])
+        table.setHorizontalHeaderLabels(['ID', 'IDUtil', 'Num permis', 'Type permis', 'annee d\'xp)'])
         
         for i, (_, row) in enumerate(self.data.transporteurs_df.iterrows()):
             table.setItem(i, 0, QTableWidgetItem(row['id']))
-            table.setItem(i, 1, QTableWidgetItem(row['nom']))
-            table.setItem(i, 2, QTableWidgetItem(row['contact']))
-            table.setItem(i, 3, QTableWidgetItem(row['tel']))
-            table.setItem(i, 4, QTableWidgetItem(str(row['capacite'])))
+            table.setItem(i, 1, QTableWidgetItem(row['idutil']))
+            table.setItem(i, 2, QTableWidgetItem(row['nopermis']))
+            table.setItem(i, 3, QTableWidgetItem(row['typepermis']))
+            table.setItem(i, 4, QTableWidgetItem(str(row['annee_xp'])))
         
         table.setStyleSheet("""
             QTableWidget {
@@ -985,7 +1010,7 @@ class TransportManagementWidget(QWidget):
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
         chart_widget.addItem(bargraph)
         
-        ticks = [(i, label) for i, label in enumerate(self.data.transporteurs_df['nom'])]
+        ticks = [(i, label) for i, label in enumerate(self.data.transporteurs_df['idutil'])]
         chart_widget.getAxis('bottom').setTicks([ticks])
         
         for i, value in enumerate(y_vals):
@@ -1006,11 +1031,11 @@ class TransportManagementWidget(QWidget):
             table.setItem(i, 3, QTableWidgetItem(str(row['poids'])))
             table.setItem(i, 4, QTableWidgetItem(str(row['volume'])))
             
-            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['nom'].values[0]
+            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['idutil'].values[0]
             transporteur_item = QTableWidgetItem(transporteur)
             
             # Vérifier si la capacité est suffisante
-            cap_transp = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['capacite'].values[0]
+            cap_transp = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['annee_exp'].values[0]
             if row['poids'] > cap_transp * 0.9:
                 transporteur_item.setBackground(QColor('#FFCDD2'))  # Rouge si >90% capacité
             elif row['poids'] > cap_transp * 0.7:
