@@ -21,7 +21,7 @@ from helpbot import ChatBot
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
-client_org_id = 'OABCDE' # Example client organization ID
+client_org_id = 'OFIRST' # Example client organization ID
 
 # --- START OF BACKEND/DATABASE INITIALIZATION (DO NOT TOUCH) ---
 # This section establishes the database connection and fetches initial data.
@@ -60,15 +60,21 @@ orgs = cur.fetchall() # All organizations from the database
 cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA(%s) AS p;",(client_org_id,))
 colis_db = cur.fetchall() # Existing packages from the database
 
+cur.execute("SELECT (p).* FROM \"EMIR\".PContenuColis_EVA(%s) AS p;",(client_org_id,))
+contenu = cur.fetchall() # Existing packages from the database
+
 cur.execute("SELECT (p).* FROM \"EMIR\".PLot_EVA(%s) AS p;",(client_org_id,))
 lots_db = cur.fetchall() # Existing products from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
 produits_db = cur.fetchall() # Existing products from the database
 
+cur.execute("SELECT (p).* FROM \"EMIR\".inquiries_eva(%s) AS p;",(client_org_id,))
+inq_db = cur.fetchall() # Existing products from the database
+
 # Global lists to keep track of generated IDs for uniqueness checks
 # Populated with existing IDs from the database to prevent collisions.
-productids = []
+productids = [l[0] for l in produits_db]
 lotids = [l[0] for l in lots_db] # Assuming colis_db contains lot IDs, this might need adjustment
 packageids = [c[0] for c in colis_db] # Assuming package IDs are in colis_db
 
@@ -119,6 +125,18 @@ class Lot:
 
     def __str__(self):
         return f"{self.quantity}x {self.product_name}"
+            
+class Colis:
+    """Represents packages"""
+    def __init__(self,idcolis,statut,items,orderdate,estimated_delivery,Customer_id,totalvalue):
+        self.idcolis = idcolis
+        self.statut = statut
+        self.items = items
+        self.orderdate = orderdate
+        self.estimated_delivery = estimated_delivery
+        self.customerid = Customer_id
+        self.totalvaule = totalvalue
+    
 
 class ClientData:
     """Manages data relevant to the client dashboard."""
@@ -141,30 +159,33 @@ class ClientData:
                 ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
             ]
         self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+        self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','statut'])
+        self.contenu_df = pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
+        self.inq_df = pd.DataFrame(inq_db,columns=['id','type','period','status','description'])
 
+        #my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'en cours'])
         # Client Orders (adapted from expedition tasks)
         self.client_orders = []
+
         order_statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
-        for i in range(15):
-            order_items_raw = random.sample(products, random.randint(1, min(4, len(products))))
-            order_items_count = sum([random.randint(1, 5) for _ in order_items_raw])
+        for i in self.colis_df.itertuples():
+            cur.execute("SELECT \"EMIR\".getvaluecol(%s,%s);",(client_org_id,i.id))
+            total = cur.fetchone()[0]
+            items = [t for t in self.contenu_df.to_dict('records') if t['idcol'] == i.id]
+            it = Colis(i.id,i.statut,items,i.date_cre, datetime.datetime.now() + datetime.timedelta(days=random.randint(1, 10)),client_org_id,total)
             
-            # Simulate a few orders belonging to this client_id
-            customer_org = self.client_id if random.random() > 0.3 else 'OtherOrg'
 
             self.client_orders.append({
-                'Order_ID': f'CO{i+1:03d}',
-                'Status': random.choice(order_statuses),
-                'Items_Count': order_items_count,
-                'Order_Date': datetime.datetime.now() - datetime.timedelta(days=random.randint(0, 30)),
-                'Estimated_Delivery': datetime.datetime.now() + datetime.timedelta(days=random.randint(1, 10)),
-                'Customer_Org_ID': customer_org,
-                'Items': order_items_raw, # Store raw product data
-                'Total_Value': round(sum(p[4] * random.randint(1,5) for p in order_items_raw), 2)
+                'Order_ID': it.idcolis,
+                'Status': it.statut,
+                'Items_Count': len(it.items),
+                'Order_Date': it.orderdate,
+                'Estimated_Delivery': it.estimated_delivery,
+                'Customer_Org_ID': it.customerid,
+                'Items': it.items, # Store raw product data
+                'Total_Value': it.totalvaule
             })
         
-        # Filter orders for the current client
-        self.client_orders = [order for order in self.client_orders if order['Customer_Org_ID'] == self.client_id]
 
         # Product Movement History (tracking shipments for client's packages)
         self.movement_history = []
@@ -188,18 +209,14 @@ class ClientData:
         self.inquiries = []
         inquiry_types = ['Missing Package', 'Damaged Item', 'Incorrect Order', 'Billing Issue', 'General Support']
         inquiry_statuses = ['Open', 'In Progress', 'Resolved', 'Closed']
-        for i in range(8):
-            product = random.choice(products)
-            # Simulate inquiries from this client
-            inquirer_org = self.client_id if random.random() > 0.3 else 'OtherOrg'
+        for i in self.inq_df.itertuples():
             self.inquiries.append({
-                'ID': f'INQ{i+1:03d}',
-                'Type': random.choice(inquiry_types),
-                'Related_Product': product[2],
-                'Reported_By_Org': inquirer_org,
-                'Reported_Time': datetime.datetime.now() - datetime.timedelta(hours=random.randint(0, 12)),
-                'Status': random.choice(inquiry_statuses),
-                'Description': f'Inquiry about {product[2]} due to {random.choice(["damage", "missing items", "delivery delay"])}.'
+                'ID': i.id,
+                'Type': i.type,
+                'Reported_By_Org': client_org_id,
+                'Reported_Time': i.period,
+                'Status': i.status,
+                'Description':i.description
             })
         
         # Filter inquiries for the current client
@@ -265,7 +282,7 @@ class ClientTaskCard(QFrame):
         header_row.addWidget(status_label)
         info_layout.addLayout(header_row)
 
-        details_text = f"Items: <b>{self.order_data['Items_Count']}</b> &nbsp; | &nbsp; Value: <b>${self.order_data['Total_Value']:.2f}</b>"
+        details_text = f"Items: <b>{self.order_data['Items_Count']}</b> &nbsp; | &nbsp; Value: <b>${self.order_data['Total_Value']}</b>"
         due_text = f"Expected: <b>{self.order_data['Estimated_Delivery'].strftime('%Y-%m-%d')}</b>"
 
         details_label = QLabel(details_text)
@@ -399,7 +416,10 @@ class OrderDetailsDialog(QDialog):
         layout.addWidget(items_list_label)
         items_list = QListWidget()
         for item_data in self.order_data['Items']:
-            items_list.addItem(f"- {item_data[2]} (ID: {item_data[0]}), Price: ${item_data[4]:.2f}")
+            lot_id = item_data.get("idlot", "N/A")
+            quantity = item_data.get("quantity", "N/A")
+            # If you added extra fields like 'product_name' or 'price', use them here
+            items_list.addItem(f"- Lot: {lot_id}, Quantity: {quantity}")
         layout.addWidget(items_list)
 
         button_layout = QHBoxLayout()
@@ -1279,7 +1299,7 @@ class ClientLogisticsWidget(QWidget):
         receive_org_id = self.receiving_org_combo.currentData()
         package_id = self.package_to_send_combo.currentText()  # key from added_packages is the name, not the ID
         lots = added_packages.get(package_id)
-        idcolis = idgenerator.generate_id("^PCO[0-9]{5}$", [])
+        idcolis = idgenerator.generate_id("^PCO[0-9]{5}$", packageids)
     
         if not lots:
             QMessageBox.warning(self, "Missing", "No lots found for selected package.")
@@ -1379,13 +1399,13 @@ class ClientOrderManagementWidget(QWidget):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(20)
 
-        pending_orders = len([o for o in self.data.client_orders if o['Status'] == 'Pending'])
-        in_transit_orders = len([o for o in self.data.client_orders if o['Status'] == 'Shipped' or o['Status'] == 'Processing'])
-        delivered_orders = len([o for o in self.data.client_orders if o['Status'] == 'Delivered'])
+        pending_orders = len([o for o in self.data.client_orders if o['Status'] == 'en attente'])
+        in_transit_orders = len([o for o in self.data.client_orders if o['Status'] == 'Accepte'])
+        refused_orders = len([o for o in self.data.client_orders if o['Status'] == 'Refuse'])
 
         stats_layout.addWidget(self.create_stat_card("Pending Orders", pending_orders, "#FFC107"))
         stats_layout.addWidget(self.create_stat_card("In Transit", in_transit_orders, "#2196F3"))
-        stats_layout.addWidget(self.create_stat_card("Delivered", delivered_orders, "#4CAF50"))
+        stats_layout.addWidget(self.create_stat_card("Refused", refused_orders, "#4CAF50"))
         layout.addLayout(stats_layout)
 
         sections_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -1397,7 +1417,7 @@ class ClientOrderManagementWidget(QWidget):
         sections_splitter.addWidget(recent_orders_section)
 
         pending_orders_section = self.create_order_section("Orders to Action",
-            [o for o in self.data.client_orders if o['Status'] == 'Pending' or o['Status'] == 'Processing'])
+            [o for o in self.data.client_orders if o['Status'] == 'en attente'])
         sections_splitter.addWidget(pending_orders_section)
 
         sections_splitter.setSizes([self.width() // 2, self.width() // 2])
@@ -1895,7 +1915,6 @@ class ClientInquiriesWidget(QWidget):
         stats_layout.addWidget(self.create_inquiry_stat_card("In Progress", in_progress_inquiries, "#FFC107"))
         stats_layout.addWidget(self.create_inquiry_stat_card("Resolved/Closed", resolved_inquiries, "#4CAF50"))
         layout.addLayout(stats_layout)
-
         self.inquiries_table = self.create_inquiries_table()
         layout.addWidget(self.inquiries_table)
 
@@ -2232,8 +2251,9 @@ class ClientMainDashboard(QWidget):
             }
         """)
         hero_layout = QVBoxLayout(hero_frame)
-
-        welcome_label = QLabel(f"Welcome, Client Organization {self.data.client_id}!")
+        cur.execute('SELECT "EMIR".getorganisationname(%s);',(self.data.client_id,))
+        name = cur.fetchone()[0]
+        welcome_label = QLabel(f"Welcome, Client Organization {name}!")
         welcome_label.setStyleSheet("font-size: 32px; font-weight: bold;")
 
         time_label = QLabel(f"Today: {datetime.datetime.now().strftime('%A, %B %d, %Y')}")
@@ -2247,13 +2267,13 @@ class ClientMainDashboard(QWidget):
         dashboard_stats_layout.setSpacing(20)
 
         total_orders = len(self.data.client_orders)
-        in_transit = len([o for o in self.data.client_orders if o['Status'] == 'Shipped' or o['Status'] == 'Processing'])
-        delivered_today = len([o for o in self.data.client_orders if o['Status'] == 'Delivered' and (datetime.datetime.now() - o['Order_Date']).total_seconds() < 86400]) # Last 24 hours
+        in_transit = len([o for o in self.data.client_orders if o['Status'] == 'Accepte'])
+        pending = len([o for o in self.data.client_orders if o['Status'] == 'en attente' ]) # Last 24 hours
         open_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Open'])
 
         dashboard_stats_layout.addWidget(self.create_dashboard_card("Total Orders", total_orders, "#FFC107", "All orders placed"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("In Transit", in_transit, "#2196F3", "Orders currently in shipment"))
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("Delivered Today", delivered_today, "#4CAF50", "Orders delivered in last 24h"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Pending", pending, "#4CAF50", "Not yet proccessed"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Inquiries", open_inquiries, "#F44336", "Issues requiring attention"))
 
         hero_layout.addLayout(dashboard_stats_layout)

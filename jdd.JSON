@@ -377,7 +377,7 @@
   { "idorg": "ONEWSP", "idpcolis": "PCO67890", "date_creation": "2024-08-03", "statut": "Refuse" },
   { "idorg": "OFIRST", "idpcolis": "PCOABCDE", "date_creation": "2024-08-04", "statut": "Refuse" },
   { "idorg": "OFRACT", "idpcolis": "PCO54321", "date_creation": "2024-08-05", "statut": "Refuse" },
-  { "idorg": "OSUPPL", "idpcolis": "PCOZXCVB", "date_creation": "2024-08-06", "statut": "Refuse" }
+  { "idorg": "OFIRST", "idpcolis": "PCOZXCVB", "date_creation": "2024-08-06", "statut": "en attente" }
 ],
   "Lot": [
     { "idorg": "OFIRST", "idplot": "PL00001", "idproduit": "PANT20", "quantite": 100, "date_creation": "2024-01-01", "statut": "neuf" },
@@ -409,7 +409,8 @@
     { "idorg": "OFRACT", "idplot": "PLXTR02", "idproduit": "PSSD05", "quantite": 25, "date_creation": "2024-08-02", "statut": "recupere" },
     { "idorg": "OFRACT", "idplot": "PLXTR03", "idproduit": "PBOX06", "quantite": 80, "date_creation": "2024-08-03", "statut": "neuf" },
     { "idorg": "OFUTUR", "idplot": "PLXTR04", "idproduit": "PUSB13", "quantite": 40, "date_creation": "2024-08-04", "statut": "neuf" },
-    { "idorg": "ONEWSP", "idplot": "PLXTR05", "idproduit": "PMON14", "quantite": 10, "date_creation": "2024-08-05", "statut": "neuf" }
+    { "idorg": "ONEWSP", "idplot": "PLXTR05", "idproduit": "PMON14", "quantite": 10, "date_creation": "2024-08-05", "statut": "neuf" },
+    { "idorg": "OFIRST", "idplot": "PLXTR06", "idproduit": "PMON14", "quantite": 10, "date_creation": "2024-08-05", "statut": "neuf" }
   ],
   "ContenuColis": [
     { "idorg": "OFIRST", "idpcolis": "PCO00001", "idplot": "PL00001", "quantite": 100, "date_MAJ": "2024-01-01" },
@@ -437,7 +438,8 @@
     { "idorg": "ONEWSP", "idpcolis": "PCO67890", "idplot": "PLMN14A", "quantite": 7, "date_MAJ": "2024-08-03" },
     { "idorg": "OFIRST", "idpcolis": "PCOABCDE", "idplot": "PLLA01B", "quantite": 2, "date_MAJ": "2024-08-04" },
     { "idorg": "OFRACT", "idpcolis": "PCO54321", "idplot": "PLXTR02", "quantite": 5, "date_MAJ": "2024-08-05" },
-    { "idorg": "OSUPPL", "idpcolis": "PCOZXCVB", "idplot": "PLXTR04", "quantite": 9, "date_MAJ": "2024-08-06" }
+    { "idorg": "OSUPPL", "idpcolis": "PCOZXCVB", "idplot": "PLXTR04", "quantite": 9, "date_MAJ": "2024-08-06" },
+    { "idorg": "OFIRST", "idpcolis": "PCOZXCVB", "idplot": "PLXTR06", "quantite": 11,"date_MAJ": "2024-07-31"}
   ]
  }
 }
