@@ -1148,26 +1148,40 @@ class ReportsWidget(QWidget):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QVBoxLayout(self)
-
+            # Créer un QScrollArea comme widget principal
+            self.scroll_area = QScrollArea()
+            self.scroll_area.setWidgetResizable(True)
+            self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            
+            # Créer le widget conteneur et son layout
+            self.container_widget = QWidget()
+            self._main_layout = QVBoxLayout(self.container_widget)
+            
+            # Configurer le scroll area
+            self.scroll_area.setWidget(self.container_widget)
+            super().setLayout(QVBoxLayout())
+            super().layout().addWidget(self.scroll_area)
+            super().layout().setContentsMargins(0, 0, 0, 0)
+    
         layout = self._main_layout
-        layout.setContentsMargins(0, 0, 0, 0)
-
+        layout.setContentsMargins(10, 10, 10, 10)  # Ajouter des marges pour le contenu
+    
         title = QLabel("Generate Reports")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
         layout.addWidget(title)
-
+    
         tabs = QTabWidget()
-
+    
         # Stock Reports
         stock_reports_widget = QWidget()
         stock_reports_layout = QVBoxLayout()
         stock_reports_layout.addWidget(QLabel("<h4>Stock Reports</h4>"))
         stock_reports_layout.addWidget(QLabel("Generate reports on current stock levels, low stock items, and inventory value."))
-
+    
         self.stock_summary_table = self.create_stock_summary_table()
         stock_reports_layout.addWidget(self.stock_summary_table)
-
+    
         # Add Save button for Stock Reports
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
@@ -1186,29 +1200,27 @@ class ReportsWidget(QWidget):
         """)
         save_stock_btn.clicked.connect(self.save_stock_report_to_csv)
         stock_reports_layout.addWidget(save_stock_btn)
-
-
+    
         stock_reports_widget.setLayout(stock_reports_layout)
         tabs.addTab(stock_reports_widget, "Stock Reports")
-
-        # Performance Reports (reusing PerformanceWidget logic)
+    
+        # Performance Reports
         self.performance_reports_widget = PerformanceWidget(self.data)
         tabs.addTab(self.performance_reports_widget, "Performance Reports")
-
+    
         # Exception Reports
         exception_reports_widget = QWidget()
         exception_reports_layout = QVBoxLayout()
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
-        # Example: Low Stock Exception # Make it an instance variable
-
         exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
-
+    
         exception_reports_widget.setLayout(exception_reports_layout)
         tabs.addTab(exception_reports_widget, "Exception Reports")
-
+    
         layout.addWidget(tabs)
         layout.addStretch()
+        
         
     def clear_layout(self, layout):
         if layout is not None:
@@ -1222,10 +1234,16 @@ class ReportsWidget(QWidget):
 
     def create_stock_summary_table(self):
         table = QTableWidget()
-        table.setRowCount(len(self.data.inventory_df))
+        row_count = len(self.data.inventory_df)
+        table.setRowCount(row_count)
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
-
+    
+        # Désactiver complètement les scrollbars
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    
+        # Remplir le tableau
         self.stock_summary_data = []
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             product_info = self.data.products_df[self.data.products_df['ID'] == row['Product_ID']].iloc[0] if not self.data.products_df.empty else {'Category': 'N/A'}
@@ -1240,39 +1258,34 @@ class ReportsWidget(QWidget):
                 'Quantity': row['Quantity'],
                 'Current Value': current_value
             })
-        self.stock_summary_df = pd.DataFrame(self.stock_summary_data)
-        
+    
+        # Style et configuration
         table.setStyleSheet("""
             QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
-                padding: 10px 8px;
-                border: 1px solid #dcdcdc;
+                padding: 6px;
                 font-weight: bold;
-                font-size: 13px;
-                color: #555;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cce7ff;
-                color: #333;
             }
         """)
         table.setAlternatingRowColors(True)
-        table.resizeColumnsToContents()
+        
+        # Calculer la hauteur exacte nécessaire
+        header_height = table.horizontalHeader().height()
+        row_height = 30  # Hauteur moyenne par ligne
+        total_height = header_height + (row_count * row_height) + 2  # +2 pour la bordure
+        
+        # Appliquer la hauteur fixe
+        table.setFixedHeight(total_height)
+        
+        # Configuration des colonnes
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
+        
         return table
-
     def save_stock_report_to_csv(self):
         if not self.stock_summary_df.empty:
             options = QFileDialog.Option.DontUseNativeDialog  # option facultative

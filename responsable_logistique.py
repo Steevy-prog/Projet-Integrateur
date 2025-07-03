@@ -488,7 +488,7 @@ class LogisticsOverviewWidget(QWidget):
         
         # Commandes urgentes table
         urgent_table = self.create_urgent_table()
-        urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
+        urgent_table.setFixedHeight(500)  
         urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Ajouter tous les éléments au layout de contenu
@@ -1272,26 +1272,40 @@ class LogisticsReportsWidget(QWidget):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QVBoxLayout(self)
-
+            # Créer un QScrollArea comme widget principal
+            self.scroll_area = QScrollArea()
+            self.scroll_area.setWidgetResizable(True)
+            self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            
+            # Créer le widget conteneur et son layout
+            self.container_widget = QWidget()
+            self._main_layout = QVBoxLayout(self.container_widget)
+            
+            # Configurer le scroll area
+            self.scroll_area.setWidget(self.container_widget)
+            super().setLayout(QVBoxLayout())
+            super().layout().addWidget(self.scroll_area)
+            super().layout().setContentsMargins(0, 0, 0, 0)
+    
         layout = self._main_layout
-        layout.setContentsMargins(0, 0, 0, 0)
-
+        layout.setContentsMargins(10, 10, 10, 10)  # Ajouter des marges pour le contenu
+    
         title = QLabel("Generate Reports")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
         layout.addWidget(title)
-
+    
         tabs = QTabWidget()
-
+    
         # Stock Reports
         stock_reports_widget = QWidget()
         stock_reports_layout = QVBoxLayout()
         stock_reports_layout.addWidget(QLabel("<h4>Stock Reports</h4>"))
         stock_reports_layout.addWidget(QLabel("Generate reports on current stock levels, low stock items, and inventory value."))
-
+    
         self.stock_summary_table = self.create_stock_summary_table()
         stock_reports_layout.addWidget(self.stock_summary_table)
-
+    
         # Add Save button for Stock Reports
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
@@ -1310,29 +1324,27 @@ class LogisticsReportsWidget(QWidget):
         """)
         save_stock_btn.clicked.connect(self.save_stock_report_to_csv)
         stock_reports_layout.addWidget(save_stock_btn)
-
-
+    
         stock_reports_widget.setLayout(stock_reports_layout)
         tabs.addTab(stock_reports_widget, "Stock Reports")
-
-        # Performance Reports (reusing PerformanceWidget logic)
+    
+        # Performance Reports
         self.performance_reports_widget = PerformanceWidget(self.data)
         tabs.addTab(self.performance_reports_widget, "Performance Reports")
-
+    
         # Exception Reports
         exception_reports_widget = QWidget()
         exception_reports_layout = QVBoxLayout()
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
-        # Example: Low Stock Exception # Make it an instance variable
-
         exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
-
+    
         exception_reports_widget.setLayout(exception_reports_layout)
         tabs.addTab(exception_reports_widget, "Exception Reports")
-
+    
         layout.addWidget(tabs)
         layout.addStretch()
+        
         
     def clear_layout(self, layout):
         if layout is not None:
@@ -1346,10 +1358,16 @@ class LogisticsReportsWidget(QWidget):
 
     def create_stock_summary_table(self):
         table = QTableWidget()
-        table.setRowCount(len(self.data.inventory_df))
+        row_count = len(self.data.inventory_df)
+        table.setRowCount(row_count)
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
-
+    
+        # Désactiver complètement les scrollbars
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    
+        # Remplir le tableau
         self.stock_summary_data = []
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             product_info = self.data.products_df[self.data.products_df['ID'] == row['Product_ID']].iloc[0] if not self.data.products_df.empty else {'Category': 'N/A'}
@@ -1364,39 +1382,34 @@ class LogisticsReportsWidget(QWidget):
                 'Quantity': row['Quantity'],
                 'Current Value': current_value
             })
-        self.stock_summary_df = pd.DataFrame(self.stock_summary_data)
-        
+    
+        # Style et configuration
         table.setStyleSheet("""
             QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
-                padding: 10px 8px;
-                border: 1px solid #dcdcdc;
+                padding: 6px;
                 font-weight: bold;
-                font-size: 13px;
-                color: #555;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cce7ff;
-                color: #333;
             }
         """)
         table.setAlternatingRowColors(True)
-        table.resizeColumnsToContents()
+        
+        # Calculer la hauteur exacte nécessaire
+        header_height = table.horizontalHeader().height()
+        row_height = 30  # Hauteur moyenne par ligne
+        total_height = header_height + (row_count * row_height) + 2  # +2 pour la bordure
+        
+        # Appliquer la hauteur fixe
+        table.setFixedHeight(total_height)
+        
+        # Configuration des colonnes
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
+        
         return table
-
     def save_stock_report_to_csv(self):
         if not self.stock_summary_df.empty:
             options = QFileDialog.Option.DontUseNativeDialog  # option facultative
@@ -1430,175 +1443,6 @@ class LogisticsReportsWidget(QWidget):
                 QMessageBox.information(self, "Success", f"Low stock report saved to:\n{file_name}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save low stock report: {e}")
-
-    
-    def create_performance_tab(self, from_date, to_date):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Filter data
-        mask = (self.data.performance_df['date'] >= from_date) & (self.data.performance_df['date'] <= to_date)
-        filtered_df = self.data.performance_df[mask]
-        
-        if filtered_df.empty:
-            layout.addWidget(QLabel("Aucune donnée disponible pour cette période"))
-            return widget
-        
-        # Metrics
-        metrics_layout = QHBoxLayout()
-        
-        avg_delivery = filtered_df['delais_moyens'].mean()
-        success_rate = filtered_df['taux_livraison'].mean()
-        total_shipments = filtered_df['commandes_expediees'].sum()
-        
-        metrics_layout.addWidget(MetricCard("Délai moyen", f"{avg_delivery:.1f} jours", "Livraison"))
-        metrics_layout.addWidget(MetricCard("Taux réussite", f"{success_rate:.1f}%", "Livraisons"))
-        metrics_layout.addWidget(MetricCard("Commandes", f"{total_shipments:,}", "Expédiées"))
-        
-        layout.addLayout(metrics_layout)
-        
-        # Charts
-        charts_layout = QHBoxLayout()
-        
-        # Delivery time trend
-        deliv_chart = ChartWidget(parent=self, title='Délais de livraison', y_label='Jours', x_label='Date',
-                                 axisItems={'bottom': pg.DateAxisItem()})
-        x_vals = filtered_df['date'].apply(lambda x: x.timestamp()).values
-        deliv_chart.plot(x_vals, filtered_df['delais_moyens'].values, pen=pg.mkPen(color='#2196F3', width=2))
-        deliv_chart.setMinimumHeight(300)
-        
-        # Success rate trend
-        success_chart = ChartWidget(parent=self, title='Taux de livraison', y_label='%', x_label='Date',
-                                   axisItems={'bottom': pg.DateAxisItem()})
-        success_chart.plot(x_vals, filtered_df['taux_livraison'].values, pen=pg.mkPen(color='#4CAF50', width=2))
-        success_chart.setMinimumHeight(300)
-        
-        charts_layout.addWidget(deliv_chart)
-        charts_layout.addWidget(success_chart)
-        layout.addLayout(charts_layout)
-        
-        return widget
-    
-    def create_costs_tab(self, from_date, to_date):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Filter expeditions data
-        mask = (self.data.expeditions_df['date_expedition'] >= from_date) & (self.data.expeditions_df['date_expedition'] <= to_date)
-        filtered_df = self.data.expeditions_df[mask]
-        
-        if filtered_df.empty:
-            layout.addWidget(QLabel("Aucune donnée disponible pour cette période"))
-            return widget
-        
-        # Calculate costs by carrier
-        costs_by_carrier = filtered_df.groupby('id_transporteur')['cout_estime'].sum().reset_index()
-        costs_by_carrier['nom'] = costs_by_carrier['id_transporteur'].apply(
-            lambda x: self.data.transporteurs_df[self.data.transporteurs_df['id'] == x]['nom'].values[0])
-        
-        # Metrics
-        metrics_layout = QHBoxLayout()
-        
-        total_cost = filtered_df['cout_estime'].sum()
-        avg_cost = filtered_df['cout_estime'].mean()
-        shipments = len(filtered_df)
-        
-        metrics_layout.addWidget(MetricCard("Coût total", f"${total_cost:,.0f}", "Transport"))
-        metrics_layout.addWidget(MetricCard("Coût moyen", f"${avg_cost:,.0f}", "Par commande"))
-        metrics_layout.addWidget(MetricCard("Commandes", f"{shipments:,}", "Expédiées"))
-        
-        layout.addLayout(metrics_layout)
-        
-        # Cost by carrier chart
-        cost_chart = ChartWidget(title='Coûts par transporteur', y_label='Coût ($)', x_label='Transporteur')
-        
-        x_vals = np.arange(len(costs_by_carrier))
-        y_vals = costs_by_carrier['cout_estime'].values
-        
-        colors = [QColor('#2196F3'), QColor('#4CAF50'), QColor('#FF9800'), QColor('#9C27B0')]
-        brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
-        
-        bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
-        cost_chart.addItem(bargraph)
-        
-        ticks = [(i, label) for i, label in enumerate(costs_by_carrier['nom'])]
-        cost_chart.getAxis('bottom').setTicks([ticks])
-        
-        for i, value in enumerate(y_vals):
-            text_item = pg.TextItem(text=f"${value:,.0f}", anchor=(0.5, 0), color='k')
-            text_item.setPos(x_vals[i], value + max(y_vals)*0.05)
-            cost_chart.addItem(text_item)
-        
-        cost_chart.setMinimumHeight(300)
-        layout.addWidget(cost_chart)
-        
-        return widget
-    
-    def create_transport_tab(self, from_date, to_date):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Filter expeditions data
-        mask = ((self.data.expeditions_df['date_expedition'] >= from_date) & 
-        (self.data.expeditions_df['date_expedition'] <= to_date))
-        filtered_df = self.data.expeditions_df[mask]
-        
-        if filtered_df.empty:
-            layout.addWidget(QLabel("Aucune donnée disponible pour cette période"))
-            return widget
-        
-        # Calculate shipments by carrier
-        shipments_by_carrier = filtered_df.groupby('id_transporteur').size().reset_index(name='count')
-        shipments_by_carrier['nom'] = shipments_by_carrier['id_transporteur'].apply(
-            lambda x: self.data.transporteurs_df[self.data.transporteurs_df['id'] == x]['nom'].values[0])
-        
-        # Metrics
-        metrics_layout = QHBoxLayout()
-        
-        total_shipments = len(filtered_df)
-        carriers_used = len(shipments_by_carrier)
-        avg_per_carrier = total_shipments / carriers_used if carriers_used > 0 else 0
-        
-        metrics_layout.addWidget(MetricCard("Commandes", f"{total_shipments:,}", "Expédiées"))
-        metrics_layout.addWidget(MetricCard("Transporteurs", f"{carriers_used}", "Utilisés"))
-        metrics_layout.addWidget(MetricCard("Moyenne", f"{avg_per_carrier:.1f}", "Par transporteur"))
-        
-        layout.addLayout(metrics_layout)
-        
-        # Shipments by carrier chart
-        ship_chart = ChartWidget(title='Commandes par transporteur', y_label='Nombre', x_label='Transporteur')
-        
-        x_vals = np.arange(len(shipments_by_carrier))
-        y_vals = shipments_by_carrier['count'].values
-        
-        colors = [QColor('#2196F3'), QColor('#4CAF50'), QColor('#FF9800'), QColor('#9C27B0')]
-        brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
-        
-        bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
-        ship_chart.addItem(bargraph)
-        
-        ticks = [(i, label) for i, label in enumerate(shipments_by_carrier['nom'])]
-        ship_chart.getAxis('bottom').setTicks([ticks])
-        
-        for i, value in enumerate(y_vals):
-            text_item = pg.TextItem(text=f"{int(value)}", anchor=(0.5, 0), color='k')
-            text_item.setPos(x_vals[i], value + max(y_vals)*0.05)
-            ship_chart.addItem(text_item)
-        
-        ship_chart.setMinimumHeight(300)
-        layout.addWidget(ship_chart)
-        
-        return widget
-    
-    def clear_layout(self, layout):
-        if layout is not None:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-                else:
-                    self.clear_layout(item.layout())
 
 class LogisticsDashboardWidget(QWidget):
     """Dashboard principal pour le responsable logistique"""
