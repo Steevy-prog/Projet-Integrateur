@@ -79,6 +79,9 @@ CREATE DOMAIN "SCA".Idproduitmateriel TEXT CHECK(
 CREATE DOMAIN "SCA".Idproduitlogiciel TEXT CHECK(
     VALUE ~ '^PL[A-Z0-9]{4}$'
     );
+CREATE DOMAIN "EXTERNE".Idinquire TEXT CHECK(
+    VALUE ~ '^INQ[A-Z0-9]{4}$'
+    );
 CREATE DOMAIN "SCA".idtache TEXT CHECK (
     VALUE~ '^T[A-Z0-9]{5}$'
     );
@@ -98,8 +101,10 @@ CREATE DOMAIN "SCA".username TEXT CHECK (
     VALUE~ '^[a-zA-Z0-9_]{3,20}$'
     );
 CREATE TYPE "SCA".typeOrg AS ENUM('fournisseur','destinataire','SAC');
+CREATE TYPE "EXTERNE".typeinquire AS ENUM('missing package','damaged item','incorrect order','billing issue','general support','other');
 CREATE TYPE "SCA".etatcolis AS ENUM('Attente','Transit','Livre','Perdu','Endommagé');
-CREATE TYPE "SCA".retatcolis AS ENUM('Accepte','Refuse');
+CREATE TYPE "SCA".retatcolis AS ENUM('Accepte','Refuse','en attente','Arrive');
+CREATE TYPE "EXTERNE".etatinq AS ENUM('closed','open','progress','resolved');
 CREATE TYPE "SCA".etatexception AS ENUM('Progress','Resolu','Ouvert','Fermé');
 CREATE TYPE "SCA".etat AS ENUM('bon etat','mauvais etat','deteriore','livre');
 CREATE TYPE "SCA".roles AS ENUM('conducteur','magasinier','acheteur','vendeur','Admin','travailleur','manager','logistic');
@@ -735,6 +740,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idinquire_CONF(v TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^INQ[A-Z0-9]{4}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idinquire_VAL(v TEXT)
+RETURNS "EXTERNE".Idinquire AS $$
+BEGIN
+    IF NOT "EXTERNE".Idinquire_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour Idinquire: %', v;
+    END IF;
+    RETURN v::"EXTERNE".Idinquire;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idinquire_CONV(v TEXT)
+RETURNS "EXTERNE".Idinquire AS $$
+BEGIN
+    IF "EXTERNE".Idinquire_CONF(v) THEN
+        RETURN v::"EXTERNE".Idinquire;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Functions for domain email
 
 CREATE OR REPLACE FUNCTION "SCA".email_CONF(v TEXT)
@@ -1147,7 +1181,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_CONV(v TEXT)
     RETURNS "EXTERNE".Idplot AS $$
 BEGIN
-    IF "SCA".Idlot_CONF(v) THEN
+    IF "EXTERNE".Idplot_CONF(v) THEN
         RETURN v::"EXTERNE".Idplot;
     ELSE
         RETURN NULL;
@@ -3520,6 +3554,17 @@ return query
 end;
 $$ language plpgsql;
 
+create or replace function "EMIR".getvaluecol(_idorg "SCA".idorg,_idcolis "EXTERNE".idpcolis)
+returns int as $$
+begin
+    return(
+    select sum("SCA".Produit.prix_unitaire) from "EXTERNE".ContenuColis
+    join "EXTERNE".Lot on ("EXTERNE".ContenuColis.idplot = "EXTERNE".Lot.idplot)
+    join "SCA".Produit on ("EXTERNE".Lot.idproduit = "SCA".Produit.idproduit)
+    where "EXTERNE".ContenuColis.idorg = _idorg and "EXTERNE".ContenuColis.idpcolis = _idcolis);
+end;
+$$ language plpgsql;
+
 create or replace procedure "EMIR".supprimer_utilisateur(_idutilisateur "SCA".idutilisateur)
 as $$
 begin
@@ -3568,6 +3613,17 @@ $$ LANGUAGE plpgsql;
 
 drop function "EMIR".Organisation_EVA();
 
+create table "EXTERNE".inquiries(
+    idorg "SCA".idorg,
+    idinq "EXTERNE".Idinquire not null,
+    type "EXTERNE".typeinquire not null,
+    period timestamp not null,
+    status "EXTERNE".etatinq not null,
+    description text,
+    constraint inq_pk primary key (idinq),
+    foreign key(idorg) references "SCA".Organisation(idorganisation)
+);
+
 create or replace function "EMIR".Organisation_EVA()
     returns table (
                       idorganisation "SCA".idOrg,
@@ -3604,28 +3660,32 @@ begin
     insert into "EXTERNE".Lot(idorg,idplot, idproduit, quantite, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idplot_conv(_idplot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat_lot);
 end; $$ language plpgsql;
 
-create or replace function "EMIR".PLot_EVA(_idorg "SCA".idorg)
-returns table (
-    _idplot text,
-    _idproduit text,
-    _quantite text,
-    _date_creation text,
-    _statut text
+CREATE OR REPLACE FUNCTION "EMIR".PLot_EVA(_idorg "SCA".idorg)
+RETURNS TABLE (
+    _idplot "EXTERNE".idplot,
+    _idproduit "SCA".idproduit,
+    _quantite "SCA".dims,
+    _date_creation date,
+    _statut "SCA".etat_lot
 )
-as $$
-begin
-   select idplot,idproduit,quantite,date_creation,statut from "EXTERNE".Lot where idorg = _idorg;
-end; $$ language plpgsql;
+AS $$
+BEGIN
+   RETURN QUERY
+   SELECT idplot, idproduit, quantite, date_creation, statut
+   FROM "EXTERNE".Lot
+   WHERE idorg = _idorg;
+END;
+$$ LANGUAGE plpgsql;
 
 create or replace function "EMIR".PColis_EVA(_idorg "SCA".idorg)
 returns table (
-    _idpcolis text,
-    _date_creation text,
-    _statut text
+    _idpcolis "EXTERNE".idpcolis,
+    _date_creation date,
+    _statut "SCA".retatcolis
 )
 as $$
 begin
-   select idpcolis,date_creation,statut from "EXTERNE".Colis where idorg = _idorg;
+   return query select idpcolis,date_creation,statut from "EXTERNE".Colis where idorg = _idorg;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PColis_INS(
@@ -3636,19 +3696,19 @@ create or replace procedure "EMIR".PColis_INS(
 )
 as $$
 begin
-    insert into "EXTERNE".Colis(idorg,idpcolis, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), _date_creation::date, _statut::"SCA".etatcolis);
+    insert into "EXTERNE".Colis(idorg,idpcolis, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), _date_creation::date, _statut::"SCA".retatcolis);
 end; $$ language plpgsql;
 
 create or replace function "EMIR".PContenuColis_EVA(_idorg "SCA".idorg)
 returns table (
-    _idpcolis text,
-    _idplot text,
-    _quantite text,
-    _date_maj text
+    _idpcolis "EXTERNE".idpcolis,
+    _idplot "EXTERNE".idplot,
+    _quantite "SCA".dims,
+    _date_maj date
 )
 as $$
 begin
-   select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
+  return query select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PContenuColis_INS(
@@ -3662,3 +3722,28 @@ as $$
 begin
     insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, quantite, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idcolis), "EXTERNE".idplot_conv(_idlot), "SCA".dims_conv(_quantite), _date_MAJ::date);
 end; $$ language plpgsql;
+
+select * from "EMIR".PLot_EVA('OFIRST');
+select * from "EMIR".PColis_EVA('OFIRST');
+select * from "EMIR".PContenuColis_EVA('OFIRST');
+
+SELECT "EXTERNE".Idplot_CONF('PLA1BK2');  -- ✅ true
+select "EXTERNE".idplot_conv('PLA1BK2');
+SELECT "EXTERNE".Idplot_CONF('X-123');   -- ❌ false
+
+CREATE OR REPLACE FUNCTION "EMIR".inquiries_eva(_idorg "SCA".idorg)
+RETURNS TABLE (
+    idinq       "EXTERNE".Idinquire,
+    type        "EXTERNE".typeinquire,
+    period      timestamp,
+    status      "EXTERNE".etatinq,
+    description text
+
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT i.idinq, i.type, i.period, i.status,i.description
+    FROM "EXTERNE".inquiries i
+    WHERE i.idorg = _idorg;
+END;
+$$ LANGUAGE plpgsql;
