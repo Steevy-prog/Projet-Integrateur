@@ -180,6 +180,7 @@ CREATE TABLE "EXTERNE".Colis(
                             idorg "SCA".idorg NOT NULL,
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
+                            expexted_date date not null,
                             statut "SCA".retatcolis NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
@@ -3681,17 +3682,34 @@ create or replace function "EMIR".PColis_EVA(_idorg "SCA".idorg)
 returns table (
     _idpcolis "EXTERNE".idpcolis,
     _date_creation date,
+    _expected_date date,
     _statut "SCA".retatcolis
 )
 as $$
 begin
-   return query select idpcolis,date_creation,statut from "EXTERNE".Colis where idorg = _idorg;
+   return query select idpcolis,date_creation,expected_date,statut from "EXTERNE".Colis where idorg = _idorg;
+end; $$ language plpgsql;
+
+
+
+create or replace function "EMIR".PColis_EVA1()
+returns table (
+    _idorg "SCA".idorg,
+    _idpcolis "EXTERNE".idpcolis,
+    _date_creation date,
+    _expected_date date,
+    _statut "SCA".retatcolis
+)
+as $$
+begin
+   return query select idorg,idpcolis,date_creation,expected_date,statut from "EXTERNE".Colis;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PColis_INS(
     _idorg text,
     _idpcolis text,
     _date_creation text,
+    expected_date text,
     _statut text
 )
 as $$
@@ -3709,6 +3727,19 @@ returns table (
 as $$
 begin
   return query select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".PContenuColis_EVA()
+returns table (
+    _idorg "SCA".idorg,
+    _idpcolis "EXTERNE".idpcolis,
+    _idplot "EXTERNE".idplot,
+    _quantite "SCA".dims,
+    _date_maj date
+)
+as $$
+begin
+  return query select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PContenuColis_INS(
@@ -3748,8 +3779,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
- 
-create or replace procedure "EMIR".getnameandid()
+create or replace function "EMIR".getnameandid()
 returns table(
 id "SCA".idindividu,
 name "SCA"nom,

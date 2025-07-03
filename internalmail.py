@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 
-def send_email(subject, to_email):
+def send_email(subject, to_email,orgid,orgname,idcolis,receivingorg):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
     sender_email = "scarobotinterne@gmail.com"
@@ -11,18 +11,18 @@ def send_email(subject, to_email):
     sender_name = "SCA Robot Interne"
 
     # HTML body
-    body = """
+    body = f"""
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #2c3e50;">📧 Message automatique - SCA Robot</h2>
+          <h1 style="color: #2c3e50;">📧 Message automatique - SCA Robot</h2>
           <p style="font-size: 15px; color: #333333;">
             Bonjour,
           </p>
-          <p style="font-size: 15px; color: #333333;">
-            Ceci est un message envoyé automatiquement par <strong>SCA Robot</strong>. 
-            N'hésitez pas à nous contacter si vous avez des questions ou besoin d'assistance.
-          </p>
+          <h2>Organisation ID : </h2> <p><b>{orgid}</b></p>
+          <h2>Organisation Name : </h2> <p><b>{orgname}</b></p>
+          <h2>Package ID : </h2> <p><b>{idcolis}</b></p>
+          <h2>Receiving Organisation</h2><p><b>{receivingorg}</b></p>
           <p style="font-size: 14px; color: #555555;">
             Cordialement,<br>
             <strong>SCA Robot</strong>
@@ -50,13 +50,3 @@ def send_email(subject, to_email):
         server.quit()
     except Exception as e:
         print(f"❌ Erreur lors de l'envoi: {e}")
-
-# Example usage
-send_email(
-    subject="Notification automatique - SCA",
-    to_email="steevyvalery7@gmail.com"
-)
-send_email(
-    subject="Notification automatique - SCA",
-    to_email="eric.zoa@2029.ucac-icam.com"
-)

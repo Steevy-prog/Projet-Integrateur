@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 
-def send_email(subject, to_email):
+def send_email(subject, to_email,orgid,orgname,idcolis,receivingorg):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
     sender_email = "scarobot6@gmail.com"
@@ -11,7 +11,7 @@ def send_email(subject, to_email):
     sender_name = "SCA Robot"
 
     # HTML body
-    body = """
+    body = f"""
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
@@ -19,10 +19,10 @@ def send_email(subject, to_email):
           <p style="font-size: 15px; color: #333333;">
             Bonjour,
           </p>
-          <p style="font-size: 15px; color: #333333;">
-            Ceci est un message envoyé automatiquement par <strong>SCA Robot</strong>. 
-            N'hésitez pas à nous contacter si vous avez des questions ou besoin d'assistance.
-          </p>
+          <h1>Organisation ID : </h1> <p>{orgid}</p>
+          <h1>Organisation Name : </h1> <p>{orgname}</p>
+          <h1>Package ID : </h1> <p>{idcolis}</p>
+          <h1>Receiving Organisation</h1><p>{receivingorg}</p>
           <p style="font-size: 14px; color: #555555;">
             Cordialement,<br>
             <strong>SCA Robot</strong>
@@ -51,12 +51,3 @@ def send_email(subject, to_email):
     except Exception as e:
         print(f"❌ Erreur lors de l'envoi: {e}")
 
-# Example usage
-send_email(
-    subject="Notification automatique - SCA",
-    to_email="steevyvalery7@gmail.com"
-)
-send_email(
-    subject="Notification automatique - SCA",
-    to_email="eric.zoa@2029.ucac-icam.com"
-)
