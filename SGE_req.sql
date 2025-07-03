@@ -58,7 +58,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "EMIR".colis_entrants_jour()
     RETURNS SETOF "SCA".Bonreception AS $$
 BEGIN
-    RETURN (
+    RETURN QUERY (
         SELECT *
         FROM "SCA".Bonreception
         WHERE date_creation = current_date);
@@ -68,7 +68,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "EMIR".colis_entrants_date(_date TEXT)
     RETURNS SETOF "SCA".Bonreception AS $$
 BEGIN
-    RETURN (
+    RETURN QUERY (
         SELECT *
         FROM "SCA".Bonreception
         WHERE date_creation = _date::date);
@@ -78,7 +78,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "EMIR".colis_sortants_jour()
     RETURNS SETOF "SCA".Bonexpedition AS $$
 BEGIN
-    RETURN (
+    RETURN QUERY (
         SELECT *
         FROM "SCA".Bonexpedition
         WHERE date_creation = current_date);
@@ -229,21 +229,6 @@ begin
     return avg_value;
 end;
 $$ LANGUAGE plpgsql;
-
-create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
-    returns table(
-                     _idtache "SCA".idtache,
-                     _idtravailleur "SCA"._idtravailleur,                                                                     _idcellule "SCA".idcellule,
-                     _idlot "SCA".idlot,
-                     _date_creation date,
-                     _description text,
-                     _statut text,
-                     _type text
-                 )
-as $$
-begin
-    return query select idtache,idcellule,idlot,date_creation,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
-end; $$ language plpgsql;
 
 SELECT "EMIR".colis_entrants_jour_count();
 

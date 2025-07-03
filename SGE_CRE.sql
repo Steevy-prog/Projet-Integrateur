@@ -367,7 +367,7 @@ CREATE TABLE "SCA".Tache(
                             CONSTRAINT Tache_CC0 PRIMARY KEY (idtache),
                             CONSTRAINT Tache_CR0 FOREIGN KEY (idtravailleur) REFERENCES "SCA".Travailleur(idtravailleur) ON DELETE CASCADE,
                             FOREIGN KEY (idcellule) REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE,
-                            FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
+                            FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE
 );
 -- CREATE TABLE "CREDENTIALS".PasswordPolicies (
 --                                                 id_policy INT GENERATED ALWAYS AS IDENTITY,
@@ -462,6 +462,7 @@ CREATE TABLE "EXTERNE".Colis(
                             idorg "SCA".idorg not null,
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
+                            expected_date date NOT NULL,
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );

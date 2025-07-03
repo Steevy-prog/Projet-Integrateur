@@ -57,15 +57,15 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="steevy",
+        password="1234",
         port=5432
     )
 cur = conn.cursor()
 
-cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".PContenuColis_EVA() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".contenucolis_eva() AS p;")
 contenu = cur.fetchall() # Existing packages from the database
 
 class WarehouseData:
@@ -76,7 +76,7 @@ class WarehouseData:
 
     def generate_sample_data(self):
         # Products data
-        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+        cur.execute("SELECT (p).* FROM \"EMIR\".produit_eva() AS p;")
         products = cur.fetchall()
         self.colis_df = pd.DataFrame(colis_db,columns=['idprg','id','date_cre','exp_date','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idorg','idcol','idlot','quantity','date_maj'])
