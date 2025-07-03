@@ -896,6 +896,23 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 22.1. TRIGGER AUTOMATIQUE POUR nbuses
+CREATE OR REPLACE FUNCTION "SCA".lotemballage_set_recycle() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.nbuses >= 3 THEN
+        NEW.condition := 'a recycler';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_lotemballage_nbuses ON "SCA".LotEmballage;
+CREATE TRIGGER trg_lotemballage_nbuses
+BEFORE INSERT OR UPDATE ON "SCA".LotEmballage
+FOR EACH ROW
+EXECUTE FUNCTION "SCA".lotemballage_set_recycle();
+
 --EMIRSSSSSSSS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -1199,6 +1216,28 @@ as $$
 begin
     insert into "SCA".Utilisateur(idutilisateur, idindividu, username, statut, niveau_acces)
     values ("SCA".idutilisateur_CONV(_idutilisateur), "SCA".IDindividu_CONV(_idindividu), "SCA".username_CONV(_username), _statut::"SCA".statut_utilisateur, _niveau_acces::"SCA".niveau_acces);
+end; $$ language plpgsql;
+
+-- 22. LOTEMBALLAGE
+create or replace procedure "EMIR".LotEmballage_INS(
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text DEFAULT 'neuf',
+    _nbuses int DEFAULT 0,
+    _condition text DEFAULT 'utilisable'
+)
+as $$
+begin
+    insert into "SCA".LotEmballage(idproduit, quantite, date_creation, statut, nbuses, condition)
+    values (
+        "SCA".idproduit_conv(_idproduit),
+        "SCA".dims_conv(_quantite),
+        _date_creation::date,
+        _statut::"SCA".etat_lot,
+        _nbuses,
+        _condition::"SCA".condition_materiel
+    );
 end; $$ language plpgsql;
 
 -- Fin des routines _INS
@@ -1512,7 +1551,22 @@ create or replace function "EMIR".Credentials_EVA()
 begin
     return query select * from "CREDENTIALS".Credentials;
 end; $$ language plpgsql;
--- Fin des fonctions d'évaluation (_EVA)
+
+-- 22. LOTEMBALLAGE
+create or replace function "EMIR".LotEmballage_EVA()
+    returns table (
+        idlotemballage integer,
+        idproduit "SCA".Idproduit,
+        quantite "SCA".dims,
+        date_creation date,
+        statut "SCA".etat_lot,
+        nbuses int,
+        condition "SCA".condition_materiel
+    ) as $$
+begin
+    return query select * from "SCA".LotEmballage;
+end; $$ language plpgsql;
+
 -- Routines de RETRAIT (_RET)
 
 -- 1. ORGANISATION
@@ -1696,6 +1750,15 @@ create or replace procedure "EMIR".Utilisateur_RET(
 as $$
 begin
     delete from "SCA".Utilisateur where idutilisateur = _idutilisateur;
+end; $$ language plpgsql;
+
+-- 22. LOTEMBALLAGE
+create or replace procedure "EMIR".LotEmballage_RET(
+    _idlotemballage integer
+)
+as $$
+begin
+    delete from "SCA".LotEmballage where idlotemballage = _idlotemballage;
 end; $$ language plpgsql;
 
 -- Fin des routines _RET

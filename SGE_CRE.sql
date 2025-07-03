@@ -282,6 +282,17 @@ CREATE TABLE "SCA".Lot(
                               ON DELETE CASCADE
 );
 
+CREATE TABLE "SCA".LotEmballage(
+    idlotemballage SERIAL PRIMARY KEY,
+    idproduit "SCA".Idproduit NOT NULL,
+    quantite "SCA".dims NOT NULL,
+    date_creation DATE NOT NULL,
+    statut "SCA".etat_lot DEFAULT 'neuf',
+    nbuses INT DEFAULT 0,
+    condition "SCA".condition_materiel DEFAULT 'utilisable',
+    CONSTRAINT LotEmballage_CR0 FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit) ON DELETE CASCADE
+);
+
 CREATE TABLE "SCA".ContenuColis(
                                    idcolis "SCA".Idcolis NOT NULL ,
                                    idlot "SCA".Idlot NOT NULL ,
