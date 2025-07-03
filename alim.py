@@ -261,6 +261,10 @@ insert('"SCA".entrepot',
        ["idcellule", "position"],
        [(e["idcellule"], e["position"]) for e in sc["entrepot"]])
 
+insert('"SCA".LivraisonConducteurColis',
+       ["idconducteur","idbonexpedition","date_affectation","statut"],
+       [(f["idconducteur"], f["idbonexpedition"], f["date_affectation"], f["statut"]) for f in sc["LivraisonConducteurColis"]])
+
 # 🔐 Credentials et policies
 cred = data["CREDENTIALS"]
 

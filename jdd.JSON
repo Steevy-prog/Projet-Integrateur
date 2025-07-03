@@ -38,11 +38,10 @@
    { "idcolis": "COANT20", "date_creation": "2024-07-31", "statut": "Attente" }
   ],
   "Zone": [
-   { "idzone": "ZRECP1", "nom": "Zone de Réception A" },
+   { "idzone": "ZRECP1", "nom": "Zone de Stockage A" },
    { "idzone": "ZSTOK2", "nom": "Zone de Stockage B" },
-   { "idzone": "ZEXPD3", "nom": "Zone d'Expédition C" },
-   { "idzone": "ZRETR4", "nom": "Zone de Retour D" },
-   { "idzone": "ZEMBA5", "nom": "Zone d'Emballage E" }
+   { "idzone": "ZEXPD3", "nom": "Zone de Stockage C" },
+   { "idzone": "ZEMBA5", "nom": "Zone de Stockage D" }
   ],
   "individu": [
    { "idindividu": "IADMIN", "nom": "Principal", "prenom": "Admin", "adresse": "1 Admin Way, Douala", "telephone": "690123456" },
