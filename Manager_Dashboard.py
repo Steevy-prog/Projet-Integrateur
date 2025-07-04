@@ -65,6 +65,9 @@ cur = conn.cursor()
 cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
+cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
+pcolis_db = cur.fetchall() # Existing packages from the database
+
 cur.execute("SELECT (p).* FROM \"EMIR\".contenucolis_eva() AS p;")
 contenu = cur.fetchall() # Existing packages from the database
 
@@ -164,16 +167,18 @@ class WarehouseData:
 
         # Expedition orders
         expedition_data = []
-        destinations = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']
 
-        for i in range(25):
+        for i in self.colis_df.itertuples():
+            cur.execute("SELECT \"EMIR\".getvaluecol(%s);",(i.id,))
+            total = cur.fetchone()[0]
+            items = [t for t in self.contenu_df.to_dict('records') if t['idcol'] == i.id]
             expedition_data.append({
-                'Order_ID': f'EO{i+1:03d}',
-                'Destination': random.choice(destinations),
-                'Request_Date': datetime.date.today() - datetime.timedelta(days=random.randint(0, 10)),
-                'Items_Count': random.randint(1, 8),
-                'Status': random.choice(statuses),
-                'Total_Value': random.randint(500, 25000)
+                'Order_ID': i.id,
+                'Destination': i.receiving_org,
+                'Request_Date': i.exp_date,
+                'Items_Count': len(items),
+                'Status': i.statut,
+                'Total_Value': total
             })
         self.expedition_df = pd.DataFrame(expedition_data)
 

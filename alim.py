@@ -38,7 +38,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 
@@ -117,7 +117,7 @@ insert('"SCA".Zone',
        [(z["idzone"], z["nom"]) for z in sc["Zone"]])
 
 insert('"SCA".individu',
-       ["idindividu", "nom", "prenom","adresse", "telephone"],
+       ["idindividu", "nom", "prenom", "adresse", "telephone"],
        [(i["idindividu"], i["nom"], i["prenom"], i["adresse"], i["telephone"])
         for i in sc["individu"]])
 
@@ -308,6 +308,7 @@ insert('"EXTERNE".ContenuColis',
        ["idorg","idpcolis", "idplot", "quantite", "date_maj"],
        [(c["idorg"],c["idpcolis"], c["idplot"], c["quantite"], c["date_MAJ"])
         for c in ext["ContenuColis"]])
+
 
 # ✅ Finalisation
 conn.commit()
