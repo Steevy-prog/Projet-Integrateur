@@ -38,7 +38,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 
@@ -117,8 +117,8 @@ insert('"SCA".Zone',
        [(z["idzone"], z["nom"]) for z in sc["Zone"]])
 
 insert('"SCA".individu',
-       ["idindividu", "nom", "prenom", "telephone"],
-       [(i["idindividu"], i["nom"], i["prenom"], i["telephone"])
+       ["idindividu", "nom", "prenom", "adresse", "telephone"],
+       [(i["idindividu"], i["nom"], i["prenom"], i["adresse"], i["telephone"])
         for i in sc["individu"]])
 
 insert('"SCA".Utilisateur',
@@ -224,7 +224,7 @@ insert('"SCA".InventaireEmplacement',
         for i in sc["InventaireEmplacement"]])
 
 insert('"SCA".Tache',
-       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
+       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estime", "description", "priority", "statut", "type"],
        [(
            t["idtache"],
            t["idtravailleur"],
@@ -308,6 +308,7 @@ insert('"EXTERNE".ContenuColis',
        ["idorg","idpcolis", "idplot", "quantite", "date_maj"],
        [(c["idorg"],c["idpcolis"], c["idplot"], c["quantite"], c["date_MAJ"])
         for c in ext["ContenuColis"]])
+
 
 # ✅ Finalisation
 conn.commit()
