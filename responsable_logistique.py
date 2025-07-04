@@ -844,7 +844,7 @@ class TransportManagementWidget(QWidget):
     
     def create_transporteurs_tab(self):
         class data:
-            def __init__(self,id,receiving_org,date):
+            def __init__(self,date,receiving_org,id):
                 self.id = id
                 self.receiving_org = receiving_org
                 self.date = date
@@ -912,7 +912,10 @@ class TransportManagementWidget(QWidget):
             """)
 
             # Connecter le bouton à l'ouverture de la fenêtre de sélection
-            assign_btn.clicked.connect(lambda _, b=assign_btn: self.open_conducteur_dialog(b,data(id_label,dest_label,date_label,)))
+            assign_btn.clicked.connect(
+                lambda _, b=assign_btn, colis_data=colis: 
+                self.open_conducteur_dialog(b, data(colis_data['date_expedition'], colis_data['destination'], colis_data['id_commande']))
+            )
 
             frame_layout.addWidget(assign_btn)
             scroll_layout.addWidget(frame)
@@ -923,7 +926,7 @@ class TransportManagementWidget(QWidget):
 
         return widget
 
-    def open_conducteur_dialog(self, button,data):
+    def open_conducteur_dialog(self, button,datas):
         """Ouvre la fenêtre de sélection des conducteurs"""
         colis_index = button.property("colis_index")
         dialog = ConducteurSelectionDialog(self.data.transporteurs_df, self)
@@ -942,8 +945,9 @@ class TransportManagementWidget(QWidget):
                     f"Le conducteur {selected['id']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
                     QMessageBox.StandardButton.Ok
                 )
-                internalmail.send_conducteur("SCA ASSIGNATION COLIS","thibaud.ambiana@2029.ucac-icam.com",data.date,data.id,data.receiving_org)
-                internalmail.send_conducteur("SCA ASSIGNATION COLIS","steevy.tongoue@2029.ucac-icam.com",data.date,data.id,data.receiving_org)
+                print(datas.date)
+                internalmail.send_conducteur("SCA ASSIGNATION COLIS","thibaud.ambiana@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
+                internalmail.send_conducteur("SCA ASSIGNATION COLIS","steevy.tongoue@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
 
     def create_planif_tab(self):
         widget = QWidget()
