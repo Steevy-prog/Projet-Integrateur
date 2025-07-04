@@ -1260,12 +1260,12 @@ end; $$ language plpgsql;
 -- 3. COLIS
 create or replace function "EMIR".Colis_EVA()
     returns table (
-                      idcolis "SCA".Idcolis,
-                      date_creation date,
-                      statut "SCA".etatcolis
+                      _idcolis "SCA".Idcolis,
+                      _date_creation date,
+                      _statut "SCA".etatcolis
                   ) as $$
 begin
-    return query select * from "SCA".Colis;
+    return query select idcolis, date_creation, statut from "SCA".Colis;
 end; $$ language plpgsql;
 
 -- 4. ZONE

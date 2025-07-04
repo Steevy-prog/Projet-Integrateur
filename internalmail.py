@@ -63,13 +63,13 @@ def send_conducteur(subject, to_email,date,idcolis,receivingorg):
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
-          <h1 style="color: #2c3e50;">📧 Message automatique - SCA Robot</h2>
+          <h1 style="color: #2c3e50;">📧 Message automatique - SCA Robot</h1>
           <p style="font-size: 15px; color: #333333;">
             Bonjour,
           </p>
           <h2>Delivery Date : </h2> <p><b>{date}</b></p>
           <h2>Package ID : </h2> <p><b>{idcolis}</b></p>
-          <h2>Receiving Organisation</h2><p><b>{receivingorg}</b></p>
+          <h2>Receiving Organisation : </h2><p><b>{receivingorg}</b></p>
           <p style="font-size: 14px; color: #555555;">
             Cordialement,<br>
             <strong>SCA Robot</strong>
