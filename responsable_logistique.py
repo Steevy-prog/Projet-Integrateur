@@ -151,15 +151,21 @@ class LogisticsData:
         
         for i in self.colis_df.itertuples():
             transporteur = random.choice(self.transporteurs_df['id'].values)
+            cur.execute("SELECT \"EMIR\".getvolume(%s)",(i.id,))
+            volume = cur.fetchall()
+            cur.execute("SELECT \"EMIR\".getvaluecol(%s)",(i.id,))
+            value = cur.fetchall()
+            cur.execute("SELECT \"EMIR\".getpoids(%s)",(i.id,))
+            poids = cur.fetchall()
             expeditions.append({
-                'id_commande': f'CMD{i+1:03d}',
-                'destination': random.choice(destinations),
-                'date_creation': datetime.date.today() - datetime.timedelta(days=random.randint(0, 5)),
-                'date_expedition': datetime.date.today() + datetime.timedelta(days=random.randint(0, 3)),
-                'statut': random.choice(statuts),
-                'poids': random.randint(5, 50),
-                'volume': random.randint(1, 10),
-                'cout_estime': round(random.uniform(50, 500), 2),
+                'id_commande': i.id,
+                'destination': i.receiving_org,
+                'date_creation': i.date_cre,
+                'date_expedition': i.exp_date,
+                'statut': i.statut,
+                'poids': poids,
+                'volume': volume,
+                'cout_estime': value,
                 #'urgence': random.choice(['Standard', 'Express', 'Prioritaire'])
             })
         self.expeditions_df = pd.DataFrame(expeditions)
@@ -602,37 +608,29 @@ class LogisticsOverviewWidget(QWidget):
         #urgent_df = self.data.expeditions_df[self.data.expeditions_df['urgence'] != 'Standard'].sort_values('date_expedition')
         
         table = QTableWidget()
-        table.setRowCount(len(urgent_df))
-        table.setColumnCount(6)
+        table.setColumnCount(5)
         table.setHorizontalHeaderLabels(['ID Commande', 'Destination', 'Date expédition', 'Transporteur', 'Statut'])
         
-       for i, in self.colis_df.iterrows():
-            table.setItem(i, 0, QTableWidgetItem(row['id_commande']))
-            table.setItem(i, 1, QTableWidgetItem(row['destination']))
-            table.setItem(i, 2, QTableWidgetItem(str(row['date_expedition'])))
+        for i, in self.data.expeditions_df.itertuples():
+            table.setItem(i, 0, QTableWidgetItem(i['id_commande']))
+            table.setItem(i, 1, QTableWidgetItem(i['destination']))
+            table.setItem(i, 2, QTableWidgetItem(str(i['date_expedition'])))
             
-            urgency_item = QTableWidgetItem(row['urgence'])
-            if row['urgence'] == 'Prioritaire':
-                urgency_item.setBackground(QColor('#FFCDD2'))  # Rouge clair
-            else:
-                urgency_item.setBackground(QColor('#FFF9C4'))  # Jaune clair
-            table.setItem(i, 3, urgency_item)
-            
-            match = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]
+            match = self.data.transporteurs_df[self.data.transporteurs_df['id'] == i['id_transporteur']]
             if not match.empty:
                 transporteur = match['idutil'].values[0]
             else:
                 transporteur = "Inconnu"
-            table.setItem(i, 4, QTableWidgetItem(transporteur))
+            table.setItem(i, 3, QTableWidgetItem(transporteur))
             
-            status_item = QTableWidgetItem(row['statut'])
-            if row['statut'] == 'En préparation':
+            status_item = QTableWidgetItem(i['statut'])
+            if i['statut'] == 'En préparation':
                 status_item.setBackground(QColor('#BBDEFB'))  # Bleu clair
-            elif row['statut'] == 'Prête à expédier':
+            elif i['statut'] == 'Prête à expédier':
                 status_item.setBackground(QColor('#C8E6C9'))  # Vert clair
             else:
                 status_item.setBackground(QColor('#E1BEE7'))  # Violet clair
-            table.setItem(i, 5, status_item)
+            table.setItem(i, 4, status_item)
         
         table.setStyleSheet("""
             QTableWidget {
