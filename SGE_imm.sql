@@ -9,6 +9,7 @@ SELECT
     i.nom,
     i.prenom,
     i.telephone,
+    i.adresse,
     u.date_inscription,
     u.date_derniere_connexion,
     u.statut,
@@ -897,8 +898,117 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^PL[A-Z0-9]{5}$';
+END;
+$$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_VAL(v TEXT)
+    RETURNS "EXTERNE".Idplot AS $$
+BEGIN
+    IF NOT "EXTERNE".Idplot_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour Idlot: %', v;
+    END IF;
+    RETURN v::"EXTERNE".Idplot;
+END;
+$$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION "EXTERNE".Idplot_CONV(v TEXT)
+    RETURNS "EXTERNE".Idplot AS $$
+BEGIN
+    IF "EXTERNE".Idplot_CONF(v) THEN
+        RETURN v::"EXTERNE".Idplot;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idpcolis_CONF(v TEXT)
+    RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^PCO[A-Z0-9]{5}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idpcolis_VAL(v TEXT)
+    RETURNS "EXTERNE".Idpcolis AS $$
+BEGIN
+    IF NOT "EXTERNE".Idpcolis_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour Idcolis: %', v;
+    END IF;
+    RETURN v::"EXTERNE".Idpcolis;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idpcolis_CONV(v TEXT)
+    RETURNS "EXTERNE".Idpcolis AS $$
+BEGIN
+    IF "EXTERNE".Idpcolis_CONF(v) THEN
+        RETURN v::"EXTERNE".Idpcolis;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idinquire_CONF(v TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^INQ[A-Z0-9]{4}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idinquire_VAL(v TEXT)
+RETURNS "EXTERNE".Idinquire AS $$
+BEGIN
+    IF NOT "EXTERNE".Idinquire_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour Idinquire: %', v;
+    END IF;
+    RETURN v::"EXTERNE".Idinquire;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EXTERNE".Idinquire_CONV(v TEXT)
+RETURNS "EXTERNE".Idinquire AS $$
+BEGIN
+    IF "EXTERNE".Idinquire_CONF(v) THEN
+        RETURN v::"EXTERNE".Idinquire;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idtache_CONF(v TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN v ~ '^T[A-Z0-9]{5}$';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idtache_CONV(v TEXT)
+RETURNS "SCA".idtache AS $$
+BEGIN
+    IF "SCA".idtache_CONF(v) THEN
+        RETURN v::"SCA".idtache;
+    ELSE
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "SCA".idtache_VAL(v TEXT)
+RETURNS "SCA".idtache AS $$
+BEGIN
+    IF NOT "SCA".idtache_CONF(v) THEN
+        RAISE EXCEPTION 'Valeur non conforme pour idtache: %', v;
+    END IF;
+    RETURN v::"SCA".idtache;
+END;
+$$ LANGUAGE plpgsql;
 --EMIRSSSSSSSS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -936,11 +1046,13 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Colis_INS(
     _idcolis text,
     _date_creation text,
+    _expected_date text,
+    _receiving_org text,
     _statut text
 )
 as $$
 begin
-    insert into "SCA".Colis(idcolis, date_creation, statut) values ("SCA".idcolis_conv(_idcolis), _date_creation::date, _statut::"SCA".etat);
+    insert into "SCA".Colis(idcolis, date_creation, expected_date, receiving_org, statut) values ("SCA".idcolis_conv(_idcolis), _date_creation::date, _expected_date::date, "SCA".idorg_conv(_receiving_org), _statut::"SCA".etatcolis);
 end; $$ language plpgsql;
 
 -- 4. ZONE
@@ -957,7 +1069,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_INS(
     _idbonreception text,
     _idcolis text,
-    _idtransporteur text,
     _date_creation text,
     _idfournisseur text,
     _statut text,
@@ -965,7 +1076,7 @@ create or replace procedure "EMIR".Bonreception_INS(
 )
 as $$
 begin
-    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
+    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -988,11 +1099,12 @@ create or replace procedure "EMIR".Individu_INS(
     _idindividu text,
     _nom text,
     _prenom text,
+    _adresse text,
     _telephone text
 )
 as $$
 begin
-    insert into "SCA".Individu(idindividu, nom, prenom, telephone) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".numero_conv(_telephone));
+    insert into "SCA".Individu(idindividu, nom, prenom, adresse, telephone) values ("SCA".idindividu_conv(_idindividu), "SCA".nom_conv(_nom), "SCA".nom_conv(_prenom), "SCA".adresse_conv(_adresse), "SCA".numero_conv(_telephone));
 end; $$ language plpgsql;
 
 -- 8. REPERTOIRE
@@ -1052,14 +1164,10 @@ create or replace procedure "EMIR".Lot_INS(
     _idproduit text,
     _quantite text,
     _date_creation text,
-    _statut text,
-    _origine text,
-    _nbUses INT,
-    _cond text
 )
 as $$
 begin
-    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat);
+    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date);
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1114,18 +1222,12 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Credentials_INS(
     _email text,
     _mot_de_passe_hash text,
-    _idutilisateur text
+    _idutilisateur text,
+    _date_creation text
 )
 as $$
 begin
-    insert into "CREDENTIALS".Credentials(
-        email, mot_de_passe_hash, idutilisateur
-    ) 
-    values (
-        "SCA".email_CONV(_email), 
-        _mot_de_passe_hash, 
-        "SCA".idutilisateur_CONV(_idutilisateur)
-    );
+    insert into "CREDENTIALS".Credentials(email, mot_de_passe_hash, idutilisateur, date_creation) values ("SCA".email_CONV(_email), _mot_de_passe_hash, "SCA".idutilisateur_CONV(_idutilisateur), _date_creation::date);
 end; $$ language plpgsql;
 
 -- 18. TRAVAILLEUR
@@ -1226,6 +1328,143 @@ begin
     );
 end; $$ language plpgsql;
 
+
+CREATE OR REPLACE PROCEDURE "EMIR".Bugreport_INS(
+    _idutilisateur TEXT,
+    _description TEXT,
+    _date_creation TIMESTAMP DEFAULT NULL,
+    _statut "EXTERNE".etatinq DEFAULT 'closed'
+)
+AS $$
+BEGIN
+    INSERT INTO "SCA".Bugreport(idutilisateur, description, date_creation, statut)
+    VALUES (
+        "SCA".idutilisateur_CONV(_idutilisateur),
+        _description,
+        COALESCE(_date_creation, CURRENT_TIMESTAMP),
+        COALESCE(_statut, 'ouvert')
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace procedure "EMIR".PContenuColis_INS(
+    _idorg text,
+    _idpcolis text,
+    _idplot text,
+    _quantite text,
+    _date_MAJ text
+)
+as $$
+begin
+    insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, quantite, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), "EXTERNE".idplot_conv(_idplot), "SCA".dims_conv(_quantite), _date_MAJ::date);
+end; $$ language plpgsql;
+
+create or replace procedure "EMIR".PColis_INS(
+    _idorg text,
+    _idpcolis text,
+    _date_creation text,
+    _expected_date text,
+    _receiving_org text,
+    _statut text
+)
+as $$
+begin
+    insert into "EXTERNE".Colis(idorg,idpcolis, date_creation, expected_date, receiving_org, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), _date_creation::date, _expected_date::date, "SCA".idorg_conv(_receiving_org), _statut::"SCA".retatcolis);
+end; $$ language plpgsql;
+
+create or replace procedure "EMIR".PLot_INS(
+    _idorg text,
+    _idplot text,
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text
+)
+as $$
+begin
+    insert into "EXTERNE".Lot(idorg,idplot, idproduit, quantite, date_creation, statut) values ("SCA".idorg_conv(_idorg),"EXTERNE".idplot_conv(_idplot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat_lot);
+end; $$ language plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Tache_INS(
+    _idtache TEXT,
+    _idtravailleur TEXT,
+    _idcellule TEXT,
+    _idcolis TEXT,
+    _date_creation TEXT,
+    _date_echeance TEXT,
+    _duree_estimee INT,
+    _description TEXT,
+    _priority TEXT,
+    _statut TEXT,
+    _type TEXT
+)
+AS $$
+BEGIN
+    INSERT INTO "SCA".Tache(idtache, idtravailleur, idcellule, idcolis, date_creation, date_echeance, duree_estimee, description, priority, statut, type) VALUES ("SCA".idtache_CONV(_idtache),"SCA".idtravailleur_CONV(_idtravailleur),"SCA".idcellule_CONV(_idcellule),"SCA".idcolis_CONV(_idcolis),_date_creation::date,_date_echeance::date,_duree_estimee,_description,_priority,_statut,_type);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".PasswordPolicies_INS(
+    _setting_name TEXT,
+    _setting_value TEXT,
+    _setting_group TEXT,
+    _description TEXT
+)
+AS $$
+BEGIN
+    INSERT INTO "CREDENTIALS".PasswordPolicies(setting_name, setting_value, setting_group, description) VALUES (_setting_name, _setting_value, _setting_group, _description);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".CredentialsOrganisation_INS(
+    _idorganisation TEXT,
+    _mdpOrg TEXT
+)
+AS $$
+BEGIN
+    INSERT INTO "CREDENTIALS".organisation(idorganisation, mdpOrg) VALUES ("SCA".idorg_conv(_idorganisation), _mdpOrg);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Logs_INS(
+    _timestamp TIMESTAMP DEFAULT NULL,
+    _level VARCHAR(10),
+    _message TEXT,
+    _extra JSONB DEFAULT NULL
+)
+AS $$
+BEGIN
+    INSERT INTO "SCA".Logs(timestamp, level, message, extra) VALUES (COALESCE(_timestamp, CURRENT_TIMESTAMP), _level, _message, _extra);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".LocalisationOrganisation_INS(
+    _idorganisation TEXT,
+    _adresse TEXT,
+    _ville TEXT,
+    _region TEXT,
+    _pays TEXT DEFAULT 'Cameroun',
+    _latitude DOUBLE PRECISION DEFAULT NULL,
+    _longitude DOUBLE PRECISION DEFAULT NULL,
+    _date_ajout DATE DEFAULT NULL
+)
+AS $$
+BEGIN
+    INSERT INTO "SCA".LocalisationOrganisation(idorganisation, adresse, ville, region, pays, latitude, longitude, date_ajout) VALUES ("SCA".idorg_conv(_idorganisation),_adresse,_ville,_region,COALESCE(_pays, 'Cameroun'),_latitude,_longitude,COALESCE(_date_ajout, CURRENT_DATE));
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".LivraisonConducteurColis_INS(
+    _idconducteur TEXT,
+    _idbonexpedition TEXT,
+    _date_affectation DATE DEFAULT NULL,
+    _statut TEXT DEFAULT 'Attente'
+)
+AS $$
+BEGIN
+    INSERT INTO "SCA".LivraisonConducteurColis(idconducteur, idbonexpedition, date_affectation, statut) VALUES ("SCA".idconducteur_CONV(_idconducteur),"SCA".Bonexped_CONV(_idbonexpedition),COALESCE(_date_affectation, CURRENT_DATE),COALESCE(_statut, 'Attente'));
+END;
+$$ LANGUAGE plpgsql;
 -- Fin des routines _INS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -1241,7 +1480,7 @@ create or replace function "EMIR".Organisation_EVA()
                       type "SCA".typeOrg
                   ) as $$
 begin
-    return query select * from "SCA".Organisation;
+    return query select idorganisation, nom, telephone, adresse, type from "SCA".Organisation;
 end; $$ language plpgsql;
 
 -- 2. CELLULE
@@ -1254,7 +1493,7 @@ create or replace function "EMIR".Cellule_EVA()
                       masse_maximale "SCA".dims
                   ) as $$
 begin
-    return query select * from "SCA".Cellule;
+    return query select idcellule, longueur, largeur, hauteur, masse_maximale from "SCA".Cellule;
 end; $$ language plpgsql;
 
 -- 3. COLIS
@@ -1275,7 +1514,7 @@ create or replace function "EMIR".Zone_EVA()
                       nom "SCA".Nom
                   ) as $$
 begin
-    return query select * from "SCA".Zone;
+    return query select idzone, nom from "SCA".Zone;
 end; $$ language plpgsql;
 
 -- 5. BONRECEPTION
@@ -1283,14 +1522,13 @@ create or replace function "EMIR".Bonreception_EVA()
     returns table (
                       idbonreception "SCA".Bonrecep,
                       idcolis "SCA".Idcolis,
-                      idtransporteur "SCA".idconducteur,
                       date_creation date,
                       idfournisseur "SCA".idOrg,
                       statut "SCA".etat,
                       remarques text
                   ) as $$
 begin
-    return query select * from "SCA".Bonreception;
+    return query select idbonreception, idcolis, date_creation, idfournisseur, statut, remarques from "SCA".Bonreception;
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -1305,7 +1543,7 @@ create or replace function "EMIR".Bonexpedition_EVA()
                       remarques text
                   ) as $$
 begin
-    return query select * from "SCA".Bonexpedition;
+    return query select idbonexpedition, idcolis, date_creation, iddestinataire, statut, remarques from "SCA".Bonexpedition;
 end; $$ language plpgsql;
 
 -- 7. INDIVIDU
@@ -1314,10 +1552,11 @@ create or replace function "EMIR".Individu_EVA()
                       idindividu "SCA".IDindividu,
                       nom "SCA".Nom,
                       prenom "SCA".Nom,
+                      adresse "SCA".Adresse,
                       telephone "SCA".Numero
                   ) as $$
 begin
-    return query select * from "SCA".Individu;
+    return query select idindividu, nom, prenom, adresse, telephone from "SCA".Individu;
 end; $$ language plpgsql;
 
 -- 8. REPERTOIRE
@@ -1328,7 +1567,7 @@ create or replace function "EMIR".Repertoire_EVA()
                       role "SCA".roles
                   ) as $$
 begin
-    return query select * from "SCA".Repertoire;
+    return query select idindividu, idorganisation, role from "SCA".Repertoire;
 end; $$ language plpgsql;
 
 -- 9. PRODUIT
@@ -1344,7 +1583,7 @@ create or replace function "EMIR".Produit_EVA()
                       categorie "SCA".categorie_produit
                   ) as $$
 begin
-    return query select * from "SCA".Produit;
+    return query select idproduit, idfournisseur, nom, description, prix_unitaire, marque, modele, categorie from "SCA".Produit;
 end; $$ language plpgsql;
 
 -- 10. PRODUITMATERIEL
@@ -1357,7 +1596,7 @@ create or replace function "EMIR".ProduitMateriel_EVA()
                       masse "SCA".dims
                   ) as $$
 begin
-    return query select * from "SCA".ProduitMateriel;
+    return query select idproduit, longueur, largeur, hauteur, masse from "SCA".ProduitMateriel;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
@@ -1386,7 +1625,7 @@ create or replace function "EMIR".ProduitLogiciel_EVA()
                       license "SCA".Nom
                   ) as $$
 begin
-    return query select * from "SCA".ProduitLogiciel;
+    return query select idproduit, version, license from "SCA".ProduitLogiciel;
 end; $$ language plpgsql;
 
 -- 12. LOT
@@ -1395,14 +1634,10 @@ create or replace function "EMIR".Lot_EVA()
                       idlot "SCA".idlot,
                       idproduit "SCA".Idproduit,
                       quantite "SCA".dims,
-                      date_creation date,
-                      statut "SCA".etat,
-                      origine "SCA".etat_lot,
-                      nombre_utilisations INTEGER,
-                      condition "SCA".condition_materiel
+                      date_creation date
                   ) as $$
 begin
-    return query select * from "SCA".Lot;
+    return query select idlot, idproduit, quantite, date_creation from "SCA".Lot;
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1414,7 +1649,7 @@ create or replace function "EMIR".ContenuColis_EVA()
                       date_maj date
                   ) as $$
 begin
-    return query select * from "SCA".ContenuColis;
+    return query select idcolis, idlot, quantite, date_maj from "SCA".ContenuColis;
 end; $$ language plpgsql;
 
 -- 14. ENTREPOT
@@ -1424,7 +1659,7 @@ create or replace function "EMIR".Entrepot_EVA()
                       zone "SCA".idzone
                   ) as $$
 begin
-    return query select * from "SCA".Entrepot;
+    return query select idcellule, zone from "SCA".Entrepot;
 end; $$ language plpgsql;
 
 -- 16. RAPPORTEXCEPTION
@@ -1438,7 +1673,7 @@ create or replace function "EMIR".RapportException_EVA()
                       statut "SCA".etat
                   ) as $$
 begin
-    return query select * from "SCA".RapportException;
+    return query select idrapport, idcolis, type, date_creation, description, statut from "SCA".RapportException;
 end; $$ language plpgsql;
 
 -- 17. INVENTAIREEMPLACEMENT
@@ -1450,7 +1685,7 @@ create or replace function "EMIR".InventaireEmplacement_EVA()
                       datemaj date
                   ) as $$
 begin
-    return query select * from "SCA".InventaireEmplacement;
+    return query select idcellule, idlot, quantite, datemaj from "SCA".InventaireEmplacement;
 end; $$ language plpgsql;
 
 -- 18. TRAVAILLEUR
@@ -1467,7 +1702,7 @@ create or replace function "EMIR".Travailleur_EVA()
                       date_derniere_evaluation date
                   ) as $$
 begin
-    return query select * from "SCA".Travailleur;
+    return query select idtravailleur, idutilisateur, date_embauche, poste, departement, salaire_horaire, statut, competences, date_derniere_evaluation from "SCA".Travailleur;
 end; $$ language plpgsql;
 
 -- 19. VEHICULE
@@ -1490,7 +1725,7 @@ create or replace function "EMIR".Vehicule_EVA()
                       consommation_moyenne decimal(5,2)
                   ) as $$
 begin
-    return query select * from "SCA".Vehicule;
+    return query select idvehicule, immatriculation, marque, modele, annee_fabrication, type, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant, consommation_moyenne from "SCA".Vehicule;
 end; $$ language plpgsql;
 
 -- 20. CONDUCTEUR
@@ -1509,7 +1744,7 @@ create or replace function "EMIR".Conducteur_EVA()
                       specialites text
                   ) as $$
 begin
-    return query select * from "SCA".Conducteur;
+    return query select idconducteur, idutilisateur, numero_permis, type_permis, date_obtention_permis, date_expiration_permis, experience_annees, statut, date_derniere_evaluation, note_evaluation, specialites from "SCA".Conducteur;
 end; $$ language plpgsql;
 
 -- 21. UTILISATEUR
@@ -1524,7 +1759,7 @@ create or replace function "EMIR".Utilisateur_EVA()
         niveau_acces "SCA".niveau_acces
     ) as $$
 begin
-    return query select * from "SCA".Utilisateur;
+    return query select idutilisateur, idindividu, username, date_inscription, date_derniere_connexion, statut, niveau_acces from "SCA".Utilisateur;
 end; $$ language plpgsql;
 
 -- Fonction d'évaluation pour Credentials
@@ -1536,7 +1771,7 @@ create or replace function "EMIR".Credentials_EVA()
         date_creation timestamp
     ) as $$
 begin
-    return query select * from "CREDENTIALS".Credentials;
+    return query select email, mot_de_passe_hash, idutilisateur, date_creation from "CREDENTIALS".Credentials;
 end; $$ language plpgsql;
 
 -- 22. LOTEMBALLAGE
@@ -1551,9 +1786,165 @@ create or replace function "EMIR".LotEmballage_EVA()
         condition "SCA".condition_materiel
     ) as $$
 begin
-    return query select * from "SCA".LotEmballage;
+    return query select idlotemballage, idproduit, quantite, date_creation, statut, nbuses, condition from "SCA".LotEmballage;
 end; $$ language plpgsql;
 
+CREATE OR REPLACE FUNCTION "EMIR".Bugreport_EVA()
+RETURNS TABLE (
+    id INTEGER,
+    idutilisateur "SCA".idutilisateur,
+    description TEXT,
+    date_creation TIMESTAMP,
+    statut "SCA".statut
+) AS $$
+BEGIN
+    RETURN QUERY SELECT id, idutilisateur, description, date_creation, statut FROM "SCA".Bugreport;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".PColis_EVA(_idorg "SCA".idorg)
+returns table (
+    _idpcolis "EXTERNE".idpcolis,
+    _date_creation date,
+    _expected_date date,
+    _reveiving_org "SCA".idorg,
+    _statut "SCA".retatcolis
+)
+as $$
+begin
+   return query select idpcolis,date_creation,expected_date,receiving_org,statut from "EXTERNE".Colis where idorg = _idorg;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".PColis_EVA1()
+returns table (
+    _idorg "SCA".idorg,
+    _idpcolis "EXTERNE".idpcolis,
+    _date_creation date,
+    _expected_date date,
+    _receiving_org "SCA".idorg,
+    _statut "SCA".retatcolis
+)
+as $$
+begin
+   return query select idorg,idpcolis,date_creation,expected_date,receiving_org,statut from "EXTERNE".Colis;
+end; $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".PLot_EVA(_idorg "SCA".idorg)
+RETURNS TABLE (
+    _idplot "EXTERNE".idplot,
+    _idproduit "SCA".idproduit,
+    _quantite "SCA".dims,
+    _date_creation date,
+    _statut "SCA".etat_lot
+)
+AS $$
+BEGIN
+   RETURN QUERY
+   SELECT idplot, idproduit, quantite, date_creation, statut
+   FROM "EXTERNE".Lot
+   WHERE idorg = _idorg;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".PContenuColis_EVA(_idorg "SCA".idorg)
+returns table (
+    _idpcolis "EXTERNE".idpcolis,
+    _idplot "EXTERNE".idplot,
+    _quantite "SCA".dims,
+    _date_maj date
+)
+as $$
+begin
+  return query select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".PContenuColis_EVA1()
+returns table (
+    _idorg "SCA".idorg,
+    _idpcolis "EXTERNE".idpcolis,
+    _idplot "EXTERNE".idplot,
+    _quantite "SCA".dims,
+    _date_maj date
+)
+as $$
+begin
+  return query select idorg,idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis;
+end; $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".LivraisonConducteurColis_EVA()
+RETURNS TABLE (
+    idlivraison INTEGER,
+    idconducteur "SCA".idconducteur,
+    idbonexpedition "SCA".Bonexped,
+    date_affectation DATE,
+    statut "SCA".etatcolis
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idlivraison, idconducteur, idbonexpedition, date_affectation, statut
+    FROM "SCA".LivraisonConducteurColis;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".Logs_EVA()
+RETURNS TABLE (
+    id INTEGER,
+    timestamp TIMESTAMP,
+    level VARCHAR,
+    message TEXT,
+    extra JSONB
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT id, timestamp, level, message, extra
+    FROM "SCA".Logs;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".LocalisationOrganisation_EVA()
+RETURNS TABLE (
+    idlocalisation INTEGER,
+    idorganisation "SCA".idOrg,
+    adresse "SCA".Adresse,
+    ville VARCHAR,
+    region VARCHAR,
+    pays VARCHAR,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    date_ajout DATE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idlocalisation, idorganisation, adresse, ville, region, pays, latitude, longitude, date_ajout
+    FROM "SCA".LocalisationOrganisation;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".PasswordPolicies_EVA()
+RETURNS TABLE (
+    setting_name VARCHAR,
+    setting_value VARCHAR,
+    setting_group VARCHAR,
+    description VARCHAR
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT setting_name, setting_value, setting_group, description
+    FROM "CREDENTIALS".PasswordPolicies;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".CredentialsOrganisation_EVA()
+RETURNS TABLE (
+    idorganisation "SCA".idOrg,
+    mdpOrg TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idorganisation, mdpOrg
+    FROM "CREDENTIALS".organisation;
+END;
+$$ LANGUAGE plpgsql;
 -- Routines de RETRAIT (_RET)
 
 -- 1. ORGANISATION
@@ -1748,5 +2139,119 @@ begin
     delete from "SCA".LotEmballage where idlotemballage = _idlotemballage;
 end; $$ language plpgsql;
 
--- Fin des routines _RET
+
+CREATE OR REPLACE PROCEDURE "EMIR".Bugreport_RET(
+    _id INTEGER
+)
+AS $$
+BEGIN
+    DELETE FROM "SCA".Bugreport WHERE id = _id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".PColis_RET(
+    _idpcolis TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "EXTERNE".Colis
+    WHERE idpcolis = "EXTERNE".idpcolis_conv(_idpcolis);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".PLot_RET(
+    _idplot TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "EXTERNE".Lot
+    WHERE idplot = "EXTERNE".idplot_conv(_idplot);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".PContenuColis_RET(
+    _idorg TEXT,
+    _idpcolis TEXT,
+    _idplot TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "EXTERNE".ContenuColis
+    WHERE idorg = "SCA".idorg_conv(_idorg)
+      AND idpcolis = "EXTERNE".idpcolis_conv(_idpcolis)
+      AND idplot = "EXTERNE".idplot_conv(_idplot);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Tache_RET(
+    _idtache TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "SCA".Tache
+    WHERE idtache = "SCA".idtache_conv(_idtache);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Credentials_RET(
+    _email TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "CREDENTIALS".Credentials
+    WHERE email = "SCA".email_conv(_email);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".PasswordPolicies_RET(
+    _setting_name TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "CREDENTIALS".PasswordPolicies
+    WHERE setting_name = _setting_name;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".LocalisationOrganisation_RET(
+    _idlocalisation INTEGER
+)
+AS $$
+BEGIN
+    DELETE FROM "SCA".LocalisationOrganisation
+    WHERE idlocalisation = _idlocalisation;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".Logs_RET(
+    _id INTEGER
+)
+AS $$
+BEGIN
+    DELETE FROM "SCA".Logs
+    WHERE id = _id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".CredentialsOrganisation_RET(
+    _idorganisation TEXT
+)
+AS $$
+BEGIN
+    DELETE FROM "CREDENTIALS".organisation
+    WHERE idorganisation = "SCA".idorg_conv(_idorganisation);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".LivraisonConducteurColis_RET(
+    _idlivraison INTEGER
+)
+AS $$
+BEGIN
+    DELETE FROM "SCA".LivraisonConducteurColis
+    WHERE idlivraison = _idlivraison;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
