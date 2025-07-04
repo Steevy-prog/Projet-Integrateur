@@ -3574,8 +3574,8 @@ end;
 $$ language plpgsql;
 
 CREATE OR REPLACE PROCEDURE "EMIR".Modifier_utilisateur(
-    _idutilisateuranc "SCA".idutilisateur,
-    _idutilisateurnouv "SCA".idutilisateur,
+    usernameanc "SCA".username,
+    usernamenouv "SCA".username,
     nom "SCA".nom,
     prenom "SCA".nom,
     email "SCA".email,
@@ -3588,25 +3588,25 @@ BEGIN
     IF encode(digest(_mot_de_passe, 'sha256'), 'hex') = (
         SELECT mot_de_passe_hash
         FROM "CREDENTIALS".Credentials
-        WHERE idutilisateur = _idutilisateuranc
+        WHERE username = usernameanc
     ) THEN
         -- Appel de la procédure Utilisateur_MOD
-        CALL "EMIR".Utilisateur_MOD(
-            _idutilisateurnouv,
-            nom, -- si nom = username
-            'actif', -- ou autre valeur de statut à définir
-            _niveau_acces
-        );
+        --CALL "EMIR".Utilisateur_MOD(
+        --    _idutilisateurnouv,
+        --    nom, -- si nom = username
+        --    'actif', -- ou autre valeur de statut à définir
+        --    _niveau_acces
+        --);
 
         -- Si ID utilisateur change, mise à jour des IDs liés
-        IF _idutilisateuranc <> _idutilisateurnouv THEN
+        IF usernameanc <> usernamenouv THEN
             UPDATE "SCA".Utilisateur
-            SET idutilisateur = _idutilisateurnouv
-            WHERE idutilisateur = _idutilisateuranc;
+            SET username = usernamenouv
+            WHERE username = usernameanc;
 
             UPDATE "CREDENTIALS".Credentials
-            SET idutilisateur = _idutilisateurnouv
-            WHERE idutilisateur = _idutilisateuranc;
+            SET username = usernamenouv
+            WHERE username = usernameanc;
         END IF;
     END IF;
 END;
