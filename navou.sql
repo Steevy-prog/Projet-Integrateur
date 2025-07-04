@@ -3782,7 +3782,7 @@ $$ LANGUAGE plpgsql;
 create or replace function "EMIR".getnameandid()
 returns table(
 id "SCA".idindividu,
-name "SCA"nom,
+name "SCA".nom,
 prenom "SCA".nom
 )
 as $$

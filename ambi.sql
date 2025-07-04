@@ -3496,7 +3496,7 @@ begin
 end;
 $$ language plpgsql;
 
-drop function "EMIR".getvaluecol(_idcolis "EXTERNE".idpcolis);
+
 
 create or replace function "EMIR".getvaluecol(_idcolis "SCA".idcolis)
 returns int as $$

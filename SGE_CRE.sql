@@ -361,7 +361,7 @@ CREATE TABLE "SCA".Tache(
                             idcolis "SCA".Idcolis NOT NULL ,
                             date_creation DATE NOT NULL ,
                             date_echeance DATE NOT NULL ,
-                            duree_estimee INTERVAL NOT NULL ,
+                            duree_estimee INT NOT NULL ,
                             description TEXT NOT NULL ,
                             priority text not null,
                             statut text NOT NULL DEFAULT 'en cours',
