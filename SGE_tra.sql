@@ -67,7 +67,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_MOD(
     _idbonreception "SCA".Bonrecep,
     _idcolis "SCA".Idcolis,
-    _idtransporteur "SCA".idOrg,
     _date_creation date,
     _idfournisseur "SCA".idOrg,
     _statut "SCA".etat,
@@ -77,7 +76,6 @@ as $$
 begin
     update "SCA".Bonreception
     SET idcolis = "SCA".Idcolis_CONV(_idcolis),
-        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
         date_creation = _date_creation::date,
         idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
         statut = _statut::"SCA".etat,
@@ -111,14 +109,12 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Individu_MOD(
     _idindividu "SCA".IDindividu,
     _nom "SCA".Nom,
-    _adresse "SCA".Adresse,
     _telephone "SCA".Numero
 )
 as $$
 begin
     update "SCA".Individu
     SET nom = "SCA".Nom_CONV(_nom),
-        adresse = "SCA".Adresse_CONV(_adresse),
         telephone = "SCA".Numero_CONV(_telephone)
     WHERE idindividu = "SCA".IDindividu_CONV(_idindividu);
 end; $$ language plpgsql;

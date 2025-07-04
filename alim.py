@@ -38,7 +38,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="steevy",
+        password="1234",
         port=5432
     )
 
@@ -108,17 +108,17 @@ insert('"SCA".Cellule',
         for c in sc["Cellule"]])
 
 insert('"SCA".Colis',
-       ["idcolis", "date_creation", "statut"],
-       [(c["idcolis"], c["date_creation"], c["statut"])
-        for c in sc["Colis"]])
+       ["idcolis", "date_creation","expected_date","receiving_org", "statut"],
+       [(c["idcolis"], c["date_creation"],c["expected_date"], c["receiving_org"],c["statut"])
+        for c in sc["Colis"]])                                 
 
 insert('"SCA".Zone',
        ["idzone", "nom"],
        [(z["idzone"], z["nom"]) for z in sc["Zone"]])
 
 insert('"SCA".individu',
-       ["idindividu", "nom", "prenom", "adresse", "telephone"],
-       [(i["idindividu"], i["nom"], i["prenom"], i["adresse"], i["telephone"])
+       ["idindividu", "nom", "prenom", "telephone"],
+       [(i["idindividu"], i["nom"], i["prenom"], i["telephone"])
         for i in sc["individu"]])
 
 insert('"SCA".Utilisateur',
@@ -224,7 +224,7 @@ insert('"SCA".InventaireEmplacement',
         for i in sc["InventaireEmplacement"]])
 
 insert('"SCA".Tache',
-       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estime", "description", "priority", "statut", "type"],
+       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
        [(
            t["idtache"],
            t["idtravailleur"],
@@ -300,15 +300,14 @@ insert('"EXTERNE".Lot',
         for l in ext["Lot"]])
 
 insert('"EXTERNE".Colis',
-       ["idorg","idpcolis", "date_creation", "expected_date", "statut"],
-       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"], c["statut"])
+       ["idorg","idpcolis", "date_creation", "expected_date","receiving_org", "statut"],
+       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"],c["receiving_org"], c["statut"])
         for c in ext["Colis"]])
 
 insert('"EXTERNE".ContenuColis',
        ["idorg","idpcolis", "idplot", "quantite", "date_maj"],
        [(c["idorg"],c["idpcolis"], c["idplot"], c["quantite"], c["date_MAJ"])
         for c in ext["ContenuColis"]])
-
 
 # ✅ Finalisation
 conn.commit()

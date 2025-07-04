@@ -897,21 +897,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 22.1. TRIGGER AUTOMATIQUE POUR nbuses
-CREATE OR REPLACE FUNCTION "SCA".lotemballage_set_recycle() RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.nbuses >= 3 THEN
-        NEW.condition := 'a recycler';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_lotemballage_nbuses ON "SCA".LotEmballage;
-CREATE TRIGGER trg_lotemballage_nbuses
-BEFORE INSERT OR UPDATE ON "SCA".LotEmballage
-FOR EACH ROW
-EXECUTE FUNCTION "SCA".lotemballage_set_recycle();
 
 --EMIRSSSSSSSS
 -- Fichier SQL : EMIR.sql
@@ -979,7 +965,7 @@ create or replace procedure "EMIR".Bonreception_INS(
 )
 as $$
 begin
-    insert into "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
+    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -1002,7 +988,7 @@ create or replace procedure "EMIR".Individu_INS(
     _idindividu text,
     _nom text,
     _prenom text,
-    _telephone text,
+    _telephone text
 )
 as $$
 begin
@@ -1073,7 +1059,7 @@ create or replace procedure "EMIR".Lot_INS(
 )
 as $$
 begin
-    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_cond::"SCA".condition_materiel);
+    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat);
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1276,7 +1262,7 @@ create or replace function "EMIR".Colis_EVA()
     returns table (
                       idcolis "SCA".Idcolis,
                       date_creation date,
-                      statut "SCA".etat
+                      statut "SCA".etatcolis
                   ) as $$
 begin
     return query select * from "SCA".Colis;
@@ -1377,6 +1363,7 @@ end; $$ language plpgsql;
 create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
+                     _idtravailleur "SCA".idtravailleur,
                      _idcellule "SCA".idcellule,
                      _idcolis "SCA".idcolis,
                      _date_creation date,
@@ -1388,7 +1375,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
+    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimee,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL
