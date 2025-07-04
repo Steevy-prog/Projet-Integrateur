@@ -57,7 +57,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 cur = conn.cursor()
@@ -78,8 +78,8 @@ class WarehouseData:
         # Products data
         cur.execute("SELECT (p).* FROM \"EMIR\".produit_eva() AS p;")
         products = cur.fetchall()
-        self.colis_df = pd.DataFrame(colis_db,columns=['idorg','id','date_cre','exp_date','statut'])
-        self.contenu_df = pd.DataFrame(contenu,columns=['idorg','idcol','idlot','quantity','date_maj'])
+        self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','exp_date','receiving_org','statut'])
+        self.contenu_df = pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
         if len(products) == 0:
             # Handle case where no products are loaded, e.g., create dummy data or log
             print("No products loaded from the database. Generating dummy product data.")
@@ -134,13 +134,17 @@ class WarehouseData:
         statuses = ['Pending', 'In Transit', 'Received', 'Processing']
 
         for i in self.colis_df.itertuples():
-            cur.execute("SELECT \"EMIR\".getvaluecol(%s,%s);",(i.idorg,i.id))
+            print(i.id)
+            cur.execute("SELECT \"EMIR\".getvaluecol(%s);",(i.id,))
             total = cur.fetchone()[0]
             items = [t for t in self.contenu_df.to_dict('records') if t['idcol'] == i.id]
             quan = len(items)
+            cur.execute("SELECT \"EMIR\".getsupplier(%s);",(i.id,))
+            suplier = cur.fetchone()[0]
+
             reception_data.append({
                 'Order_ID': i.id,
-                'Supplier': i.idorg,
+                'Supplier': suplier,
                 'Expected_Date': i.exp_date,
                 'Items_Count': quan,
                 'Status': i.statut,
