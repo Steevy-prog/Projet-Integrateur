@@ -167,6 +167,8 @@ CREATE TABLE "SCA".Cellule(
 CREATE TABLE "SCA".Colis(
                             idcolis "SCA".Idcolis NOT NULL ,
                             date_creation date NOT NULL ,
+                            expected_date date NOT NULL,
+                            receiving_org "SCA".idOrg NOT NULL,
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
 );
@@ -463,7 +465,8 @@ CREATE TABLE "EXTERNE".Colis(
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
                             expected_date date NOT NULL,
-                            statut "SCA".etatcolis NOT NULL ,
+                            receiving_org "SCA".idorg NOT NULL,
+                            statut TEXT NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
 CREATE TABLE "EXTERNE".Lot(

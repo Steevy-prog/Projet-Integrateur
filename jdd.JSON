@@ -356,7 +356,7 @@
  ],
  "EXTERNE": {
   "Colis": [
-  { "idorg": "OFIRST", "idpcolis": "PCO00001", "date_creation": "2024-01-01","expected_date": "2024-01-15","receiving_org":"OFIRST", "statut": "Accepte" },
+  { "idorg": "OFIRST", "idpcolis": "PCO00001", "date_creation": "2024-01-01","expected_date": "2024-01-15","receiving_org":"OFIRST", "statut": "Refuse" },
   { "idorg": "OFIRST", "idpcolis": "PCOABC01", "date_creation": "2024-05-10","expected_date": "2024-05-24","receiving_org":"ODESTT", "statut": "Accepte" },
   { "idorg": "OFIRST", "idpcolis": "PCOXYZ02", "date_creation": "2024-05-12","expected_date": "2024-05-26","receiving_org":"ODESTT", "statut": "Accepte" },
   { "idorg": "ONEWSP", "idpcolis": "PCOKLM03", "date_creation": "2024-06-15","expected_date": "2024-06-29","receiving_org":"ODESTT", "statut": "Accepte" },
@@ -370,7 +370,7 @@
   { "idorg": "OFUTUR", "idpcolis": "PCOUSB13", "date_creation": "2024-07-30","expected_date": "2024-08-13","receiving_org":"ODESTT", "statut": "Accepte" },
   { "idorg": "OSUPPL", "idpcolis": "PCOLOG15", "date_creation": "2024-07-30","expected_date": "2024-08-13","receiving_org":"OCLIEN", "statut": "Accepte" },
   { "idorg": "OFRACT", "idpcolis": "PCOBOX18", "date_creation": "2024-07-31","expected_date": "2024-08-14","receiving_org":"OCLIEN", "statut": "Accepte" },
-  { "idorg": "OFIRST", "idpcolis": "PCOANT20", "date_creation": "2024-07-31","expected_date": "2024-08-14","receiving_org":"OFIRST", "statut": "Refuse" },
+  { "idorg": "OFIRST", "idpcolis": "PCOANT20", "date_creation": "2024-07-31","expected_date": "2024-08-14","receiving_org":"OFIRST", "statut": "Accepte" },
   { "idorg": "OFIRST", "idpcolis": "PCO12345", "date_creation": "2024-08-02","expected_date": "2024-08-16","receiving_org":"OFIRST", "statut": "Refuse" },
   { "idorg": "ONEWSP", "idpcolis": "PCO67890", "date_creation": "2024-08-03","expected_date": "2024-08-17","receiving_org":"OFIRST", "statut": "Refuse" },
   { "idorg": "OFIRST", "idpcolis": "PCOABCDE", "date_creation": "2024-08-04","expected_date": "2024-08-18","receiving_org":"OCLIEN", "statut": "Refuse" },
