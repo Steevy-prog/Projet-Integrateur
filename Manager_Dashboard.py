@@ -65,11 +65,14 @@ cur = conn.cursor()
 cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".Pcolis_eva1() AS p;")
 pcolis_db = cur.fetchall() # Existing packages from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".contenucolis_eva() AS p;")
 contenu = cur.fetchall() # Existing packages from the database
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Pcontenucolis_eva() AS p;")
+pcontenu = cur.fetchall() # Existing packages from the database
 
 class WarehouseData:
     """Data generator and manager for warehouse operations"""
@@ -82,7 +85,9 @@ class WarehouseData:
         cur.execute("SELECT (p).* FROM \"EMIR\".produit_eva() AS p;")
         products = cur.fetchall()
         self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','exp_date','receiving_org','statut'])
+        self.pcolis_df = pd.DataFrame(pcolis_db,columns=['idorg','id','date_cre','expected_date','receiving_org','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
+        self.pcontenu_df = pd.DataFrame(pcontenu,columns=['idorg','idcol','idlot','quantity','date_maj'])
         if len(products) == 0:
             # Handle case where no products are loaded, e.g., create dummy data or log
             print("No products loaded from the database. Generating dummy product data.")
@@ -136,19 +141,15 @@ class WarehouseData:
         suppliers = ['Dell Corp', 'Apple Inc', 'IKEA', 'Samsung', 'Logitech']
         statuses = ['Pending', 'In Transit', 'Received', 'Processing']
 
-        for i in self.colis_df.itertuples():
-            print(i.id)
-            cur.execute("SELECT \"EMIR\".getvaluecol(%s);",(i.id,))
+        for i in self.pcolis_df.itertuples():
+            cur.execute("SELECT \"EMIR\".getvaluecol(%s,%s);",(i.idorg,i.id))
             total = cur.fetchone()[0]
-            items = [t for t in self.contenu_df.to_dict('records') if t['idcol'] == i.id]
+            items = [t for t in self.pcontenu_df.to_dict('records') if t['idcol'] == i.id]
             quan = len(items)
-            cur.execute("SELECT \"EMIR\".getsupplier(%s);",(i.id,))
-            suplier = cur.fetchone()[0]
-
             reception_data.append({
                 'Order_ID': i.id,
-                'Supplier': suplier,
-                'Expected_Date': i.exp_date,
+                'Supplier': i.idorg,
+                'Expected_Date': i.expected_date,
                 'Items_Count': quan,
                 'Status': i.statut,
                 'Total_Value': total
