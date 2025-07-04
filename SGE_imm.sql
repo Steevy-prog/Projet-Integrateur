@@ -1465,6 +1465,21 @@ BEGIN
     INSERT INTO "SCA".LivraisonConducteurColis(idconducteur, idbonexpedition, date_affectation, statut) VALUES ("SCA".idconducteur_CONV(_idconducteur),"SCA".Bonexped_CONV(_idbonexpedition),COALESCE(_date_affectation, CURRENT_DATE),COALESCE(_statut, 'Attente'));
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".inquiries_INS(
+    _idinq         "EXTERNE".Idinquire,
+    _idutilisateur "SCA".idutilisateur,
+    _type          "EXTERNE".typeinquire,
+    _period        timestamp,
+    _status        "EXTERNE".etatinq,
+    _description   text
+)
+AS $$
+BEGIN
+    INSERT INTO "EXTERNE".inquiries(idinq, idutilisateur, type, period, status, description)
+    VALUES (_idinq, _idutilisateur, _type, _period, _status, _description);
+END;
+$$ LANGUAGE plpgsql;
 -- Fin des routines _INS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -1599,7 +1614,7 @@ begin
     return query select idproduit, longueur, largeur, hauteur, masse from "SCA".ProduitMateriel;
 end; $$ language plpgsql;
 
-create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
+create or replace function "EMIR".Tache_EVA(_idtravailleur "SCA".idtravailleur)
     returns table(
                      _idtache "SCA".idtache,
                      _idtravailleur "SCA".idtravailleur,
@@ -1945,6 +1960,22 @@ BEGIN
     FROM "CREDENTIALS".organisation;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".inquiries_EVA(_idutilisateur "SCA".idutilisateur)
+RETURNS TABLE (
+    idinq        "EXTERNE".Idinquire,
+    type         "EXTERNE".typeinquire,
+    period       timestamp,
+    status       "EXTERNE".etatinq,
+    description  text
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idinq, type, period, status, description
+    FROM "EXTERNE".inquiries
+    WHERE idutilisateur = _idutilisateur;
+END;
+$$ LANGUAGE plpgsql;
 -- Routines de RETRAIT (_RET)
 
 -- 1. ORGANISATION
@@ -2253,5 +2284,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION "EMIR".inquiries_RET(_idinq "EXTERNE".Idinquire)
+RETURNS TABLE (
+    idutilisateur "SCA".idutilisateur,
+    type          "EXTERNE".typeinquire,
+    period        timestamp,
+    status        "EXTERNE".etatinq,
+    description   text
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idutilisateur, type, period, status, description
+    FROM "EXTERNE".inquiries
+    WHERE idinq = _idinq;
+END;
+$$ LANGUAGE plpgsql;
 
 

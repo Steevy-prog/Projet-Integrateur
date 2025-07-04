@@ -14,6 +14,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
+from helpbot import ChatBot
 
 # Assuming 'id.py' exists and contains idgenerator
 # from id import idgenerator 
@@ -38,7 +39,7 @@ class MockInternalMail:
     def send_email(self, *args):
         print("Mock internalmail called.")
 
-ChatBot = MockChatBot
+ChatBot = ChatBot
 send_sca_mail = MockSendScaMail()
 internalmail = MockInternalMail()
 
@@ -56,7 +57,7 @@ print("1. online")
 print("2. offline")
 # In a real application, this input would be handled differently (e.g., config file)
 # For this example, we'll default to offline for easier testing.
-it='3' # input("Enter the number of bd you want to use : ") 
+it='2' # input("Enter the number of bd you want to use : ") 
 
 if it == '1':
     print("You have chosen the online database.")
@@ -77,7 +78,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 

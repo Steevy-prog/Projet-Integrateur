@@ -638,3 +638,19 @@ BEGIN
     WHERE idpcolis = "EXTERNE".idpcolis_conv(_idpcolis);
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".inquiries_MOD(
+    _idinq        "EXTERNE".Idinquire,
+    _type         "EXTERNE".typeinquire,
+    _status       "EXTERNE".etatinq,
+    _description  text
+)
+AS $$
+BEGIN
+    UPDATE "EXTERNE".inquiries
+    SET type = _type,
+        status = _status,
+        description = _description
+    WHERE idinq = _idinq;
+END;
+$$ LANGUAGE plpgsql;

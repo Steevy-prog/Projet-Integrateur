@@ -465,6 +465,16 @@ CREATE TABLE "EXTERNE".ContenuColis(
   CONSTRAINT pContenuColis_CR2 FOREIGN KEY (idorg) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
 
+CREATE TABLE "EXTERNE".inquiries (
+    idutilisateur "SCA".idutilisateur NOT NULL,
+    idinq         "EXTERNE".Idinquire NOT NULL,
+    type          "EXTERNE".typeinquire NOT NULL,
+    period        timestamp NOT NULL,
+    status        "EXTERNE".etatinq NOT NULL,
+    description   text,
+    CONSTRAINT inq_pk PRIMARY KEY (idinq),
+    FOREIGN KEY (idutilisateur) REFERENCES "SCA".Utilisateur(idutilisateur)
+);
 
 CREATE TABLE "SCA".Bugreport (
   id SERIAL PRIMARY KEY,
