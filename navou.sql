@@ -3370,7 +3370,7 @@ create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
+return query select l.id,l.timestamp,l.level,l.message,l.extra from "SCA".Logs as l where l.timestamp between _date1 and _date2;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_gethigher(_date timestamp)
@@ -3383,7 +3383,7 @@ create or replace function "EMIR".Logs_gethigher(_date timestamp)
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
+return query select l.id, l.timestamp ,l.level,l.message,l.extra from "SCA".Logs as l where l.timestamp >= _date;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_getlower(_date timestamp)
@@ -3396,7 +3396,7 @@ create or replace function "EMIR".Logs_getlower(_date timestamp)
                  )
 as $$
 begin
-    return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
+    return query select l.id, l.timestamp,l.level,l.message,l.extra from "SCA".Logs as l where l.timestamp <= _date;
 end; $$ language plpgsql;
 
 
@@ -3749,14 +3749,15 @@ END;
 $$ LANGUAGE plpgsql;
 
  
-create or replace procedure "EMIR".getnameandid()
+create or replace function "EMIR".getnameandid()
 returns table(
 id "SCA".idindividu,
-name "SCA"nom,
-prenom "SCA".nom
+first_name "SCA".nom,
+last_name "SCA".nom
 )
 as $$
 begin
+return query
 select idindividu,nom,prenom from "SCA".individu;
 end;
 $$ language plpgsql;

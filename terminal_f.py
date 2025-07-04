@@ -67,10 +67,6 @@ class DatabaseBackupManager(QObject):
         self.db_password = db_password
         self.db_name = db_name
 
-        # Initialize thread and worker, but don't start them yet
-        self.thread = None
-        self.worker = None
-        
         logger.info(f"DatabaseBackupManager initialized for DB: {db_name}@{db_host}:{db_port}")
 
     def _get_backup_directory(self) -> str:
@@ -119,8 +115,7 @@ class DatabaseBackupManager(QObject):
         5. Emit `backup_finished` (success/failure) or `backup_error` signals
            based on the outcome of the `pg_dump` command.
         """
-        
-        # self.backup_started.emit()
+        self.backup_started.emit()
         logger.info("Backup process initiated.")
 
         backup_dir = self._get_backup_directory()
@@ -137,102 +132,69 @@ class DatabaseBackupManager(QObject):
         # Ensure 'pg_dump' is in your system's PATH, or provide its full path.
         # Example for Windows: pg_dump_path = "C:\\Program Files\\PostgreSQL\\14\\bin\\pg_dump.exe"
         # For Linux/macOS, if installed via package manager, "pg_dump" is usually sufficient.
-        
-        self.thread = QThread()
-        self.worker = BackupWorker(
-            db_host=self.db_host,
-            db_port=self.db_port,
-            db_user=self.db_user,
-            db_password=self.db_password,
-            db_name=self.db_name,
-            backup_filepath=backup_filepath
-        )
-        
-        # pg_dump_command = [
-        #     "pg_dump",
-        #     "-h", self.db_host,
-        #     "-p", self.db_port,
-        #     "-U", self.db_user,
-        #     "-d", self.db_name,
-        #     "-F", "p", # Plain-text SQL dump format
-        #     "-f", backup_filepath # Output file path
-        # ]
+        pg_dump_command = [
+            "pg_dump",
+            "-h", self.db_host,
+            "-p", self.db_port,
+            "-U", self.db_user,
+            "-d", self.db_name,
+            "-F", "p", # Plain-text SQL dump format
+            "-f", backup_filepath # Output file path
+        ]
 
         # Set PGPASSWORD environment variable for non-interactive password input.
         # Be aware of the security implications: the password is in the environment
         # for the duration of the subprocess call. For highly secure environments,
         # consider using a .pgpass file or other authentication methods.
-        
-        # env = os.environ.copy()
-        # if self.db_password:
-        #     env["PGPASSWORD"] = self.db_password
-        #     logger.info("PGPASSWORD environment variable set for pg_dump execution.")
-        # else:
-        #     logger.warning("No database password provided. pg_dump might prompt for password interactively.")
+        env = os.environ.copy()
+        if self.db_password:
+            env["PGPASSWORD"] = self.db_password
+            logger.info("PGPASSWORD environment variable set for pg_dump execution.")
+        else:
+            logger.warning("No database password provided. pg_dump might prompt for password interactively.")
 
-        # logger.info(f"Attempting to execute pg_dump command: {' '.join(pg_dump_command)}")
-        # try:
-        #     # Execute the pg_dump command as a subprocess.
-        #     # capture_output=True: Captures stdout and stderr.
-        #     # text=True: Decodes stdout/stderr as text.
-        #     # check=False: Prevents subprocess.run from raising CalledProcessError
-        #     #              for non-zero exit codes; we handle it manually.
-        #     result = subprocess.run(
-        #         pg_dump_command,
-        #         env=env,
-        #         capture_output=True,
-        #         text=True,
-        #         check=False
-        #     )
+        logger.info(f"Attempting to execute pg_dump command: {' '.join(pg_dump_command)}")
+        try:
+            # Execute the pg_dump command as a subprocess.
+            # capture_output=True: Captures stdout and stderr.
+            # text=True: Decodes stdout/stderr as text.
+            # check=False: Prevents subprocess.run from raising CalledProcessError
+            #              for non-zero exit codes; we handle it manually.
+            result = subprocess.run(
+                pg_dump_command,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False
+            )
 
-        #     if result.returncode == 0:
-        #         logger.info(f"Database backup successful: {backup_filepath}")
-        #         self.backup_finished.emit(True, f"Backup created at: {backup_filepath}")
-        #     else:
-        #         # Log detailed error information from pg_dump's output
-        #         error_message_detail = (f"pg_dump failed with exit code {result.returncode}.\n"
-        #                                 f"STDOUT: {result.stdout.strip()}\n"
-        #                                 f"STDERR: {result.stderr.strip()}")
-        #         logger.error(f"Database backup failed: {error_message_detail}")
-        #         # Emit a more user-friendly error message
-        #         user_error_message = result.stderr.strip() or result.stdout.strip() or "Unknown pg_dump error."
-        #         self.backup_error.emit(f"Backup failed: {user_error_message}")
-        #         self.backup_finished.emit(False, f"Backup failed. Check application logs for details.")
+            if result.returncode == 0:
+                logger.info(f"Database backup successful: {backup_filepath}")
+                self.backup_finished.emit(True, f"Backup created at: {backup_filepath}")
+            else:
+                # Log detailed error information from pg_dump's output
+                error_message_detail = (f"pg_dump failed with exit code {result.returncode}.\n"
+                                        f"STDOUT: {result.stdout.strip()}\n"
+                                        f"STDERR: {result.stderr.strip()}")
+                logger.error(f"Database backup failed: {error_message_detail}")
+                # Emit a more user-friendly error message
+                user_error_message = result.stderr.strip() or result.stdout.strip() or "Unknown pg_dump error."
+                self.backup_error.emit(f"Backup failed: {user_error_message}")
+                self.backup_finished.emit(False, f"Backup failed. Check application logs for details.")
 
-        # except FileNotFoundError:
-        #     # This error occurs if 'pg_dump' command is not found in PATH
-        #     error_msg = ("Error: 'pg_dump' command not found. "
-        #                  "Please ensure PostgreSQL client tools are installed and 'pg_dump' is in your system's PATH.")
-        #     logger.critical(error_msg)
-        #     self.backup_error.emit(error_msg)
-        #     self.backup_finished.emit(False, "Backup failed: pg_dump not found.")
-        # except Exception as e:
-        #     # Catch any other unexpected Python exceptions
-        #     error_msg = f"An unexpected Python error occurred during backup: {e}"
-        #     logger.critical(error_msg, exc_info=True) # Log exception traceback
-        #     self.backup_error.emit(error_msg)
-        #     self.backup_finished.emit(False, "Backup failed due to an unexpected internal error.")
-
-        # Move the worker to the new thread
-        self.worker.moveToThread(self.thread)
-
-        # Connect signals:
-        # 1. When the thread starts, the worker's run_backup_task method should be called.
-        self.thread.started.connect(self.worker.run_backup_task)
-
-        # 2. Connect worker's signals to manager's signals (proxy them to the GUI)
-        self.worker.backup_started.connect(self.backup_started)
-        self.worker.backup_finished.connect(self.backup_finished)
-        self.worker.backup_error.connect(self.backup_error)
-
-        # 3. Clean up the thread and worker when the task is finished
-        self.worker.backup_finished.connect(self.thread.quit)
-        self.worker.backup_finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-
-        # Start the thread
-        self.thread.start()
-        logger.info("Backup thread started.")
+        except FileNotFoundError:
+            # This error occurs if 'pg_dump' command is not found in PATH
+            error_msg = ("Error: 'pg_dump' command not found. "
+                         "Please ensure PostgreSQL client tools are installed and 'pg_dump' is in your system's PATH.")
+            logger.critical(error_msg)
+            self.backup_error.emit(error_msg)
+            self.backup_finished.emit(False, "Backup failed: pg_dump not found.")
+        except Exception as e:
+            # Catch any other unexpected Python exceptions
+            error_msg = f"An unexpected Python error occurred during backup: {e}"
+            logger.critical(error_msg, exc_info=True) # Log exception traceback
+            self.backup_error.emit(error_msg)
+            self.backup_finished.emit(False, "Backup failed due to an unexpected internal error.")
 
 # --- Database Connection (Global for simplicity in mock, could be passed to pages) ---
 # IMPORTANT: For a production app, manage connection lifecycle more carefully
@@ -278,85 +240,151 @@ class DatabaseBackupManager(QObject):
 #     def flush(self):
 #         pass
 
-class BackupWorker(QThread):
-    """
-    A QThread subclass to run the database backup operation in the background,
-    preventing the GUI from freezing.
-    """
-    # Signals to communicate with the main thread (GUI)
-    backup_started = pyqtSignal()
-    backup_finished = pyqtSignal(bool, str) # bool: success, str: message
-    backup_error = pyqtSignal(str) # str: error message
-    
-    def __init__(self, db_host: str, db_port: str, db_user: str,
-                 db_password: str, db_name: str, backup_filepath: str):
-        super().__init__()
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_user = db_user
-        self.db_password = db_password
-        self.db_name = db_name
-        self.backup_filepath = backup_filepath
-        # Ensure the logger is connected to the update_log signal
-        # This is a bit tricky as the handler needs to be initialized with the QTextEdit
-        # We will make sure the main GUI passes a logger that's already configured.
+# class BackupWorker(QThread):
+#     """
+#     A QThread subclass to run the database backup operation in the background,
+#     preventing the GUI from freezing.
+#     """
+#     # Signals to communicate with the main thread (GUI)
+#     backup_finished = pyqtSignal(bool, str) # bool: success, str: message
+#     update_log = pyqtSignal(str) # For detailed logging messages
 
-    def run_backup_task(self):
-        """
-        The main method of the thread, executed when thread.start() is called.
-        It calls the actual backup function.
-        """
-        self.backup_started.emit()
-        logger.info(f"Backup task started in worker thread for {self.db_name}.")
+#     def __init__(self, db_params: dict, output_dir: str, compress: bool, dump_options: list, dump_binary_path: str):
+#         super().__init__()
+#         self.db_params = db_params
+#         self.output_dir = output_dir
+#         self.compress = compress
+#         self.dump_options = dump_options
+#         self.dump_binary_path = dump_binary_path
+#         self.logger = logging.getLogger(__name__)
 
-        pg_dump_command = [
-            "pg_dump",
-            "-h", self.db_host,
-            "-p", self.db_port,
-            "-U", self.db_user,
-            "-d", self.db_name,
-            "-F", "p", # Plain-text SQL dump format
-            "-f", self.backup_filepath # Output file path
-        ]
+#         # Ensure the logger is connected to the update_log signal
+#         # This is a bit tricky as the handler needs to be initialized with the QTextEdit
+#         # We will make sure the main GUI passes a logger that's already configured.
 
-        env = os.environ.copy()
-        if self.db_password:
-            env["PGPASSWORD"] = self.db_password
-            logger.info("PGPASSWORD environment variable set for pg_dump execution in worker.")
+#     def run(self):
+#         """
+#         The main method of the thread, executed when thread.start() is called.
+#         It calls the actual backup function.
+#         """
+#         # Inside the worker thread, direct logging output to our signal
+#         # This requires setting up a dedicated logger for this thread
+#         worker_logger = logging.getLogger('backup_worker')
+#         worker_logger.setLevel(logging.INFO)
+#         # Remove any existing handlers to prevent duplicate output
+#         for handler in list(worker_logger.handlers):
+#             worker_logger.removeHandler(handler)
+        
+#         # Add a handler that emits to our update_log signal
+#         class WorkerSignalHandler(logging.Handler):
+#             def __init__(self, signal_emitter):
+#                 super().__init__()
+#                 self.signal_emitter = signal_emitter
+#                 self.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
-        logger.info(f"Executing pg_dump command in worker: {' '.join(pg_dump_command)}")
-        try:
-            result = subprocess.run(
-                pg_dump_command,
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False
-            )
+#             def emit(self, record):
+#                 msg = self.format(record)
+#                 self.signal_emitter.emit(msg)
 
-            if result.returncode == 0:
-                logger.info(f"Database backup successful: {self.backup_filepath}")
-                self.backup_finished.emit(True, f"Backup created at: {self.backup_filepath}")
-            else:
-                error_message_detail = (f"pg_dump failed with exit code {result.returncode}.\n"
-                                        f"STDOUT: {result.stdout.strip()}\n"
-                                        f"STDERR: {result.stderr.strip()}")
-                logger.error(f"Database backup failed: {error_message_detail}")
-                user_error_message = result.stderr.strip() or result.stdout.strip() or "Unknown pg_dump error."
-                self.backup_error.emit(f"Backup failed: {user_error_message}")
-                self.backup_finished.emit(False, f"Backup failed. Check application logs for details.")
+#         worker_logger.addHandler(WorkerSignalHandler(self.update_log))
 
-        except FileNotFoundError:
-            error_msg = ("Error: 'pg_dump' command not found. "
-                         "Please ensure PostgreSQL client tools are installed and 'pg_dump' is in your system's PATH.")
-            logger.critical(error_msg)
-            self.backup_error.emit(error_msg)
-            self.backup_finished.emit(False, "Backup failed: pg_dump not found.")
-        except Exception as e:
-            error_msg = f"An unexpected Python error occurred during backup: {e}"
-            logger.critical(error_msg, exc_info=True)
-            self.backup_error.emit(error_msg)
-            self.backup_finished.emit(False, "Backup failed due to an unexpected internal error.")
+#         # Call the backup function
+#         success, message = self._perform_backup(worker_logger)
+#         self.backup_finished.emit(success, message)
+
+#     def _perform_backup(self, logger_instance: logging.Logger):
+#         """
+#         Performs the PostgreSQL backup operation.
+#         This function is similar to the standalone one, but uses the logger_instance
+#         passed from the worker thread's run method.
+#         """
+#         db_name = self.db_params['db_name']
+#         host = self.db_params['host']
+#         user = self.db_params['user']
+#         port = self.db_params['port']
+#         password = self.db_params['password']
+
+#         if not os.path.isdir(self.output_dir):
+#             logger_instance.error(f"Output directory does not exist: {self.output_dir}")
+#             return False, "Output directory does not exist."
+
+#         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+#         backup_filename_base = f"{db_name}_backup_{timestamp}"
+#         backup_file_ext = "sql"
+
+#         if self.dump_options and ('-Fc' in self.dump_options or '--format=c' in self.dump_options):
+#             backup_file_ext = "dump"
+#         elif self.dump_options and ('-Ft' in self.dump_options or '--format=t' in self.dump_options):
+#             backup_file_ext = "tar"
+
+#         backup_file_path = os.path.join(self.output_dir, f"{backup_filename_base}.{backup_file_ext}")
+        
+#         # Use the provided dump_binary_path
+#         cmd = [self.dump_binary_path]
+#         cmd.extend(["-h", host])
+#         cmd.extend(["-p", str(port)])
+#         cmd.extend(["-U", user])
+#         cmd.append(db_name)
+
+#         if self.dump_options:
+#             cmd.extend(self.dump_options)
+
+#         logger_instance.info(f"Starting online PostgreSQL backup for '{db_name}' on '{host}:{port}'...")
+#         logger_instance.info(f"Executing command: {' '.join(cmd)} > {os.path.basename(backup_file_path)}")
+
+#         env = os.environ.copy()
+#         if password:
+#             env['PGPASSWORD'] = password
+
+#         try:
+#             with open(backup_file_path, 'wb') as f:
+#                 process = subprocess.run(cmd, stdout=f, stderr=subprocess.PIPE, env=env, check=False)
+
+#             if process.returncode == 0:
+#                 logger_instance.info(f"PostgreSQL backup successful for '{db_name}'.")
+#             else:
+#                 error_msg = f"PostgreSQL backup failed for '{db_name}'.\n" \
+#                             f"Command: {' '.join(cmd)}\n" \
+#                             f"Error output: {process.stderr.decode('utf-8')}"
+#                 logger_instance.error(error_msg)
+#                 if os.path.exists(backup_file_path):
+#                     os.remove(backup_file_path)
+#                 return False, error_msg
+
+#             if self.compress:
+#                 compressed_file_path = f"{backup_file_path}.gz"
+#                 logger_instance.info(f"Compressing backup file to: {os.path.basename(compressed_file_path)}")
+#                 with open(backup_file_path, 'rb') as f_in:
+#                     with gzip.open(compressed_file_path, 'wb') as f_out:
+#                         shutil.copyfileobj(f_in, f_out)
+#                 os.remove(backup_file_path)
+#                 logger_instance.info("Compression successful.")
+#                 os.chmod(compressed_file_path, stat.S_IREAD | stat.S_IWRITE)
+#                 logger_instance.info(f"Set permissions for {os.path.basename(compressed_file_path)} to 0o600.")
+#                 return True, f"Backup successful to {os.path.basename(compressed_file_path)}"
+            
+#             return True, f"Backup successful to {os.path.basename(backup_file_path)}"
+
+#         except FileNotFoundError as e:
+#             error_msg = f"Backup failed: '{e.filename}' command not found.\n" \
+#                         "Please ensure 'pg_dump' is installed and accessible in your system's PATH, " \
+#                         "or provide its full path using the 'pg_dump Binary Path' field." # Updated error message
+#             logger_instance.error(error_msg)
+#             return False, error_msg
+#         except subprocess.CalledProcessError as e:
+#             error_msg = f"Backup failed with a command error: {e}\n" \
+#                         f"Command: {e.cmd}\n" \
+#                         f"Return Code: {e.returncode}\n" \
+#                         f"Output: {e.stdout.decode('utf-8')}\n" \
+#                         f"Error: {e.stderr.decode('utf-8')}"
+#             logger_instance.error(error_msg)
+#             return False, error_msg
+#         except Exception as e:
+#             error_msg = f"An unexpected error occurred during backup: {e}"
+#             logger_instance.error(error_msg, exc_info=True)
+#             if os.path.exists(backup_file_path):
+#                 os.remove(backup_file_path)
+#             return False, error_msg
 # --- Page Classes ---
 
 class TerminalPage(QWidget):
@@ -954,15 +982,14 @@ Phone: {user_data[2]}
 
     def start_backup(self):
         self.backup_manager.perform_backup()
-        
     @pyqtSlot()
     def on_backup_started(self):
-         """Slot to handle when the backup process begins."""
-#            # Example: Disable the backup button and update a status label
-#            self.my_backup_button.setEnabled(False)
-#            self.status_label.setText("Backup in progress... Please select a directory.")
-#            # No need for QCoreApplication.processEvents() here, as the blocking
-#            # operation is now in a separate thread. The GUI will remain responsive.
+        """Slot to handle when the backup process begins."""
+        # Example: Disable the backup button and update a status label
+        # self.my_backup_button.setEnabled(False)
+        # self.status_label.setText("Backup in progress... Please select a directory.")
+        # Force GUI update if the operation is long
+        QCoreApplication.processEvents()
 
     @pyqtSlot(bool, str)
     def on_backup_finished(self, success: bool, message: str):
