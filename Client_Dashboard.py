@@ -1,4 +1,4 @@
-
+import login as login
 import sys,os
 import numpy as np
 import pandas as pd
@@ -2565,6 +2565,7 @@ class ClientMainWindow(QMainWindow):
         self.shipment_tracking_btn = QPushButton("Shipment Tracking")
         self.client_logistics_btn = QPushButton("Logistics") # For product/package management
         self.client_inquiries_btn = QPushButton("My Inquiries")
+        self.logout_btn = QPushButton("Logout")
         self.help_btn = QPushButton("Help")
 
         self.dashboard_btn.setCheckable(True)
@@ -2572,6 +2573,7 @@ class ClientMainWindow(QMainWindow):
         self.shipment_tracking_btn.setCheckable(True)
         self.client_logistics_btn.setCheckable(True)
         self.client_inquiries_btn.setCheckable(True)
+        self.logout_btn.setCheckable(True)
         self.help_btn.setCheckable(True)
 
         self.button_group = QButtonGroup(self)
@@ -2582,12 +2584,13 @@ class ClientMainWindow(QMainWindow):
         self.button_group.addButton(self.client_logistics_btn)
         self.button_group.addButton(self.client_inquiries_btn)
         self.button_group.addButton(self.help_btn)
-
+        self.button_group.addButton(self.logout_btn)
         self.dashboard_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
         self.order_management_btn.clicked.connect(lambda: self.navigate_to_widget(self.order_management_widget))
         self.shipment_tracking_btn.clicked.connect(lambda: self.navigate_to_widget(self.shipment_tracking_widget))
         self.client_logistics_btn.clicked.connect(lambda: self.navigate_to_widget(self.client_logistics_widget))
         self.client_inquiries_btn.clicked.connect(lambda: self.navigate_to_widget(self.client_inquiries_widget))
+        self.logout_btn.clicked.connect(self.logout)
         self.help_btn.clicked.connect(lambda: self.navigate_to_widget(self.help_widget))
 
         navbar_layout.addStretch()
@@ -2597,9 +2600,23 @@ class ClientMainWindow(QMainWindow):
         navbar_layout.addWidget(self.client_logistics_btn)
         navbar_layout.addWidget(self.client_inquiries_btn)
         navbar_layout.addWidget(self.help_btn)  
+        navbar_layout.addWidget(self.logout_btn)
         navbar_layout.addStretch()
 
         self.main_layout.addWidget(self.navbar)
+    
+    def logout(self):
+        response = QMessageBox.question(
+            self,
+            "Logout",
+            "Are you sure you want to logout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self.close()
+            self.loginpage = login.FlipCard()
+            self.loginpage.show()
 
     def create_content_area(self):
         self.content_stack = QStackedWidget()

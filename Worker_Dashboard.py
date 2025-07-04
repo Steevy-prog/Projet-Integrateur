@@ -16,6 +16,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
+import login as login
 
 worker_id = 'TR1234'
 global conn
@@ -1803,12 +1804,14 @@ class MainWindow(QMainWindow):
         self.movement_btn = QPushButton("Movements")
         self.exceptions_btn = QPushButton("Exceptions")
         self.cells_btn = QPushButton("Cells") # New button for storage cells
+        self.logout_btn=QPushButton("logout")
 
         self.dashboard_btn.setCheckable(True)
         self.expedition_btn.setCheckable(True)
         self.movement_btn.setCheckable(True)
         self.exceptions_btn.setCheckable(True)
         self.cells_btn.setCheckable(True) # Make new button checkable
+        self.logout_btn.setCheckable(True)
 
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
@@ -1816,13 +1819,15 @@ class MainWindow(QMainWindow):
         self.button_group.addButton(self.expedition_btn)
         self.button_group.addButton(self.movement_btn)
         self.button_group.addButton(self.exceptions_btn)
-        self.button_group.addButton(self.cells_btn) # Add new button to group
+        self.button_group.addButton(self.cells_btn)# Add new button to group
+        self.button_group.addButton(self.logout_btn)
 
         self.dashboard_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
         self.expedition_btn.clicked.connect(lambda: self.navigate_to_widget(self.expedition_widget))
         self.movement_btn.clicked.connect(lambda: self.navigate_to_widget(self.movement_widget))
         self.exceptions_btn.clicked.connect(lambda: self.navigate_to_widget(self.exception_widget))
-        self.cells_btn.clicked.connect(lambda: self.navigate_to_widget(self.storage_cell_widget)) # Connect new button
+        self.cells_btn.clicked.connect(lambda: self.navigate_to_widget(self.storage_cell_widget))
+        self.logout_btn.clicked.connect(self.logout) # Connect new button
 
         navbar_layout.addStretch() # Pushes buttons to the center/right
         navbar_layout.addWidget(self.dashboard_btn)
@@ -1831,6 +1836,7 @@ class MainWindow(QMainWindow):
         navbar_layout.addWidget(self.exceptions_btn)
         navbar_layout.addWidget(self.cells_btn) # Add new button to navbar layout
         navbar_layout.addStretch() # For more centered look if desired
+        navbar_layout.addWidget(self.logout.btn)
 
         self.main_layout.addWidget(self.navbar)
 
@@ -1858,6 +1864,18 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.storage_cell_widget) # Add new widget to stack
 
         self.main_layout.addWidget(self.content_stack)
+    def logout(self):
+        response = QMessageBox.question(
+            self,
+            "Logout",
+            "Are you sure you want to logout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self.close()
+            self.loginpage = login.FlipCard()
+            self.loginpage.show()
 
     def navigate_to_widget(self, target_widget):
         self.content_stack.setCurrentWidget(target_widget)
