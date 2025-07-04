@@ -3798,3 +3798,13 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql;
+
+drop function "EMIR".getsupplier("SCA".idcolis);
+create or replace function "EMIR".getsupplier(_idcolis "SCA".idcolis)
+returns setof "SCA".idorg as $$
+    begin
+        return query select idfournisseur from "SCA".bonreception
+        where idcolis = _idcolis
+        LIMIT 1;
+    end;
+$$ language plpgsql;
