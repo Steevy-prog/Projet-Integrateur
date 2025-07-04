@@ -2,11 +2,14 @@ import sys, json
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QTableWidget, QTableWidgetItem, QTabWidget,
-    QLabel, QMessageBox, QHeaderView, QFrame, QLineEdit
+    QLabel, QMessageBox, QHeaderView, QLineEdit, QFileDialog
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from reportlab.pdfgen import canvas
 
 class DriverApp(QWidget):
     def __init__(self, driver_info):
@@ -49,6 +52,7 @@ class DriverApp(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
+
         header = QLabel(f"🚚 Bienvenue, {self.driver_info['prenom']} {self.driver_info['nom']}")
         header.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -75,11 +79,15 @@ class DriverApp(QWidget):
         self.tabs = QTabWidget()
         self.pending_tab = QWidget()
         self.done_tab = QWidget()
+        self.report_tab = QWidget()  # nouveau
+
         self.tabs.addTab(self.pending_tab, "🕒 En cours")
         self.tabs.addTab(self.done_tab, "✅ Terminées")
+        self.tabs.addTab(self.report_tab, "📊 Rapports")
 
         self.setup_table(self.pending_tab, "pending")
         self.setup_table(self.done_tab, "done")
+        self.setup_report_tab()  # configure le rapport
 
         # Carte
         self.map_view = QWebEngineView()
@@ -95,6 +103,7 @@ class DriverApp(QWidget):
         layout = QVBoxLayout(tab)
         table = QTableWidget()
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setSizePolicy(table.sizePolicy().horizontalPolicy(), table.sizePolicy().verticalPolicy())
         if tab_type == "pending":
             headers = ["ID", "Colis", "Destinataire", "Adresse", "Prévue", "Action"]
             table.setColumnCount(len(headers))
@@ -108,11 +117,46 @@ class DriverApp(QWidget):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         layout.addWidget(table)
 
+    def setup_report_tab(self):
+        layout = QVBoxLayout(self.report_tab)
+
+        self.figure = Figure(figsize=(4,3))
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
+
+        export_btn = QPushButton("Exporter en PDF")
+        export_btn.clicked.connect(self.export_report)
+        layout.addWidget(export_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.update_pie_chart()
+
+    def update_pie_chart(self):
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        sizes = [len(self.pending_deliveries_data), len(self.completed_deliveries_data)]
+        labels = ['En attente', 'Terminées']
+        colors = ['#1e3a8a','#3b5bdb']
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors)
+        ax.set_title("Répartition des livraisons")
+        self.canvas.draw()
+
+    def export_report(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, "Enregistrer le PDF", "", "PDF files (*.pdf)")
+        if file_path:
+            c = canvas.Canvas(file_path)
+            c.drawString(100, 800, "Rapport des livraisons")
+            c.drawString(100, 780, f"Total livraisons: {len(self.pending_deliveries_data) + len(self.completed_deliveries_data)}")
+            c.drawString(100, 760, f"En attente: {len(self.pending_deliveries_data)}")
+            c.drawString(100, 740, f"Terminées: {len(self.completed_deliveries_data)}")
+            c.save()
+            QMessageBox.information(self, "Succès", f"PDF sauvegardé : {file_path}")
+
     def load_all_deliveries(self):
         self.load_pending()
         self.load_done()
         self.update_counters()
         self.update_map()
+        self.update_pie_chart()
 
     def load_pending(self):
         t = self.pending_table
