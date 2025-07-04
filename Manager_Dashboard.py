@@ -65,6 +65,9 @@ cur = conn.cursor()
 cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
+cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
+pcolis_db = cur.fetchall() # Existing packages from the database
+
 cur.execute("SELECT (p).* FROM \"EMIR\".contenucolis_eva() AS p;")
 contenu = cur.fetchall() # Existing packages from the database
 
@@ -164,7 +167,6 @@ class WarehouseData:
 
         # Expedition orders
         expedition_data = []
-        destinations = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']
 
         for i in range(25):
             expedition_data.append({
