@@ -60,7 +60,7 @@ elif it == '2':
         password="steevy",
         port=5432
     )
-
+cur=conn.cursor()
 cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA1() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 

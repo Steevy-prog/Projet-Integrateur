@@ -534,15 +534,9 @@ class LogisticsOverviewWidget(QWidget):
         charts_layout.addWidget(perf_chart)
         
         # Commandes urgentes table
-<<<<<<< HEAD
-        urgent_table = self.create_urgent_table()
-        urgent_table.setFixedHeight(500)  
-        urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-=======
         #urgent_table = self.create_urgent_table()
         #urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
         #urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
->>>>>>> 8e1f91cd1bc0d32e73c4b60e8c907a90a9cf19b9
         
         # Ajouter tous les éléments au layout de contenu
         content_layout.addLayout(header_layout)
