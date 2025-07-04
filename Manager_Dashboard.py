@@ -57,7 +57,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="steevy",
+        password="1234",
         port=5432
     )
 cur = conn.cursor()
