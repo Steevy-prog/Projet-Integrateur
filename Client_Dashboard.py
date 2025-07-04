@@ -18,6 +18,8 @@ import random
 import psycopg2
 from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
 from helpbot import ChatBot
+import send_sca_mail
+import internalmail
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
@@ -159,7 +161,7 @@ class ClientData:
                 ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
             ]
         self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
-        self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','statut'])
+        self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','expected_date','receiving_org','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
         self.inq_df = pd.DataFrame(inq_db,columns=['id','type','period','status','description'])
 
@@ -1352,6 +1354,9 @@ class ClientLogisticsWidget(QWidget):
                 "Success",
                 f"Package '{package_id}' sent successfully from {self.transporting_org_combo.currentText()} to {self.receiving_org_combo.currentText()}."
             )
+            cur.execute('SELECT "EMIR".getorganisationname(%s);',(client_org_id,))
+            name = cur.fetchone()[0]
+            internalmail.send_email("Order Automaticnotification - SCA","steevyvalery7@gmail.com",client_org_id,name,idcolis,self.receiving_org_combo.currentText())
 
 
 class ClientOrderManagementWidget(QWidget):

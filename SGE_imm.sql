@@ -896,6 +896,9 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
 --EMIRSSSSSSSS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -962,7 +965,7 @@ create or replace procedure "EMIR".Bonreception_INS(
 )
 as $$
 begin
-    insert into "SCA".Bonreception(idbonreception, idcolis, idtransporteur, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
+    insert into "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) values ("SCA".Bonrecep_CONV(_idbonreception), "SCA".idcolis_conv(_idcolis), "SCA".idconducteur_CONV(_idtransporteur), _date_creation::date, "SCA".idorg_conv(_idfournisseur), _statut::"SCA".etat, _remarques);
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
@@ -985,7 +988,7 @@ create or replace procedure "EMIR".Individu_INS(
     _idindividu text,
     _nom text,
     _prenom text,
-    _telephone text,
+    _telephone text
 )
 as $$
 begin
@@ -1056,7 +1059,7 @@ create or replace procedure "EMIR".Lot_INS(
 )
 as $$
 begin
-    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut,condition) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat,_cond::"SCA".condition_materiel);
+    insert into "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) values ("SCA".idlot_conv(_idlot), "SCA".idproduit_conv(_idproduit), "SCA".dims_conv(_quantite), _date_creation::date, _statut::"SCA".etat);
 end; $$ language plpgsql;
 
 -- 13. CONTENUCOLIS
@@ -1201,6 +1204,28 @@ begin
     values ("SCA".idutilisateur_CONV(_idutilisateur), "SCA".IDindividu_CONV(_idindividu), "SCA".username_CONV(_username), _statut::"SCA".statut_utilisateur, _niveau_acces::"SCA".niveau_acces);
 end; $$ language plpgsql;
 
+-- 22. LOTEMBALLAGE
+create or replace procedure "EMIR".LotEmballage_INS(
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text DEFAULT 'neuf',
+    _nbuses int DEFAULT 0,
+    _condition text DEFAULT 'utilisable'
+)
+as $$
+begin
+    insert into "SCA".LotEmballage(idproduit, quantite, date_creation, statut, nbuses, condition)
+    values (
+        "SCA".idproduit_conv(_idproduit),
+        "SCA".dims_conv(_quantite),
+        _date_creation::date,
+        _statut::"SCA".etat_lot,
+        _nbuses,
+        _condition::"SCA".condition_materiel
+    );
+end; $$ language plpgsql;
+
 -- Fin des routines _INS
 -- Fichier SQL : EMIR.sql
 -- Description : Routines EMIR pour toutes les entités de la base "SCA"
@@ -1235,12 +1260,12 @@ end; $$ language plpgsql;
 -- 3. COLIS
 create or replace function "EMIR".Colis_EVA()
     returns table (
-                      idcolis "SCA".Idcolis,
-                      date_creation date,
-                      statut "SCA".etat
+                      _idcolis "SCA".Idcolis,
+                      _date_creation date,
+                      _statut "SCA".etatcolis
                   ) as $$
 begin
-    return query select * from "SCA".Colis;
+    return query select idcolis, date_creation, statut from "SCA".Colis;
 end; $$ language plpgsql;
 
 -- 4. ZONE
@@ -1338,6 +1363,7 @@ end; $$ language plpgsql;
 create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
     returns table(
                      _idtache "SCA".idtache,
+                     _idtravailleur "SCA".idtravailleur,
                      _idcellule "SCA".idcellule,
                      _idcolis "SCA".idcolis,
                      _date_creation date,
@@ -1349,7 +1375,7 @@ create or replace function "EMIR".Tache_EVA(_idindividu "SCA".idindividu)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimé,description,statut,type from "SCA".Tache where idindividu = _idindividu;
+    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimee,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL
@@ -1512,7 +1538,22 @@ create or replace function "EMIR".Credentials_EVA()
 begin
     return query select * from "CREDENTIALS".Credentials;
 end; $$ language plpgsql;
--- Fin des fonctions d'évaluation (_EVA)
+
+-- 22. LOTEMBALLAGE
+create or replace function "EMIR".LotEmballage_EVA()
+    returns table (
+        idlotemballage integer,
+        idproduit "SCA".Idproduit,
+        quantite "SCA".dims,
+        date_creation date,
+        statut "SCA".etat_lot,
+        nbuses int,
+        condition "SCA".condition_materiel
+    ) as $$
+begin
+    return query select * from "SCA".LotEmballage;
+end; $$ language plpgsql;
+
 -- Routines de RETRAIT (_RET)
 
 -- 1. ORGANISATION
@@ -1696,6 +1737,15 @@ create or replace procedure "EMIR".Utilisateur_RET(
 as $$
 begin
     delete from "SCA".Utilisateur where idutilisateur = _idutilisateur;
+end; $$ language plpgsql;
+
+-- 22. LOTEMBALLAGE
+create or replace procedure "EMIR".LotEmballage_RET(
+    _idlotemballage integer
+)
+as $$
+begin
+    delete from "SCA".LotEmballage where idlotemballage = _idlotemballage;
 end; $$ language plpgsql;
 
 -- Fin des routines _RET

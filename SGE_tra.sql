@@ -67,7 +67,6 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonreception_MOD(
     _idbonreception "SCA".Bonrecep,
     _idcolis "SCA".Idcolis,
-    _idtransporteur "SCA".idOrg,
     _date_creation date,
     _idfournisseur "SCA".idOrg,
     _statut "SCA".etat,
@@ -77,7 +76,6 @@ as $$
 begin
     update "SCA".Bonreception
     SET idcolis = "SCA".Idcolis_CONV(_idcolis),
-        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
         date_creation = _date_creation::date,
         idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
         statut = _statut::"SCA".etat,
@@ -111,14 +109,12 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Individu_MOD(
     _idindividu "SCA".IDindividu,
     _nom "SCA".Nom,
-    _adresse "SCA".Adresse,
     _telephone "SCA".Numero
 )
 as $$
 begin
     update "SCA".Individu
     SET nom = "SCA".Nom_CONV(_nom),
-        adresse = "SCA".Adresse_CONV(_adresse),
         telephone = "SCA".Numero_CONV(_telephone)
     WHERE idindividu = "SCA".IDindividu_CONV(_idindividu);
 end; $$ language plpgsql;
@@ -376,3 +372,24 @@ begin
     WHERE idutilisateur = "SCA".idutilisateur_CONV(_idutilisateur);
 end; $$ language plpgsql;
 
+-- 22. LOTEMBALLAGE MODIFICATION
+create or replace procedure "EMIR".LotEmballage_MOD(
+    _idlotemballage integer,
+    _idproduit text,
+    _quantite text,
+    _date_creation text,
+    _statut text,
+    _nbuses int,
+    _condition text
+)
+as $$
+begin
+    update "SCA".LotEmballage
+    set idproduit = "SCA".idproduit_conv(_idproduit),
+        quantite = "SCA".dims_conv(_quantite),
+        date_creation = _date_creation::date,
+        statut = _statut::"SCA".etat_lot,
+        nbuses = _nbuses,
+        condition = _condition::"SCA".condition_materiel
+    where idlotemballage = _idlotemballage;
+end; $$ language plpgsql;

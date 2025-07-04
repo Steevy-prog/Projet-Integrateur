@@ -167,6 +167,8 @@ CREATE TABLE "SCA".Cellule(
 CREATE TABLE "SCA".Colis(
                             idcolis "SCA".Idcolis NOT NULL ,
                             date_creation date NOT NULL ,
+                            expected_date date NOT NULL,
+                            receiving_org "SCA".idOrg NOT NULL,
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
 );
@@ -282,6 +284,17 @@ CREATE TABLE "SCA".Lot(
                               ON DELETE CASCADE
 );
 
+CREATE TABLE "SCA".LotEmballage(
+    idlotemballage SERIAL PRIMARY KEY,
+    idproduit "SCA".Idproduit NOT NULL,
+    quantite "SCA".dims NOT NULL,
+    date_creation DATE NOT NULL,
+    statut "SCA".etat_lot DEFAULT 'neuf',
+    nbuses INT DEFAULT 0,
+    condition "SCA".condition_materiel DEFAULT 'utilisable',
+    CONSTRAINT LotEmballage_CR0 FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit) ON DELETE CASCADE
+);
+
 CREATE TABLE "SCA".ContenuColis(
                                    idcolis "SCA".Idcolis NOT NULL ,
                                    idlot "SCA".Idlot NOT NULL ,
@@ -348,7 +361,7 @@ CREATE TABLE "SCA".Tache(
                             idcolis "SCA".Idcolis NOT NULL ,
                             date_creation DATE NOT NULL ,
                             date_echeance DATE NOT NULL ,
-                            duree_estimee INTERVAL NOT NULL ,
+                            duree_estimee INT NOT NULL ,
                             description TEXT NOT NULL ,
                             priority text not null,
                             statut text NOT NULL DEFAULT 'en cours',
@@ -356,7 +369,7 @@ CREATE TABLE "SCA".Tache(
                             CONSTRAINT Tache_CC0 PRIMARY KEY (idtache),
                             CONSTRAINT Tache_CR0 FOREIGN KEY (idtravailleur) REFERENCES "SCA".Travailleur(idtravailleur) ON DELETE CASCADE,
                             FOREIGN KEY (idcellule) REFERENCES "SCA".Cellule(idcellule) ON DELETE CASCADE,
-                            FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
+                            FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE
 );
 -- CREATE TABLE "CREDENTIALS".PasswordPolicies (
 --                                                 id_policy INT GENERATED ALWAYS AS IDENTITY,
@@ -451,7 +464,9 @@ CREATE TABLE "EXTERNE".Colis(
                             idorg "SCA".idorg not null,
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
-                            statut "SCA".etatcolis NOT NULL ,
+                            expected_date date NOT NULL,
+                            receiving_org "SCA".idorg NOT NULL,
+                            statut TEXT NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
 CREATE TABLE "EXTERNE".Lot(

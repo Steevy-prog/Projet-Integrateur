@@ -12,7 +12,6 @@ REVOKE ALL ON SCHEMA "SCA" FROM PUBLIC;
 REVOKE ALL ON SCHEMA "CREDENTIALS" FROM PUBLIC;
 -- Créer un nouveau rôle
 CREATE ROLE ITAdmin LOGIN PASSWORD 'hungry';
-
 -- Accorder l'usage du schéma SCA au rôle
 GRANT USAGE ON SCHEMA "SCA" TO ITAdmin ;
 GRANT USAGE ON SCHEMA "CREDENTIALS" TO ITAdmin ;
@@ -173,6 +172,8 @@ CREATE TABLE "SCA".Cellule(
 CREATE TABLE "SCA".Colis(
                             idcolis "SCA".Idcolis NOT NULL ,
                             date_creation date NOT NULL ,
+                            expected_date date NOT NULL,
+                            receiving_org "SCA".idorg,
                             statut "SCA".etatcolis NOT NULL ,
                             CONSTRAINT Colis_CC0 PRIMARY KEY (idcolis)
 );
@@ -180,7 +181,8 @@ CREATE TABLE "EXTERNE".Colis(
                             idorg "SCA".idorg NOT NULL,
                             idpcolis "EXTERNE".Idpcolis NOT NULL ,
                             date_creation date NOT NULL ,
-                            expexted_date date not null,
+                            expected_date date not null,
+                            receiving_org "SCA".idorg,
                             statut "SCA".retatcolis NOT NULL ,
                             CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
 );
@@ -475,6 +477,15 @@ CREATE TABLE "SCA".LocalisationOrganisation (
                                                 CONSTRAINT LocalisationOrganisation_CR0 FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
 
+CREATE TABLE "SCA".LivraisonConducteurColis (
+    idlivraison SERIAL PRIMARY KEY,
+    idconducteur "SCA".idconducteur NOT NULL,
+    idbonexpedition "SCA".Bonexped NOT NULL,
+    date_affectation DATE DEFAULT CURRENT_DATE,
+    statut "SCA".etatcolis DEFAULT 'Attente',
+    CONSTRAINT fk_conducteur FOREIGN KEY (idconducteur) REFERENCES "SCA".Conducteur(idconducteur) ON DELETE CASCADE,
+    CONSTRAINT fk_colis FOREIGN KEY (idbonexpedition) REFERENCES "SCA".Bonexpedition(idbonexpedition) ON DELETE CASCADE
+);
 
 --script pour l'interface de base
 --vues, routines et triggers
@@ -1799,6 +1810,8 @@ create or replace function "EMIR".Colis_EVA()
     returns table (
                       idcolis "SCA".Idcolis,
                       date_creation date,
+                      expected_date date,
+                      receiving_org "SCA".idorg,
                       statut "SCA".etat
                   ) as $$
 begin
@@ -3371,7 +3384,7 @@ create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
                  )
 as $$
 begin
-return query select l.id,l.timestamp,l.level,l.message,l.extra from "SCA".Logs as l where l.timestamp between _date1 and _date2;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_gethigher(_date timestamp)
@@ -3384,7 +3397,7 @@ create or replace function "EMIR".Logs_gethigher(_date timestamp)
                  )
 as $$
 begin
-return query select l.id, l.timestamp ,l.level,l.message,l.extra from "SCA".Logs as l where l.timestamp >= _date;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_getlower(_date timestamp)
@@ -3397,7 +3410,7 @@ create or replace function "EMIR".Logs_getlower(_date timestamp)
                  )
 as $$
 begin
-    return query select l.id, l.timestamp,l.level,l.message,l.extra from "SCA".Logs as l where l.timestamp <= _date;
+    return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
 end; $$ language plpgsql;
 
 
@@ -3423,89 +3436,6 @@ select * from "SCA".Produit;
 
 
 
-INSERT INTO "SCA".Organisation(idorganisation, nom, telephone, type) VALUES
-('OABCDE', 'Fourniture Express', '699123456', 'fournisseur'),
-('OFGHIJ', 'Logistique Nord', '697987654', 'destinataire'),
-('OKLMNO', 'SAC Central', '695112233', 'SAC');
-
-INSERT INTO "SCA".individu(idindividu, nom, prenom, adresse, telephone) VALUES
-('IABCDE', 'TONGOUE', 'Steevy', 'Douala', '699556677'),
-('I12345', 'Ndongo', 'Paul', 'Yaoundé', '690112233');
-
-INSERT INTO "SCA".Utilisateur(idutilisateur, idindividu, username) VALUES
-('UAAAAA', 'IABCDE', 'steevy'),
-('UBBBBB', 'I12345', 'pndongo');
-
-INSERT INTO "SCA".Conducteur(idconducteur, idutilisateur, numero_permis, type_permis, date_obtention_permis, date_expiration_permis) VALUES
-('CD1234', 'UAAAAA', 'CMR001234', 'B', '2015-06-10', '2030-06-10');
-
-INSERT INTO "SCA".Zone(idzone, nom) VALUES
-('Z11111', 'Zone A'),
-('Z22222', 'Zone B');
-
-INSERT INTO "SCA".Cellule(idcellule, longueur, largeur, hauteur, masse_maximale) VALUES
-('C11111', 5.0, 5.0, 3.0, 1000.0),
-('C22222', 6.0, 4.0, 4.0, 1500.0);
-
-INSERT INTO "SCA".Produit(idproduit, idfournisseur, nom, description, prix_unitaire, marque, modele) VALUES
-('PAAAAA', 'OABCDE', 'Boîte Carton', 'Boîte d''emballage standard', 100.0, 'EcoPack', 'ECO-BX'),
-('PBBBBB', 'OABCDE', 'Logiciel StockPro', 'Gestion de stock avancée', 500.0, 'SoftTech', 'STOCK2025');
-
-INSERT INTO "SCA".ProduitMateriel(idproduit, longueur, largeur, hauteur, masse) VALUES
-('PAAAAA', 30.0, 20.0, 15.0, 2.0);
-
-INSERT INTO "SCA".ProduitLogiciel(idproduit, version, license) VALUES
-('PBBBBB', 'v2.1', 'LIC-STK-21');
-
-INSERT INTO "SCA".Lot(idlot, idproduit, quantite, date_creation, statut) VALUES
-('LAAAAA', 'PAAAAA', 200.0, '2025-06-01', 'neuf'),
-('LBBBBB', 'PBBBBB', 50.0, '2025-06-02', 'neuf');
-
-INSERT INTO "SCA".Colis(idcolis, date_creation, statut) VALUES
-('CO12345', '2025-06-10', 'Attente'),
-('CO13345', '2025-06-14', 'Attente');;
-
-INSERT INTO "SCA".ContenuColis(idcolis, idlot, quantite, date_MAJ) VALUES
-('CO12345', 'LAAAAA', 100.0, '2025-06-11'),
-('CO12345', 'LBBBBB', 80.0, '2025-06-13');;
-
-
-INSERT INTO "SCA".Repertoire(idindividu, idorganisation, role) VALUES
-('IABCDE', 'OABCDE', 'acheteur');
-
-INSERT INTO "CREDENTIALS".Credentials (email, mot_de_passe_hash, idutilisateur)
-VALUES ('steevy@example.com', 'motdepasse', 'UAAAAA');
-
--- Réception de colis
-INSERT INTO "SCA".Bonreception(idbonreception, idcolis, date_creation, idfournisseur, statut, remarques) VALUES
-('RABCDE', 'CO12345', '2025-06-12', 'OFGHIJ', 'bon etat', 'Réception OK');
-
--- Expédition de colis
-INSERT INTO "SCA".Bonexpedition(idbonexpedition, idcolis, idtransporteur, date_creation, iddestinataire, statut, remarques) VALUES
-('EABCDE', 'CO12345', 'CD1234', '2025-06-13', 'OFGHIJ', 'bon etat', 'Pris en charge pour livraison');
-
--- Ajout d’un travailleur
-INSERT INTO "SCA".Travailleur(idtravailleur, idutilisateur, date_embauche, poste, departement, salaire_horaire, competences) VALUES
-('TR1234', 'UAAAAA', '2024-01-10', 'Magasinier', 'Logistique', 300.00, 'Gestion stock, inventaire');
-
--- Création de 2 tâches
-INSERT INTO "SCA".Tache(idtache, idtravailleur, idcellule, idcolis, date_creation,date_echeance,duree_estime, description, priority, statut, type) VALUES
-('TABCDE', 'TR1234', 'C11111', 'CO12345', '2025-06-14','2025-06-16',10, 'Vérifier contenu cellulaire', 'medium', 'en cours', 'contrôle'),
-('TABCD1', 'TR1234', 'C22222', 'CO13345', '2025-06-15', '2025-06-16',20, 'Transférer lot vers zone B', 'high', 'en cours', 'transfert');
-
-INSERT INTO "SCA".RapportException(idrapport, idcolis, type, date_creation, description, statut) VALUES
-('RABCDE', 'CO12345', 'lors de la verification avant expedition', '2025-06-15', 'Colis endommagé détecté', 'Ouvert');
-
-INSERT INTO "SCA".Vehicule(idvehicule, immatriculation, marque, modele, annee_fabrication, types, capacite_charge, capacite_volume, date_acquisition, statut) VALUES
-('VABCDE', 'DU123AB', 'Mercedes', 'Sprinter', 2020, 'fourgon', 1500.0, 12.0, '2020-08-01', 'disponible');
-
-INSERT INTO "SCA".LocalisationOrganisation(idorganisation, adresse, ville, region, latitude, longitude) VALUES
-('OFGHIJ', '123 Rue du Port', 'Douala', 'Littoral', 4.05, 9.7),
-('OKLMNO', 'Avenue des Banques', 'Yaoundé', 'Centre', 3.87, 11.52);
-
-INSERT INTO "SCA".InventaireEmplacement(idcellule, idlot, quantite, datemaj) VALUES
-('C11111', 'LAAAAA', 200.0, '2025-06-16'),
-('C22222', 'LBBBBB', 50.0, '2025-06-16');
 
 
 
@@ -3566,6 +3496,19 @@ begin
 end;
 $$ language plpgsql;
 
+
+
+create or replace function "EMIR".getvaluecol(_idcolis "SCA".idcolis)
+returns int as $$
+begin
+    return(
+    select sum("SCA".Produit.prix_unitaire) from "SCA".ContenuColis
+    join "SCA".Lot on ("SCA".ContenuColis.idlot = "SCA".Lot.idlot)
+    join "SCA".Produit on ("SCA".Lot.idproduit = "SCA".Produit.idproduit)
+    where "SCA".ContenuColis.idcolis = _idcolis);
+end;
+$$ language plpgsql;
+
 create or replace procedure "EMIR".supprimer_utilisateur(_idutilisateur "SCA".idutilisateur)
 as $$
 begin
@@ -3574,8 +3517,8 @@ end;
 $$ language plpgsql;
 
 CREATE OR REPLACE PROCEDURE "EMIR".Modifier_utilisateur(
-    usernameanc "SCA".username,
-    usernamenouv "SCA".username,
+    _idutilisateuranc "SCA".idutilisateur,
+    _idutilisateurnouv "SCA".idutilisateur,
     nom "SCA".nom,
     prenom "SCA".nom,
     email "SCA".email,
@@ -3588,25 +3531,25 @@ BEGIN
     IF encode(digest(_mot_de_passe, 'sha256'), 'hex') = (
         SELECT mot_de_passe_hash
         FROM "CREDENTIALS".Credentials
-        WHERE username = usernameanc
+        WHERE idutilisateur = _idutilisateuranc
     ) THEN
         -- Appel de la procédure Utilisateur_MOD
-        --CALL "EMIR".Utilisateur_MOD(
-        --    _idutilisateurnouv,
-        --    nom, -- si nom = username
-        --    'actif', -- ou autre valeur de statut à définir
-        --    _niveau_acces
-        --);
+        CALL "EMIR".Utilisateur_MOD(
+            _idutilisateurnouv,
+            nom, -- si nom = username
+            'actif', -- ou autre valeur de statut à définir
+            _niveau_acces
+        );
 
         -- Si ID utilisateur change, mise à jour des IDs liés
-        IF usernameanc <> usernamenouv THEN
+        IF _idutilisateuranc <> _idutilisateurnouv THEN
             UPDATE "SCA".Utilisateur
-            SET username = usernamenouv
-            WHERE username = usernameanc;
+            SET idutilisateur = _idutilisateurnouv
+            WHERE idutilisateur = _idutilisateuranc;
 
             UPDATE "CREDENTIALS".Credentials
-            SET username = usernamenouv
-            WHERE username = usernameanc;
+            SET idutilisateur = _idutilisateurnouv
+            WHERE idutilisateur = _idutilisateuranc;
         END IF;
     END IF;
 END;
@@ -3641,6 +3584,8 @@ create or replace function "EMIR".Colis_EVA()
     returns table (
                       idcolis "SCA".Idcolis,
                       date_creation date,
+                      expected_date date,
+                      receiving_org "SCA".idorg,
                       statut "SCA".etatcolis
                   ) as $$
 begin
@@ -3683,11 +3628,12 @@ returns table (
     _idpcolis "EXTERNE".idpcolis,
     _date_creation date,
     _expected_date date,
+    _reveiving_org "SCA".idorg,
     _statut "SCA".retatcolis
 )
 as $$
 begin
-   return query select idpcolis,date_creation,expected_date,statut from "EXTERNE".Colis where idorg = _idorg;
+   return query select idpcolis,date_creation,expected_date,receiving_org,statut from "EXTERNE".Colis where idorg = _idorg;
 end; $$ language plpgsql;
 
 
@@ -3698,11 +3644,12 @@ returns table (
     _idpcolis "EXTERNE".idpcolis,
     _date_creation date,
     _expected_date date,
+    _receiving_org "SCA".idorg,
     _statut "SCA".retatcolis
 )
 as $$
 begin
-   return query select idorg,idpcolis,date_creation,expected_date,statut from "EXTERNE".Colis;
+   return query select idorg,idpcolis,date_creation,expected_date,receiving_org,statut from "EXTERNE".Colis;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PColis_INS(
@@ -3739,7 +3686,7 @@ returns table (
 )
 as $$
 begin
-  return query select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis;
+  return query select idorg,idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis;
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PContenuColis_INS(
@@ -3779,16 +3726,85 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
- 
-create or replace function "EMIR".getnameandid()
-returns table(
-id "SCA".idindividu,
-first_name "SCA".nom,
-last_name "SCA".nom
-)
-as $$
-begin
-return query
-select idindividu,nom,prenom from "SCA".individu;
-end;
+
+create or replace function "EMIR".getvolume(_idcolis "SCA".idcolis)
+returns float as $$
+    declare
+        volume float;
+    begin
+        with it as(
+            select longueur as lon ,largeur as lar, hauteur as haut from "SCA".ProduitMateriel
+            join "SCA".lot on "SCA".lot.idproduit = "SCA".ProduitMateriel.idproduit
+            join "SCA".ContenuColis on "SCA".contenucolis.idlot = "SCA".lot.idlot
+            where _idcolis = "SCA".ContenuColis.idcolis
+        )
+       select  sum((lon*lar*haut))  from it into volume;
+        return volume;
+
+    end;
+
+    $$ language plpgsql;
+
+
+
+create or replace function "EMIR".getpoids(_idcolis "SCA".idcolis)
+returns float as $$
+    declare
+        volume float;
+    begin
+        with it as(
+            select masse poi from "SCA".ProduitMateriel
+            join "SCA".lot on "SCA".lot.idproduit = "SCA".ProduitMateriel.idproduit
+            join "SCA".ContenuColis on "SCA".contenucolis.idlot = "SCA".lot.idlot
+            where _idcolis = "SCA".ContenuColis.idcolis
+        )
+       select  sum(poi)  from it into volume;
+        return volume;
+
+    end;
+
+    $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".entransit()
+RETURNS int AS $$
+DECLARE
+    result int;
+BEGIN
+    SELECT COUNT(*) INTO result
+    FROM "SCA".Bonexpedition b
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM "SCA".Colis c
+        WHERE c.idcolis = b.idcolis
+    );
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".preparation_tasks()
+RETURNS int AS $$
+DECLARE
+    result int;
+BEGIN
+    SELECT COUNT(*) INTO result
+    FROM "SCA".Colis c
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM "SCA".Bonexpedition b
+        WHERE b.idcolis = c.idcolis
+    );
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+drop function "EMIR".getsupplier("SCA".idcolis);
+create or replace function "EMIR".getsupplier(_idcolis "SCA".idcolis)
+returns setof "SCA".idorg as $$
+    begin
+        return query select idfournisseur from "SCA".bonreception
+        where idcolis = _idcolis
+        LIMIT 1;
+    end;
 $$ language plpgsql;

@@ -18,32 +18,67 @@ import psycopg2
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
 from PyQt6.QtGui import QBrush
 import login as login
+import internalmail
 
 # Configuration de la base de données
-conn = psycopg2.connect(
-    host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-    database="projet_integrateur",
-    user="group13",
-    password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-    port=5432
-)
+global conn
+print("1. online")
+print("2. offline")
+it = input("Enter the number of bd you want to use : ")
+
+if it == '1':
+    print("You have chosen the online database.")
+    conn = psycopg2.connect(
+        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+        database="projet_integrateur",
+        user="group13",
+        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+        port=5432
+    )
+elif it == '2':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="postgres",
+        user="postgres",
+        password="steevy",
+        port=5432
+    )
 cur = conn.cursor()
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
+conducteurs = cur.fetchall()
+if conducteurs is None:
+  print("noiyo1")
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Colis_eva() AS p;")
+colis = cur.fetchall()
+if colis is None:
+  print("noiyo2")
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Bonexpedition_eva() AS p;")
+bonexp = cur.fetchall()
+if bonexp is None:
+  print("noiyo3")
+
+
+cur.execute("SELECT (p).* FROM \"EMIR\".ContenuColis_eva() AS p;")
+contenucolis = cur.fetchall()
+if contenucolis is None:
+  print("noiyo4")
+
+
 
 class LogisticsData:
     """Data generator and manager for logistics operations"""
     
     def __init__(self):
         self.generate_sample_data()
-    
     def generate_sample_data(self):
-        # Données des transporteurs
-        transporteurs = [
-            {'id': 'TR001', 'nom': 'DHL Express', 'contact': 'Jean Dupont', 'tel': '+123456789', 'capacite': 5000, 'cout_km': 0.85},
-            {'id': 'TR002', 'nom': 'FedEx', 'contact': 'Marie Martin', 'tel': '+987654321', 'capacite': 4500, 'cout_km': 0.78},
-            {'id': 'TR003', 'nom': 'UPS', 'contact': 'Pierre Lambert', 'tel': '+456123789', 'capacite': 6000, 'cout_km': 0.92},
-            {'id': 'TR004', 'nom': 'Chronopost', 'contact': 'Sophie Leroy', 'tel': '+789456123', 'capacite': 4000, 'cout_km': 0.75}
-        ]
-        self.transporteurs_df = pd.DataFrame(transporteurs)
+        self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva','spec'])
+        self.colis_df = pd.DataFrame(colis,columns=['id','date_cre','exp_date','receiving_org','statut'])
+        self.bonexp_df = pd.DataFrame(bonexp,columns=['id','idcol','idtrans','date_cre','iddest','statut','remarque'])
+        self.contenu_df = pd.DataFrame(contenucolis,columns=['idcol','idlot','quantity','date_maj'])
 
         #daily metrics
 
@@ -83,6 +118,9 @@ class LogisticsData:
                 try:
                     cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
                     quantity = cur.fetchone()[0]
+                    if quantity is None:
+                        print("cul")
+
                     print(f"Fetched quantity for product {product['ID']}: {quantity}")
                     cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
                     zone = cur.fetchone()[0]
@@ -112,19 +150,24 @@ class LogisticsData:
         statuts = ['En préparation', 'Prête à expédier', 'En transit', 'Livrée']
         destinations = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Toulouse', 'Nantes']
         
-        for i in range(15):
+        for i in self.colis_df.itertuples():
             transporteur = random.choice(self.transporteurs_df['id'].values)
+            cur.execute("SELECT \"EMIR\".getvolume(%s)",(i.id,))
+            volume = cur.fetchall()
+            cur.execute("SELECT \"EMIR\".getvaluecol(%s)",(i.id,))
+            value = cur.fetchall()
+            cur.execute("SELECT \"EMIR\".getpoids(%s)",(i.id,))
+            poids = cur.fetchall()
             expeditions.append({
-                'id_commande': f'CMD{i+1:03d}',
-                'destination': random.choice(destinations),
-                'date_creation': datetime.date.today() - datetime.timedelta(days=random.randint(0, 5)),
-                'date_expedition': datetime.date.today() + datetime.timedelta(days=random.randint(0, 3)),
-                'statut': random.choice(statuts),
-                'poids': random.randint(5, 50),
-                'volume': random.randint(1, 10),
-                'id_transporteur': transporteur,
-                'cout_estime': round(random.uniform(50, 500), 2),
-                'urgence': random.choice(['Standard', 'Express', 'Prioritaire'])
+                'id_commande': i.id,
+                'destination': i.receiving_org,
+                'date_creation': i.date_cre,
+                'date_expedition': i.exp_date,
+                'statut': i.statut,
+                'poids': poids,
+                'volume': volume,
+                'cout_estime': value,
+                #'urgence': random.choice(['Standard', 'Express', 'Prioritaire'])
             })
         self.expeditions_df = pd.DataFrame(expeditions)
         
@@ -319,21 +362,24 @@ class PerformanceWidget(QWidget):
             
     def create_fulfillment_chart(self, chart_widget):
         # Weekly fulfillment rate
-        weekly_data = self.data.daily_metrics.tail(42).copy()
-        weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
-        
-        weekly_summary = weekly_data.groupby('Week').agg({
-            'Order_Fulfillment_Rate': 'mean'
-        }).reset_index()
-        
-        x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
-        y_vals = weekly_summary['Order_Fulfillment_Rate'].values
-
-        chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
-        chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
-        chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
-        chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
-        chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
+        try:
+           weekly_data = self.data.daily_metrics.tail(42).copy()
+           weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
+           
+           weekly_summary = weekly_data.groupby('Week').agg({
+               'Order_Fulfillment_Rate': 'mean'
+           }).reset_index()
+           
+           x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
+           y_vals = weekly_summary['Order_Fulfillment_Rate'].values
+   
+           chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
+           chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
+           chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
+           chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
+           chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
+        except Exception as e:
+            print(e)
 
 class ChartWidget(pg.PlotWidget):
     def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
@@ -460,15 +506,16 @@ class LogisticsOverviewWidget(QWidget):
         
         # Metrics cards
         metrics_layout = QHBoxLayout()
+        cur.execute("SELECT \"EMIR\".entransit()")
+        cmd_en_transit = cur.fetchone()[0]
         
         # Calcul des métriques
-        cmd_en_prep = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'En préparation'])
-        cmd_pretes = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'Prête à expédier'])
-        cmd_en_transit = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'En transit'])
+        cur.execute("SELECT \"EMIR\".preparation_tasks()")
+        cmd_en_prep = cur.fetchone()[0]
         delai_moyen = self.data.performance_df['delais_moyens'].mean()
         
         metrics_layout.addWidget(MetricCard("Commandes en prép.", cmd_en_prep, "À traiter", "#FF9800"))
-        metrics_layout.addWidget(MetricCard("Prêtes à expédier", cmd_pretes, "En attente", "#2196F3"))
+        metrics_layout.addWidget(MetricCard("Prêtes à expédier", len(bonexp) , "En attente", "#2196F3"))
         metrics_layout.addWidget(MetricCard("En transit", cmd_en_transit, "En cours", "#4CAF50"))
         metrics_layout.addWidget(MetricCard("Délai moyen", f"{delai_moyen:.1f} jours", "Livraison", "#9C27B0"))
         
@@ -487,15 +534,15 @@ class LogisticsOverviewWidget(QWidget):
         charts_layout.addWidget(perf_chart)
         
         # Commandes urgentes table
-        urgent_table = self.create_urgent_table()
-        urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
-        urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        #urgent_table = self.create_urgent_table()
+        #urgent_table.setFixedHeight(500)  # 400 pixels de hauteur
+        #urgent_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Ajouter tous les éléments au layout de contenu
         content_layout.addLayout(header_layout)
         content_layout.addLayout(metrics_layout)
         content_layout.addLayout(charts_layout)
-        content_layout.addWidget(urgent_table)
+        #content_layout.addWidget(urgent_table)
         
         # Créer la zone de défilement et y placer le widget de contenu
         scroll_area = QScrollArea()
@@ -560,36 +607,32 @@ class LogisticsOverviewWidget(QWidget):
         chart_widget.addItem(target_label)
     
     def create_urgent_table(self):
-        urgent_df = self.data.expeditions_df[self.data.expeditions_df['urgence'] != 'Standard'].sort_values('date_expedition')
+        #urgent_df = self.data.expeditions_df[self.data.expeditions_df['urgence'] != 'Standard'].sort_values('date_expedition')
         
         table = QTableWidget()
-        table.setRowCount(len(urgent_df))
-        table.setColumnCount(6)
-        table.setHorizontalHeaderLabels(['ID Commande', 'Destination', 'Date expédition', 'Urgence', 'Transporteur', 'Statut'])
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels(['ID Commande', 'Destination', 'Date expédition', 'Transporteur', 'Statut'])
         
-        for i, (_, row) in enumerate(urgent_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['id_commande']))
-            table.setItem(i, 1, QTableWidgetItem(row['destination']))
-            table.setItem(i, 2, QTableWidgetItem(str(row['date_expedition'])))
+        for i, in self.data.expeditions_df.itertuples():
+            table.setItem(i, 0, QTableWidgetItem(i['id_commande']))
+            table.setItem(i, 1, QTableWidgetItem(i['destination']))
+            table.setItem(i, 2, QTableWidgetItem(str(i['date_expedition'])))
             
-            urgency_item = QTableWidgetItem(row['urgence'])
-            if row['urgence'] == 'Prioritaire':
-                urgency_item.setBackground(QColor('#FFCDD2'))  # Rouge clair
+            match = self.data.transporteurs_df[self.data.transporteurs_df['id'] == i['id_transporteur']]
+            if not match.empty:
+                transporteur = match['idutil'].values[0]
             else:
-                urgency_item.setBackground(QColor('#FFF9C4'))  # Jaune clair
-            table.setItem(i, 3, urgency_item)
+                transporteur = "Inconnu"
+            table.setItem(i, 3, QTableWidgetItem(transporteur))
             
-            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['nom'].values[0]
-            table.setItem(i, 4, QTableWidgetItem(transporteur))
-            
-            status_item = QTableWidgetItem(row['statut'])
-            if row['statut'] == 'En préparation':
+            status_item = QTableWidgetItem(i['statut'])
+            if i['statut'] == 'En préparation':
                 status_item.setBackground(QColor('#BBDEFB'))  # Bleu clair
-            elif row['statut'] == 'Prête à expédier':
+            elif i['statut'] == 'Prête à expédier':
                 status_item.setBackground(QColor('#C8E6C9'))  # Vert clair
             else:
                 status_item.setBackground(QColor('#E1BEE7'))  # Violet clair
-            table.setItem(i, 5, status_item)
+            table.setItem(i, 4, status_item)
         
         table.setStyleSheet("""
             QTableWidget {
@@ -646,13 +689,13 @@ class ConducteurSelectionDialog(QDialog):
         self.table = QTableWidget()
         self.table.setRowCount(len(conducteurs_df))
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(['ID', 'Nom', 'Capacité (kg)'])
+        self.table.setHorizontalHeaderLabels(['ID', 'ID Util', 'Années d\'exp'])
         self.table.verticalHeader().setVisible(False)
         
         for i, (_, row) in enumerate(conducteurs_df.iterrows()):
             self.table.setItem(i, 0, QTableWidgetItem(row['id']))
-            self.table.setItem(i, 1, QTableWidgetItem(row['nom']))
-            self.table.setItem(i, 2, QTableWidgetItem(str(row['capacite'])))
+            self.table.setItem(i, 1, QTableWidgetItem(row['idutil']))
+            self.table.setItem(i, 2, QTableWidgetItem(str(row['annee_xp'])))
         
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -709,8 +752,8 @@ class ConducteurSelectionDialog(QDialog):
         if selected:
             self.selected_conducteur = {
                 'id': selected[0].text(),
-                'nom': selected[1].text(),
-                'capacite': selected[2].text()
+                'idutil': selected[1].text(),
+                'annee_xp': selected[2].text()
             }
             self.accept()
     
@@ -800,6 +843,11 @@ class TransportManagementWidget(QWidget):
         return table
     
     def create_transporteurs_tab(self):
+        class data:
+            def __init__(self,date,receiving_org,id):
+                self.id = id
+                self.receiving_org = receiving_org
+                self.date = date
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -864,7 +912,10 @@ class TransportManagementWidget(QWidget):
             """)
 
             # Connecter le bouton à l'ouverture de la fenêtre de sélection
-            assign_btn.clicked.connect(lambda _, b=assign_btn: self.open_conducteur_dialog(b))
+            assign_btn.clicked.connect(
+                lambda _, b=assign_btn, colis_data=colis: 
+                self.open_conducteur_dialog(b, data(colis_data['date_expedition'], colis_data['destination'], colis_data['id_commande']))
+            )
 
             frame_layout.addWidget(assign_btn)
             scroll_layout.addWidget(frame)
@@ -875,7 +926,7 @@ class TransportManagementWidget(QWidget):
 
         return widget
 
-    def open_conducteur_dialog(self, button):
+    def open_conducteur_dialog(self, button,datas):
         """Ouvre la fenêtre de sélection des conducteurs"""
         colis_index = button.property("colis_index")
         dialog = ConducteurSelectionDialog(self.data.transporteurs_df, self)
@@ -885,15 +936,18 @@ class TransportManagementWidget(QWidget):
             if selected:
                 # Mettre à jour l'assignation du conducteur pour ce colis
                 self.data.expeditions_df.at[colis_index, 'id_transporteur'] = selected['id']
-                self.data.expeditions_df.at[colis_index, 'nom_transporteur'] = selected['nom']
+                self.data.expeditions_df.at[colis_index, 'idutil_transporteur'] = selected['idutil']
 
                 # Afficher un message de confirmation
                 QMessageBox.information(
                     self, 
                     "Assignation réussie",
-                    f"Le conducteur {selected['nom']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
+                    f"Le conducteur {selected['id']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
                     QMessageBox.StandardButton.Ok
                 )
+                print(datas.date)
+                internalmail.send_conducteur("SCA ASSIGNATION COLIS","thibaud.ambiana@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
+                internalmail.send_conducteur("SCA ASSIGNATION COLIS","steevy.tongoue@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
 
     def create_planif_tab(self):
         widget = QWidget()
@@ -933,14 +987,14 @@ class TransportManagementWidget(QWidget):
         table = QTableWidget()
         table.setRowCount(len(self.data.transporteurs_df))
         table.setColumnCount(5)
-        table.setHorizontalHeaderLabels(['ID', 'Nom', 'Contact', 'Téléphone', 'Capacité (kg)'])
+        table.setHorizontalHeaderLabels(['ID', 'IDUtil', 'Num permis', 'Type permis', 'annee d\'xp)'])
         
         for i, (_, row) in enumerate(self.data.transporteurs_df.iterrows()):
             table.setItem(i, 0, QTableWidgetItem(row['id']))
-            table.setItem(i, 1, QTableWidgetItem(row['nom']))
-            table.setItem(i, 2, QTableWidgetItem(row['contact']))
-            table.setItem(i, 3, QTableWidgetItem(row['tel']))
-            table.setItem(i, 4, QTableWidgetItem(str(row['capacite'])))
+            table.setItem(i, 1, QTableWidgetItem(row['idutil']))
+            table.setItem(i, 2, QTableWidgetItem(row['nopermis']))
+            table.setItem(i, 3, QTableWidgetItem(row['typepermis']))
+            table.setItem(i, 4, QTableWidgetItem(str(row['annee_xp'])))
         
         table.setStyleSheet("""
             QTableWidget {
@@ -985,7 +1039,7 @@ class TransportManagementWidget(QWidget):
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
         chart_widget.addItem(bargraph)
         
-        ticks = [(i, label) for i, label in enumerate(self.data.transporteurs_df['nom'])]
+        ticks = [(i, label) for i, label in enumerate(self.data.transporteurs_df['idutil'])]
         chart_widget.getAxis('bottom').setTicks([ticks])
         
         for i, value in enumerate(y_vals):
@@ -1006,11 +1060,11 @@ class TransportManagementWidget(QWidget):
             table.setItem(i, 3, QTableWidgetItem(str(row['poids'])))
             table.setItem(i, 4, QTableWidgetItem(str(row['volume'])))
             
-            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['nom'].values[0]
+            transporteur = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['idutil'].values[0]
             transporteur_item = QTableWidgetItem(transporteur)
             
             # Vérifier si la capacité est suffisante
-            cap_transp = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['capacite'].values[0]
+            cap_transp = self.data.transporteurs_df[self.data.transporteurs_df['id'] == row['id_transporteur']]['annee_exp'].values[0]
             if row['poids'] > cap_transp * 0.9:
                 transporteur_item.setBackground(QColor('#FFCDD2'))  # Rouge si >90% capacité
             elif row['poids'] > cap_transp * 0.7:
@@ -1741,13 +1795,12 @@ class LogisticsDashboardWidget(QWidget):
         # Add metrics data
         metrics_layout.addWidget(self.create_metric_label("Statistiques rapides"))
         
-        # Calculate metrics
+        # Calculate metrics.
         cmd_en_prep = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'En préparation'])
-        cmd_pretes = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'Prête à expédier'])
         delai_moyen = self.data.performance_df['delais_moyens'].mean()
         
         metrics_layout.addWidget(self.create_metric_item("En préparation", f"{cmd_en_prep}"))
-        metrics_layout.addWidget(self.create_metric_item("Prêtes à expédier", f"{cmd_pretes}"))
+        metrics_layout.addWidget(self.create_metric_item("Prêtes à expédier", f"{len(bonexp)}"))
         metrics_layout.addWidget(self.create_metric_item("Délai moyen", f"{delai_moyen:.1f} jours"))
         
         # Insert metrics before Logout button
