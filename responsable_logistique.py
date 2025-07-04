@@ -505,15 +505,16 @@ class LogisticsOverviewWidget(QWidget):
         
         # Metrics cards
         metrics_layout = QHBoxLayout()
+        cur.execute("SELECT \"EMIR\".entransit()")
+        cmd_en_transit = cur.fetchone()[0]
         
         # Calcul des métriques
-        cmd_en_prep = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'En préparation'])
-        cmd_pretes = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'Prête à expédier'])
-        cmd_en_transit = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'En transit'])
+        cur.execute("SELECT \"EMIR\".preparation_tasks()")
+        cmd_en_prep = cur.fetchone()[0]
         delai_moyen = self.data.performance_df['delais_moyens'].mean()
         
         metrics_layout.addWidget(MetricCard("Commandes en prép.", cmd_en_prep, "À traiter", "#FF9800"))
-        metrics_layout.addWidget(MetricCard("Prêtes à expédier", cmd_pretes, "En attente", "#2196F3"))
+        metrics_layout.addWidget(MetricCard("Prêtes à expédier", len(bonexp) , "En attente", "#2196F3"))
         metrics_layout.addWidget(MetricCard("En transit", cmd_en_transit, "En cours", "#4CAF50"))
         metrics_layout.addWidget(MetricCard("Délai moyen", f"{delai_moyen:.1f} jours", "Livraison", "#9C27B0"))
         
@@ -1782,13 +1783,12 @@ class LogisticsDashboardWidget(QWidget):
         # Add metrics data
         metrics_layout.addWidget(self.create_metric_label("Statistiques rapides"))
         
-        # Calculate metrics
+        # Calculate metrics.
         cmd_en_prep = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'En préparation'])
-        cmd_pretes = len(self.data.expeditions_df[self.data.expeditions_df['statut'] == 'Prête à expédier'])
         delai_moyen = self.data.performance_df['delais_moyens'].mean()
         
         metrics_layout.addWidget(self.create_metric_item("En préparation", f"{cmd_en_prep}"))
-        metrics_layout.addWidget(self.create_metric_item("Prêtes à expédier", f"{cmd_pretes}"))
+        metrics_layout.addWidget(self.create_metric_item("Prêtes à expédier", f"{len(bonexp)}"))
         metrics_layout.addWidget(self.create_metric_item("Délai moyen", f"{delai_moyen:.1f} jours"))
         
         # Insert metrics before Logout button
