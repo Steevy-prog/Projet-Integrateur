@@ -33,12 +33,22 @@ if it == '1':
         port=5432
     )
 elif it == '2':
-    print("You have chosen the offline database.")
+    print("You have chosen the Steevy's database.")
     conn = psycopg2.connect(
         host="localhost",
         database="postgres",
         user="postgres",
         password="1234",
+        port=5432
+    )
+
+elif it == '3':
+    print("You have chosen the Viktor's database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="Projet",
+        user="postgres",
+        password="Lune.Hatik123",
         port=5432
     )
 
