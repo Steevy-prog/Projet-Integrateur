@@ -319,12 +319,20 @@ class AccountSettingsPage(QWidget):
                 
 
     def update_employee_in_db(self, original_username, first_name, last_name, username, access_level, email):
+        password = first_name + last_name + "mmMM@@7777"
         try:
             cursor = db_connection.cursor()
             update_query = f"""
-                SELECT "EMIR".Modifier_utilisateur("{original_username}", "{username}", "{first_name}", "{last_name}", "{email}", "{access_level}", "{first_name + last_name + "mmMM@@7777"}");
+                CALL "EMIR".Modifier_utilisateur(
+            usernameanc    => %s,
+            usernamenouv   => %s,
+            nom            => %s,
+            prenom         => %s,
+            email          => %s,
+            _niveau_acces  => %s,
+            _mot_de_passe  => %s
             """
-            cursor.execute(update_query)
+            cursor.execute(update_query, (original_username, username, first_name, last_name, email, access_level, password,))
             db_connection.commit()
             cursor.close()
             QMessageBox.information(f"Employee {username} updated successfully.")
