@@ -19,31 +19,31 @@ DECLARE
 BEGIN
     -- Générer un ID utilisateur unique
     _idutilisateur := 'U' || LPAD(FLOOR(RANDOM() * 99999)::TEXT, 5, '0');
-    
+
     -- Hasher le mot de passe (en production, utilisez bcrypt ou argon2)
     _mot_de_passe_hash := encode(sha256(_mot_de_passe::bytea), 'hex');
-    
+
     -- Insérer l'utilisateur (données de profil uniquement)
     INSERT INTO "SCA".Utilisateur(
-        idutilisateur, idindividu, username, 
+        idutilisateur, idindividu, username,
         statut, niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
         'en attente_validation', 'employe'
     );
-    
+
     -- Insérer les credentials (données d'authentification)
     INSERT INTO "CREDENTIALS".Credentials(
         email, mot_de_passe_hash, idutilisateur
     ) VALUES (
         _email, _mot_de_passe_hash, _idutilisateur
     );
-    
+
     -- Log de l'inscription
     INSERT INTO "SCA".Logs (level, message, extra)
     VALUES ('INFO', 'Nouvel utilisateur inscrit',
             jsonb_build_object('username', _username, 'email', _email, 'idutilisateur', _idutilisateur, 'nom', _nom, 'prenom', _prenom));
-    
+
     RETURN _idutilisateur;
 END;
 $$ LANGUAGE plpgsql;
@@ -71,7 +71,7 @@ BEGIN
     SELECT * INTO _credentials_record
     FROM "CREDENTIALS".Credentials
     WHERE email = _identifiant;
-    
+
     -- Si les credentials existent et le mot de passe correspond
     IF FOUND AND _credentials_record.mot_de_passe_hash = _mot_de_passe THEN
         -- Rechercher l'utilisateur
@@ -79,22 +79,22 @@ BEGIN
         FROM "SCA".Utilisateur
         WHERE idutilisateur = _credentials_record.idutilisateur
           AND statut = 'actif';
-        
+
         -- Si l'utilisateur est trouvé et actif
         IF FOUND THEN
             -- Mettre à jour la date de dernière connexion dans Utilisateur
             UPDATE "SCA".Utilisateur
             SET date_derniere_connexion = CURRENT_TIMESTAMP
             WHERE idutilisateur = _utilisateur_record.idutilisateur;
-            
+
             -- Log de la connexion
             INSERT INTO "SCA".Logs (level, message, extra)
             VALUES ('INFO', 'Utilisateur connecté',
                     jsonb_build_object('username', _utilisateur_record.username, 'idutilisateur', _utilisateur_record.idutilisateur));
-            
+
             -- Retourner les informations de l'utilisateur via la vue
             RETURN QUERY
-            SELECT 
+            SELECT
                 uc.idutilisateur,
                 uc.username,
                 uc.nom,
@@ -111,7 +111,7 @@ BEGIN
         INSERT INTO "SCA".Logs (level, message, extra)
         VALUES ('WARNING', 'Tentative de connexion échouée',
                 jsonb_build_object('identifiant', _identifiant));
-        
+
         -- Retourner une ligne vide
         RETURN;
     END IF;
@@ -133,22 +133,22 @@ DECLARE
 BEGIN
     -- Hasher l'ancien mot de passe
     _ancien_hash := encode(sha256(_ancien_mot_de_passe::bytea), 'hex');
-    
+
     -- Vérifier que l'utilisateur existe
     SELECT * INTO _utilisateur_record
     FROM "SCA".Utilisateur
     WHERE idutilisateur = _idutilisateur;
-    
+
     IF NOT FOUND THEN
         RETURN FALSE;
     END IF;
-    
+
     -- Vérifier que les credentials existent et que l'ancien mot de passe est correct
     SELECT * INTO _credentials_record
     FROM "CREDENTIALS".Credentials
     WHERE idutilisateur = _idutilisateur
       AND mot_de_passe_hash = _ancien_hash;
-    
+
     IF NOT FOUND THEN
         -- Log de tentative de changement de mot de passe échouée
         INSERT INTO "SCA".Logs (level, message, extra)
@@ -156,20 +156,20 @@ BEGIN
                 jsonb_build_object('idutilisateur', _idutilisateur));
         RETURN FALSE;
     END IF;
-    
+
     -- Hasher le nouveau mot de passe
     _nouveau_hash := encode(sha256(_nouveau_mot_de_passe::bytea), 'hex');
-    
+
     -- Mettre à jour le mot de passe dans Credentials uniquement
     UPDATE "CREDENTIALS".Credentials
     SET mot_de_passe_hash = _nouveau_hash
     WHERE idutilisateur = _idutilisateur;
-    
+
     -- Log du changement de mot de passe
     INSERT INTO "SCA".Logs (level, message, extra)
     VALUES ('INFO', 'Mot de passe changé avec succès',
             jsonb_build_object('idutilisateur', _idutilisateur, 'username', _utilisateur_record.username));
-    
+
     RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql;
@@ -223,7 +223,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         u.idutilisateur,
         u.username,
         i.nom,
@@ -255,7 +255,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         uc.idutilisateur,
         uc.username,
         uc.nom,
@@ -281,7 +281,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         NOT EXISTS(SELECT 1 FROM "SCA".Utilisateur WHERE username = _username),
         NOT EXISTS(SELECT 1 FROM "CREDENTIALS".Credentials WHERE email = _email);
 END;
@@ -300,8 +300,11 @@ BEGIN
         select idutilisateur into _idutilisateur from "SCA".Utilisateur  where username = usernameanc;
 
         UPDATE "CREDENTIALS".Credentials
-        SET email = _email,
-        niveau_access = _niveau_access
+        SET email = _email
+        WHERE idutilisateur = _idutilisateur;
+
+        UPDATE "SCA".utilisateur
+        SET niveau_acces = _niveau_acces
         WHERE idutilisateur = _idutilisateur;
         -- Si ID utilisateur change, mise à jour des IDs liés
         IF usernameanc <> usernamenouv THEN

@@ -44,7 +44,6 @@ SELECT
     c.statut,
     c.date_derniere_evaluation,
     c.note_evaluation,
-    c.specialites,
     u.username,
     cred.email,
     u.niveau_acces,
@@ -66,7 +65,6 @@ SELECT
     t.departement,
     t.salaire_horaire,
     t.statut,
-    t.competences,
     t.date_derniere_evaluation,
     u.username,
     cred.email,
@@ -1202,11 +1200,12 @@ end; $$ language plpgsql;
 -- 8. REPERTOIRE
 CREATE OR REPLACE PROCEDURE "EMIR".Repertoire_INS(
     _idrepertoire TEXT,
-    _date_debut DATE DEFAULT NULL,
-    _date_fin DATE DEFAULT NULL,
     _idindividu TEXT,
     _idorganisation TEXT,
-    _role TEXT
+    _role TEXT,
+    _date_debut DATE DEFAULT NULL,
+    _date_fin DATE DEFAULT NULL
+
 )
 AS $$
 BEGIN
@@ -1365,8 +1364,9 @@ CREATE OR REPLACE PROCEDURE "EMIR".Travailleur_INS(
     _poste TEXT,
     _departement TEXT,
     _salaire_horaire DECIMAL(10,2),
-    _statut TEXT DEFAULT 'actif',
-    _date_derniere_evaluation DATE
+    _date_derniere_evaluation DATE,
+    _statut TEXT DEFAULT 'actif'
+
 )
 AS $$
 BEGIN
@@ -1388,17 +1388,17 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE "EMIR".Vehicule_INS(
     _idvehicule TEXT,
     _immatriculation TEXT,
-    _idmodele TEXT DEFAULT NULL,
     _annee_fabrication INTEGER,
     _types TEXT,
     _capacite_charge TEXT,
     _capacite_volume TEXT,
     _date_acquisition DATE,
-    _statut TEXT DEFAULT 'disponible',
+    _idmodele TEXT DEFAULT NULL,
     _kilometrage_actuel DECIMAL(10,2) DEFAULT 0,
+    _statut TEXT DEFAULT 'disponible',
+    _carburant VARCHAR(20) DEFAULT 'Diesel',
     _date_derniere_maintenance DATE DEFAULT NULL,
-    _prochaine_maintenance DATE DEFAULT NULL,
-    _carburant VARCHAR(20) DEFAULT 'Diesel'
+    _prochaine_maintenance DATE DEFAULT NULL
 )
 AS $$
 BEGIN
@@ -1597,9 +1597,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE PROCEDURE "EMIR".Logs_INS(
-    _timestamp TIMESTAMP DEFAULT NULL,
     _level VARCHAR(10),
-    _message TEXT
+    _message TEXT,
+     _timestamp TIMESTAMP DEFAULT NULL
 )
 AS $$
 BEGIN
@@ -1694,15 +1694,18 @@ begin
 end; $$ language plpgsql;
 
 -- 3. COLIS
-create or replace function "EMIR".Colis_EVA()
-    returns table (
-                      _idcolis "SCA".Idcolis,
-                      _date_creation date,
-                      _statut "SCA".etatcolis
-                  ) as $$
-begin
-    return query select idcolis, date_creation, statut from "SCA".Colis;
-end; $$ language plpgsql;
+CREATE OR REPLACE FUNCTION "EMIR".Colis_EVA()
+RETURNS TABLE (
+    idcolis "SCA".Idcolis,
+    date_creation DATE,
+    expected_date DATE,
+    receiving_org "SCA".idOrg,
+    statut "SCA".etatcolis
+) AS $$
+BEGIN
+    RETURN QUERY SELECT idcolis, date_creation, expected_date, receiving_org, statut FROM "SCA".Colis;
+END;
+$$ LANGUAGE plpgsql;
 
 -- 4. ZONE
 create or replace function "EMIR".Zone_EVA()
@@ -1774,12 +1777,12 @@ begin
     return query select idproduit, longueur, largeur, hauteur, masse from "SCA".ProduitMateriel;
 end; $$ language plpgsql;
 
-create or replace function "EMIR".Tache_EVA(_idtravailleur "SCA".idtravailleur)
+create or replace function "EMIR".Tache_EVA(_id_travailleur "SCA".idtravailleur)
     returns table(
                      _idtache "SCA".idtache,
                      _idtravailleur "SCA".idtravailleur,
                      _idcellule "SCA".idcellule,
-                     _idcolis "SCA".idcolis,
+                     _idlot "SCA".idlot,
                      _date_creation date,
                      _date_echeance date,
                      _duree_estimé int,
@@ -1789,7 +1792,7 @@ create or replace function "EMIR".Tache_EVA(_idtravailleur "SCA".idtravailleur)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idcolis,date_creation,date_echeance,duree_estimee,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
+    return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estimee,description,statut,type from "SCA".Tache where idtravailleur = __id_travailleur;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL
@@ -1831,8 +1834,8 @@ $$ LANGUAGE plpgsql;
 -- 14. ENTREPOT
 create or replace function "EMIR".Entrepot_EVA()
     returns table (
-                      idcellule "SCA".Idcellule,
-                      position "SCA".idzone
+                      _idcellule "SCA".Idcellule,
+                      _position "SCA".idzone
                   ) as $$
 begin
     return query select idcellule, position from "SCA".Entrepot;
@@ -1957,7 +1960,7 @@ RETURNS TABLE (
     idutilisateur "SCA".idutilisateur,
     description TEXT,
     date_creation TIMESTAMP,
-    statut "SCA".statut
+    statut "EXTERNE".etatinq
 ) AS $$
 BEGIN
     RETURN QUERY SELECT id, idutilisateur, description, date_creation, statut FROM "SCA".Bugreport;
@@ -2787,18 +2790,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Correction de la routine EVA pour Colis (manque expected_date et receiving_org)
-CREATE OR REPLACE FUNCTION "EMIR".Colis_EVA()
-RETURNS TABLE (
-    idcolis "SCA".Idcolis,
-    date_creation DATE,
-    expected_date DATE,
-    receiving_org "SCA".idOrg,
-    statut "SCA".etatcolis
-) AS $$
-BEGIN
-    RETURN QUERY SELECT idcolis, date_creation, expected_date, receiving_org, statut FROM "SCA".Colis;
-END;
-$$ LANGUAGE plpgsql;
+
 
 -- Correction de la routine EVA pour Bonexpedition (manque idtransporteur)
 CREATE OR REPLACE FUNCTION "EMIR".Bonexpedition_EVA()
@@ -2873,8 +2865,8 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour entrepot (correction du nom de colonne)
 CREATE OR REPLACE FUNCTION "EMIR".Entrepot_EVA()
 RETURNS TABLE (
-    idcellule "SCA".Idcellule,
-    position "SCA".Idzone
+    _idcellule "SCA".Idcellule,
+    _position "SCA".Idzone
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idcellule, position FROM "SCA".entrepot;
@@ -2960,10 +2952,10 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Logs
 CREATE OR REPLACE FUNCTION "EMIR".Logs_EVA()
 RETURNS TABLE (
-    id INTEGER,
-    timestamp TIMESTAMP,
-    level VARCHAR(10),
-    message TEXT
+    _id INTEGER,
+    _timestamp TIMESTAMP,
+    _level VARCHAR(10),
+    _message TEXT
 ) AS $$
 BEGIN
     RETURN QUERY SELECT id, timestamp, level, message FROM "SCA".Logs;
