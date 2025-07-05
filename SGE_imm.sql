@@ -1174,12 +1174,11 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".ContenuColis_INS(
     _idcolis text,
     _idlot text,
-    _quantite text,
     _date_MAJ text
 )
 as $$
 begin
-    insert into "SCA".ContenuColis(idcolis, idlot, quantite, date_maj) values ("SCA".idcolis_conv(_idcolis), "SCA".idlot_conv(_idlot), "SCA".dims_conv(_quantite), _date_MAJ::date);
+    insert into "SCA".ContenuColis(idcolis, idlot, date_maj) values ("SCA".idcolis_conv(_idcolis), "SCA".idlot_conv(_idlot), _date_MAJ::date);
 end; $$ language plpgsql;
 
 -- 14. ENTREPOT
@@ -1211,12 +1210,11 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".InventaireEmplacement_INS(
     _idcellule text,
     _idlot text,
-    _quantite text,
     _datemaj text
 )
 as $$
 begin
-    insert into "SCA".InventaireEmplacement(idcellule, idlot, quantite, datemaj) values ("SCA".idcellule_conv(_idcellule), "SCA".idlot_conv(_idlot), "SCA".dims_conv(_quantite), _datemaj::date);
+    insert into "SCA".InventaireEmplacement(idcellule, idlot, datemaj) values ("SCA".idcellule_conv(_idcellule), "SCA".idlot_conv(_idlot), _datemaj::date);
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".Credentials_INS(
@@ -1351,12 +1349,11 @@ create or replace procedure "EMIR".PContenuColis_INS(
     _idorg text,
     _idpcolis text,
     _idplot text,
-    _quantite text,
     _date_MAJ text
 )
 as $$
 begin
-    insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, quantite, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), "EXTERNE".idplot_conv(_idplot), "SCA".dims_conv(_quantite), _date_MAJ::date);
+    insert into "EXTERNE".ContenuColis(idorg,idPcolis, idPlot, date_maj) values ("SCA".idorg_conv(_idorg),"EXTERNE".idpcolis_conv(_idpcolis), "EXTERNE".idplot_conv(_idplot), _date_MAJ::date);
 end; $$ language plpgsql;
 
 create or replace procedure "EMIR".PColis_INS(
@@ -1660,11 +1657,10 @@ create or replace function "EMIR".ContenuColis_EVA()
     returns table (
                       idcolis "SCA".Idcolis,
                       idlot "SCA".Idlot,
-                      quantite "SCA".dims,
                       date_maj date
                   ) as $$
 begin
-    return query select idcolis, idlot, quantite, date_maj from "SCA".ContenuColis;
+    return query select idcolis, idlot, date_maj from "SCA".ContenuColis;
 end; $$ language plpgsql;
 
 -- 14. ENTREPOT
@@ -1865,12 +1861,11 @@ create or replace function "EMIR".PContenuColis_EVA(_idorg "SCA".idorg)
 returns table (
     _idpcolis "EXTERNE".idpcolis,
     _idplot "EXTERNE".idplot,
-    _quantite "SCA".dims,
     _date_maj date
 )
 as $$
 begin
-  return query select idpcolis,idplot,quantite,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
+  return query select idpcolis,idplot,date_maj from "EXTERNE".ContenuColis where idorg = _idorg;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".PContenuColis_EVA1()

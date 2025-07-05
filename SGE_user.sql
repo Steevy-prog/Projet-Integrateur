@@ -286,3 +286,28 @@ BEGIN
         NOT EXISTS(SELECT 1 FROM "CREDENTIALS".Credentials WHERE email = _email);
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".NModifier_utilisateur(
+    usernameanc "SCA".username,
+    usernamenouv "SCA".username,
+    _email "SCA".email,
+    _niveau_acces text
+)
+AS $$
+declare
+    _idutilisateur "SCA".idutilisateur;
+BEGIN
+        select idutilisateur into _idutilisateur from "SCA".Utilisateur  where username = usernameanc;
+
+        UPDATE "CREDENTIALS".Credentials
+        SET email = _email,
+        niveau_access = _niveau_access
+        WHERE idutilisateur = _idutilisateur;
+        -- Si ID utilisateur change, mise à jour des IDs liés
+        IF usernameanc <> usernamenouv THEN
+            UPDATE "SCA".Utilisateur
+            SET username = usernamenouv
+            WHERE username = usernameanc;
+        END IF;
+END;
+$$ LANGUAGE plpgsql;

@@ -263,13 +263,12 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".InventaireEmplacement_MOD(
     _idcellule "SCA".Idcellule,
     _idlot "SCA".Idlot,
-    _quantite "SCA".dims,
     _datemaj date
 )
 as $$
 begin
     update "SCA".InventaireEmplacement
-    SET quantite = "SCA".dims_CONV(_quantite),
+    SET 
         datemaj = _datemaj::date
     WHERE idcellule = "SCA".Idcellule_CONV(_idcellule)
       AND idlot = "SCA".Idlot_CONV(_idlot);

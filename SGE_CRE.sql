@@ -28,6 +28,26 @@ CREATE DOMAIN "SCA".email TEXT CHECK(
     VALUE~ '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
     );
 
+CREATE DOMAIN "SCA".idcontenu TEXT CHECK(
+    VALUE~ '^CON[0-9]{3}$'
+    );
+
+CREATE DOMAIN "SCA".idpcontenu TEXT CHECK(
+    VALUE~ '^CON[0-9]{3}$'
+    );
+
+CREATE DOMAIN "SCA".idinventaire TEXT CHECK(
+    VALUE~ '^INV[0-9]{3}$'
+    );
+
+CREATE DOMAIN "SCA".idmodele TEXT CHECK(
+    VALUE~ '^MOD[0-9]{3}$'
+    );
+
+CREATE DOMAIN "SCA".idrepertoire TEXT CHECK(
+    VALUE~ '^REP[0-9]{3}$'
+    );
+
 CREATE DOMAIN "SCA".password TEXT;
 
 CREATE DOMAIN "SCA".dims DOUBLE PRECISION CHECK (
@@ -139,6 +159,41 @@ CREATE TYPE "SCA".statut_utilisateur AS ENUM ('actif','inactif','suspendu','en a
 CREATE TYPE "SCA".niveau_acces AS ENUM ('admin','manager','employe');
 
 
+CREATE TABLE "SCA".REF_Marque (
+    idmarque VARCHAR(50) PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    pays_origine VARCHAR(100),
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table REF_Modele
+CREATE TABLE "SCA".REF_Modele (
+    idmodele "SCA".idmodele PRIMARY KEY,
+    idmarque VARCHAR(50) NOT NULL,
+    nom VARCHAR(100) NOT NULL,
+    type_produit VARCHAR(50),
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (idmarque) REFERENCES REF_Marque(idmarque) ON DELETE CASCADE
+);
+
+-- Table REF_Specialite
+CREATE TABLE "SCA".REF_Specialite (
+    idspecialite VARCHAR(50) PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table REF_Competence
+CREATE TABLE "SCA".REF_Competence (
+    idcompetence VARCHAR(50) PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    niveau_requis VARCHAR(50),
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE "SCA".Organisation(
   idorganisation "SCA".idOrg NOT NULL ,
   nom "SCA".Nom NOT NULL ,
@@ -199,9 +254,20 @@ CREATE TABLE "SCA".Conducteur(
   statut "SCA".statut_conducteur DEFAULT 'disponible',
   date_derniere_evaluation DATE,
   note_evaluation DECIMAL(3,2) CHECK (note_evaluation >= 0 AND note_evaluation <= 5),
-  specialites TEXT,
   CONSTRAINT Conducteur_CC0 PRIMARY KEY (idconducteur),
   CONSTRAINT Conducteur_CR0 FOREIGN KEY (idutilisateur) REFERENCES "SCA".Utilisateur(idutilisateur) ON DELETE CASCADE
+);
+
+CREATE TABLE "SCA".ConducteurSpecialite (
+    idconducteur VARCHAR(50) NOT NULL,
+    idspecialite VARCHAR(50) NOT NULL,
+    date_obtention DATE,
+    niveau VARCHAR(50) DEFAULT 'Débutant',
+    certifie BOOLEAN DEFAULT FALSE,
+    date_expiration DATE,
+    PRIMARY KEY (idconducteur, idspecialite),
+    FOREIGN KEY (idconducteur) REFERENCES SCA_Conducteur(idconducteur) ON DELETE CASCADE,
+    FOREIGN KEY (idspecialite) REFERENCES REF_Specialite(idspecialite) ON DELETE CASCADE
 );
 
 
@@ -230,10 +296,13 @@ CREATE TABLE "SCA".Bonexpedition(
   FOREIGN KEY (iddestinataire)REFERENCES "SCA".Organisation(idorganisation)ON DELETE CASCADE
 );
 CREATE TABLE "SCA".Repertoire(
+  idrepertoire "SCA".idrepertoire, 
+  date_debut date, 
+  date_fin date,
   idindividu "SCA".IDindividu NOT NULL ,
   idorganisation "SCA".idOrg NOT NULL ,
   role "SCA".roles NOT NULL ,
-  CONSTRAINT Repertoire_pk PRIMARY KEY (idindividu,idorganisation,role),
+  CONSTRAINT Repertoire_pk PRIMARY KEY (idrepertoire),
   CONSTRAINT Repertoire_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE,
   FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
 );
@@ -243,11 +312,11 @@ CREATE TABLE "SCA".Produit(
   nom "SCA".Nom NOT NULL ,
   description text NOT NULL ,
   prix_unitaire float NOT NULL ,
-  marque "SCA".Nom NOT NULL ,
-  modele "SCA".Nom NOT NULL ,
+  idmodele "SCA".idmodele,
   categorie "SCA".categorie_produit DEFAULT 'produit de vente',
   CONSTRAINT Produit_CC0 PRIMARY KEY (idproduit),
-  FOREIGN KEY(idfournisseur)REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
+  FOREIGN KEY(idfournisseur)REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE,
+  FOREIGN KEY(idmodele) REFERENCES "SCA".REF_Modele(idmodele)
 );
 CREATE TABLE "SCA".ProduitMateriel(
   idproduit "SCA".Idproduit NOT NULL ,
@@ -286,10 +355,11 @@ CREATE TABLE "SCA".LotEmballage(
 );
 
 CREATE TABLE "SCA".ContenuColis(
+  idcontenu "SCA".idcontenu,
   idcolis "SCA".Idcolis NOT NULL ,
   idlot "SCA".Idlot NOT NULL ,
   date_MAJ date NOT NULL ,
-  CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot),
+  CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcontenu),
   CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE,
   FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
@@ -321,11 +391,11 @@ CREATE TABLE "CREDENTIALS".application_theme(
 );
 
 CREATE TABLE "SCA".InventaireEmplacement(
+  idinventaire "SCA".idinventaire,
   idcellule "SCA".Idcellule NOT NULL ,
   idlot "SCA".Idlot NOT NULL ,
-  quantite "SCA".dims NOT NULL ,
   datemaj date NOT NULL ,
-  CONSTRAINT InventaireEmplacement_CC0 PRIMARY KEY (idcellule, idlot,quantite),
+  CONSTRAINT InventaireEmplacement_CC0 PRIMARY KEY (idinventaire),
   CONSTRAINT InventaireEmplacement_CR0 FOREIGN KEY (idcellule)REFERENCES "SCA".cellule(idcellule) ON DELETE CASCADE,
   FOREIGN KEY (idlot)REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
@@ -337,11 +407,23 @@ CREATE TABLE "SCA".Travailleur(
   departement "SCA".Nom NOT NULL,
   salaire_horaire DECIMAL(10,2) NOT NULL,
   statut "SCA".statut_travailleur DEFAULT 'actif',
-  competences TEXT DEFAULT 'Aucune',
   date_derniere_evaluation DATE NOT NULL,
   CONSTRAINT Travailleur_CC0 PRIMARY KEY (idtravailleur),
   CONSTRAINT Travailleur_CR0 FOREIGN KEY (idutilisateur) REFERENCES "SCA".Utilisateur(idutilisateur) ON DELETE CASCADE
 );
+
+CREATE TABLE "SCA".TravailleurCompetence (
+    idtravailleur VARCHAR(50) NOT NULL,
+    idcompetence VARCHAR(50) NOT NULL,
+    niveau_maitrise VARCHAR(50) DEFAULT 'Débutant',
+    date_acquisition DATE,
+    certifie BOOLEAN DEFAULT FALSE,
+    date_derniere_evaluation DATE,
+    PRIMARY KEY (idtravailleur, idcompetence),
+    FOREIGN KEY (idtravailleur) REFERENCES SCA_Travailleur(idtravailleur) ON DELETE CASCADE,
+    FOREIGN KEY (idcompetence) REFERENCES REF_Competence(idcompetence) ON DELETE CASCADE
+);
+
 CREATE TABLE "SCA".Tache(
   idtache "SCA".idtache NOT NULL ,
   idtravailleur "SCA".idtravailleur NOT NULL ,
@@ -364,8 +446,7 @@ CREATE TABLE "SCA".Tache(
 CREATE TABLE "SCA".Vehicule(
   idvehicule "SCA".idvehicule NOT NULL,
   immatriculation "SCA".Nom NOT NULL UNIQUE,
-  marque "SCA".Nom NOT NULL,
-  modele "SCA".Nom NOT NULL,
+  idmodele "SCA".idmodele,
   annee_fabrication INTEGER NOT NULL,
   types "SCA".type_vehicule NOT NULL,
   capacite_charge "SCA".dims NOT NULL,
@@ -376,10 +457,23 @@ CREATE TABLE "SCA".Vehicule(
   date_derniere_maintenance DATE,
   prochaine_maintenance DATE,
   carburant VARCHAR(20) DEFAULT 'Diesel',
-  consommation_moyenne DECIMAL(5,2),
-  CONSTRAINT Vehicule_CC0 PRIMARY KEY (idvehicule)
+  CONSTRAINT Vehicule_CC0 PRIMARY KEY (idvehicule),
+  FOREIGN KEY (idmodele) REFERENCES "SCA".REF_Modele(idmodele)
 );
 
+CREATE TABLE "SCA".ConsommationVehicule (
+    idconsommation VARCHAR(50) PRIMARY KEY,
+    idvehicule VARCHAR(50) NOT NULL,
+    consommation_moyenne DECIMAL(5,2) NOT NULL,
+    date_mesure DATE NOT NULL,
+    conditions_mesure TEXT,
+    kilometrage_debut DECIMAL(10,2),
+    kilometrage_fin DECIMAL(10,2),
+    litres_consommes DECIMAL(8,2),
+    type_trajet VARCHAR(50), -- urbain, autoroute, mixte
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (idvehicule) REFERENCES SCA_Vehicule(idvehicule) ON DELETE CASCADE
+);
 
 CREATE TABLE "CREDENTIALS".PasswordPolicies (
   setting_name VARCHAR(100) NOT NULL UNIQUE,
@@ -400,7 +494,9 @@ CREATE TABLE "CREDENTIALS".Credentials(
 
 CREATE TABLE "CREDENTIALS".organisation(
   idorganisation "SCA".idOrg NOT NULL,
-  mdpOrg TEXT
+  mdpOrg TEXT,
+  CONSTRAINT org_pk PRIMARY KEY (idorganisation),
+  CONSTRAINT org_fk FOREIGN KEY (idorganisation) REFERENCES "SCA".Organisation(idorganisation)
 );
 
 CREATE TABLE "SCA".Logs (
@@ -408,8 +504,19 @@ CREATE TABLE "SCA".Logs (
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   level VARCHAR(10),            -- e.g. 'INFO', 'ERROR', 'DEBUG'
   message TEXT,
-  extra JSONB                   -- pour des infos supplémentaires optionnelles
 );
+
+-- Table SCA_LogsExtra
+CREATE TABLE "SCA".LogsExtra (
+    id SERIAL PRIMARY KEY,
+    log_id INTEGER NOT NULL,
+    cle VARCHAR(100) NOT NULL,
+    valeur TEXT,
+    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (log_id) REFERENCES SCA_Logs(id) ON DELETE CASCADE
+);
+
+
 CREATE TABLE "SCA".LocalisationOrganisation (
   idlocalisation SERIAL PRIMARY KEY,
   idorganisation "SCA".idOrg NOT NULL,
@@ -440,7 +547,8 @@ CREATE TABLE "EXTERNE".Colis(
   expected_date date NOT NULL,
   receiving_org "SCA".idorg NOT NULL,
   statut "SCA".retatcolis NOT NULL ,
-  CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis)
+  CONSTRAINT PColis_CC0 PRIMARY KEY (idpcolis) on delete CASCADE
+  CONSTRAINT PColis_CR0 FOREIGN KEY (idorg) REFERENCES "SCA".Organisation(idorganisation)
 );
 CREATE TABLE "EXTERNE".Lot(
   idorg "SCA".idorg not null,
@@ -453,11 +561,12 @@ CREATE TABLE "EXTERNE".Lot(
   FOREIGN KEY (idproduit) REFERENCES "SCA".Produit(idproduit) ON DELETE CASCADE
 );
 CREATE TABLE "EXTERNE".ContenuColis(
+  idpcontenu "SCA".idpcontenu,
   idorg "SCA".idorg NOT NULL,
   idpcolis "EXTERNE".Idpcolis NOT NULL ,
   idplot "EXTERNE".Idplot NOT NULL ,
   date_MAJ date NOT NULL ,
-  CONSTRAINT pcontenucolis_CC0 PRIMARY KEY (idpcolis,idplot),
+  CONSTRAINT pcontenucolis_CC0 PRIMARY KEY (idpcontenu),
   CONSTRAINT pContenuColis_CR0 FOREIGN KEY (idpcolis) REFERENCES "EXTERNE".Colis(idpcolis) ON DELETE CASCADE,
   CONSTRAINT pContenuColis_CR1 FOREIGN KEY (idplot) REFERENCES "EXTERNE".Lot(idplot) ON DELETE CASCADE,
   CONSTRAINT pContenuColis_CR2 FOREIGN KEY (idorg) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE
