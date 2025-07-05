@@ -8,7 +8,6 @@ create or replace procedure "EMIR".Organisation_MOD(
     _idorganisation "SCA".idOrg,
     _nom "SCA".Nom,
     _telephone "SCA".Numero,
-    _adresse "SCA".Adresse,
     _type "SCA".typeOrg
 )
 as $$
@@ -41,12 +40,16 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Colis_MOD(
     _idcolis "SCA".Idcolis,
     _date_creation date,
+    _expected_date date,
+    _receiving_organisation "SCA".idOrg,
     _statut "SCA".etat
 )
 as $$
 begin
     update "SCA".Colis
     set date_creation = _date_creation::date,
+        expected_date = _expected_date::date,
+        receiving_organisation = "SCA".idOrg_conv(_receiving_organisation),
         statut = _statut::"SCA".etat
     where idcolis = "SCA".idcolis_conv(_idcolis);
 end; $$ language plpgsql;
@@ -87,7 +90,7 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Bonexpedition_MOD(
     _idbonexpedition "SCA".Bonexped,
     _idcolis "SCA".Idcolis,
-    _idtransporteur "SCA".idOrg,
+    _idtransporteur "SCA".idconducteur,
     _date_creation date,
     _iddestinataire "SCA".idOrg,
     _statut "SCA".etat,
@@ -97,7 +100,7 @@ as $$
 begin
     update "SCA".Bonexpedition
     SET idcolis = "SCA".Idcolis_CONV(_idcolis),
-        idtransporteur = "SCA".idOrg_CONV(_idtransporteur),
+        idtransporteur = "SCA".idconducteur_CONV(_idtransporteur),
         date_creation = _date_creation::date,
         iddestinataire = "SCA".idOrg_CONV(_iddestinataire),
         statut = _statut::"SCA".etat,
@@ -109,12 +112,16 @@ end; $$ language plpgsql;
 create or replace procedure "EMIR".Individu_MOD(
     _idindividu "SCA".IDindividu,
     _nom "SCA".Nom,
+    _prenom "SCA".Nom,
+    _adresse "SCA".Adresse,
     _telephone "SCA".Numero
 )
 as $$
 begin
     update "SCA".Individu
     SET nom = "SCA".Nom_CONV(_nom),
+        prenom = "SCA".Nom_CONV(_prenom),
+        adresse = "SCA".Adresse_CONV(_adresse),
         telephone = "SCA".Numero_CONV(_telephone)
     WHERE idindividu = "SCA".IDindividu_CONV(_idindividu);
 end; $$ language plpgsql;
@@ -139,8 +146,10 @@ create or replace procedure "EMIR".Produit_MOD(
     _idfournisseur "SCA".idOrg,
     _nom "SCA".Nom,
     _description text,
+    _prix "SCA".prix,
     _marque "SCA".Nom,
-    _modele "SCA".Nom
+    _modele "SCA".Nom,
+    _categorie "SCA".categorie_produit
 )
 as $$
 begin
@@ -148,6 +157,8 @@ begin
     SET idfournisseur = "SCA".idOrg_CONV(_idfournisseur),
         nom = "SCA".Nom_CONV(_nom),
         description = _description,
+        prix = "SCA".prix_CONV(_prix),
+        categorie = _categorie::"SCA".categorie_produit,
         marque = "SCA".Nom_CONV(_marque),
         modele = "SCA".Nom_CONV(_modele)
     WHERE idproduit = "SCA".Idproduit_CONV(_idproduit);
@@ -190,16 +201,14 @@ create or replace procedure "EMIR".Lot_MOD(
     _idlot "SCA".idlot,
     _idproduit "SCA".Idproduit,
     _quantite "SCA".dims,
-    _date_creation date,
-    _statut "SCA".etat
+    _date_creation date
 )
 as $$
 begin
     update "SCA".Lot
     SET idproduit = "SCA".Idproduit_CONV(_idproduit),
         quantite = "SCA".dims_CONV(_quantite),
-        date_creation = _date_creation::date,
-        statut = _statut::"SCA".etat
+        date_creation = _date_creation::date
     WHERE idlot = "SCA".Idlot_CONV(_idlot);
 end; $$ language plpgsql;
 
@@ -238,7 +247,7 @@ create or replace procedure "EMIR".RapportException_MOD(
     _type "SCA".rapports,
     _date_creation date,
     _description text,
-    _statut "SCA".etat
+    _statut "SCA".etatexception
 )
 as $$
 begin
@@ -247,7 +256,7 @@ begin
         type = _type::"SCA".rapports,
         date_creation = _date_creation::date,
         description = _description,
-        statut = _statut::"SCA".etat
+        statut = _statut::"SCA".etatexception
     WHERE idrapport = "SCA".Idrapport_CONV(_idrapport);
 end; $$ language plpgsql;
 -- 17. INVENTAIREEMPLACEMENT
@@ -269,6 +278,7 @@ end; $$ language plpgsql;
 -- 18. TRAVAILLEUR
 create or replace procedure "EMIR".Travailleur_MOD(
     _idtravailleur "SCA".idtravailleur,
+    _idutilisateur "SCA".idutilisateur,
     _date_embauche date,
     _poste "SCA".Nom,
     _departement "SCA".Nom,
@@ -282,6 +292,7 @@ begin
     update "SCA".Travailleur
     SET date_embauche = _date_embauche::date,
         poste = "SCA".Nom_CONV(_poste),
+        idutilisateur = "SCA".idutilisateur_CONV(_idutilisateur),
         departement = "SCA".Nom_CONV(_departement),
         salaire_horaire = _salaire_horaire::decimal,
         statut = _statut::"SCA".statut_travailleur,
@@ -393,3 +404,253 @@ begin
         condition = _condition::"SCA".condition_materiel
     where idlotemballage = _idlotemballage;
 end; $$ language plpgsql;
+
+-- 23. BUGREPORT MODIFICATION
+create or replace procedure "EMIR".Bugreport_MOD(
+    _id INTEGER,
+    _idutilisateur TEXT DEFAULT NULL,
+    _description TEXT DEFAULT NULL,
+    _date_creation TIMESTAMP DEFAULT NULL,
+    _statut "SCA".statut DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "SCA".Bugreport
+    SET
+        idutilisateur = COALESCE("SCA".idutilisateur_CONV(_idutilisateur), idutilisateur),
+        description = COALESCE(_description, description),
+        date_creation = COALESCE(_date_creation, date_creation),
+        statut = COALESCE(_statut, statut)
+    WHERE id = _id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 24. LOGS MODIFICATION
+create or replace procedure "EMIR".Logs_MOD(
+    _id INTEGER,
+    _timestamp TIMESTAMP DEFAULT NULL,
+    _level VARCHAR(10) DEFAULT NULL,
+    _message TEXT DEFAULT NULL,
+    _extra JSONB DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "SCA".Logs
+    SET
+        timestamp = COALESCE(_timestamp, timestamp),
+        level = COALESCE(_level, level),
+        message = COALESCE(_message, message),
+        extra = COALESCE(_extra, extra)
+    WHERE id = _id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 25. CREDENTIALS.Credentials
+create or replace procedure "EMIR".CredentialsOrganisation_MOD(
+    _idorganisation TEXT,
+    _mdpOrg TEXT DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "CREDENTIALS".organisation
+    SET
+        mdpOrg = COALESCE(_mdpOrg, mdpOrg)
+    WHERE idorganisation = "SCA".idorg_conv(_idorganisation);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 26. LIVRAISONCONDUCTEURCOLIS MODIFICATION
+create or replace procedure "EMIR".LivraisonConducteurColis_MOD(
+    _idlivraison INTEGER,
+    _idconducteur TEXT DEFAULT NULL,
+    _idbonexpedition TEXT DEFAULT NULL,
+    _date_affectation DATE DEFAULT NULL,
+    _statut TEXT DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "SCA".LivraisonConducteurColis
+    SET
+        idconducteur = COALESCE("SCA".idconducteur_conv(_idconducteur), idconducteur),
+        idbonexpedition = COALESCE("SCA".Bonexped_conv(_idbonexpedition), idbonexpedition),
+        date_affectation = COALESCE(_date_affectation, date_affectation),
+        statut = COALESCE(_statut::"SCA".etatcolis, statut)
+    WHERE idlivraison = _idlivraison;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 27. LOCALISATIONORGANISATION MODIFICATION
+create or replace procedure "EMIR".LocalisationOrganisation_MOD(
+    _idlocalisation INTEGER,
+    _idorganisation TEXT DEFAULT NULL,
+    _adresse TEXT DEFAULT NULL,
+    _ville TEXT DEFAULT NULL,
+    _region TEXT DEFAULT NULL,
+    _pays TEXT DEFAULT NULL,
+    _latitude DOUBLE PRECISION DEFAULT NULL,
+    _longitude DOUBLE PRECISION DEFAULT NULL,
+    _date_ajout DATE DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "SCA".LocalisationOrganisation
+    SET
+        idorganisation = COALESCE("SCA".idorg_conv(_idorganisation), idorganisation),
+        adresse = COALESCE(_adresse, adresse),
+        ville = COALESCE(_ville, ville),
+        region = COALESCE(_region, region),
+        pays = COALESCE(_pays, pays),
+        latitude = COALESCE(_latitude, latitude),
+        longitude = COALESCE(_longitude, longitude),
+        date_ajout = COALESCE(_date_ajout, date_ajout)
+    WHERE idlocalisation = _idlocalisation;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 28. PASSWORDPOLICIES MODIFICATION
+create or replace procedure "EMIR".PasswordPolicies_MOD(
+    _setting_name TEXT,
+    _setting_value TEXT DEFAULT NULL,
+    _setting_group TEXT DEFAULT NULL,
+    _description TEXT DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "CREDENTIALS".PasswordPolicies
+    SET
+        setting_value = COALESCE(_setting_value, setting_value),
+        setting_group = COALESCE(_setting_group, setting_group),
+        description = COALESCE(_description, description)
+    WHERE setting_name = _setting_name;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 29. CREDENTIALS.Credentials
+create or replace procedure "EMIR".Credentials_MOD(
+    _email TEXT,
+    _mot_de_passe_hash TEXT DEFAULT NULL,
+    _idutilisateur TEXT DEFAULT NULL,
+    _date_creation TIMESTAMP DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "CREDENTIALS".Credentials
+    SET
+        mot_de_passe_hash = COALESCE(_mot_de_passe_hash, mot_de_passe_hash),
+        idutilisateur = COALESCE("SCA".idutilisateur_conv(_idutilisateur), idutilisateur),
+        date_creation = COALESCE(_date_creation, date_creation)
+    WHERE email = "SCA".email_conv(_email);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 30. TACHE MODIFICATION
+create or replace procedure "EMIR".Tache_MOD(
+    _idtache TEXT,
+    _idtravailleur TEXT DEFAULT NULL,
+    _idcellule TEXT DEFAULT NULL,
+    _idcolis TEXT DEFAULT NULL,
+    _date_creation DATE DEFAULT NULL,
+    _date_echeance DATE DEFAULT NULL,
+    _duree_estimee INT DEFAULT NULL,
+    _description TEXT DEFAULT NULL,
+    _priority TEXT DEFAULT NULL,
+    _statut TEXT DEFAULT NULL,
+    _type TEXT DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "SCA".Tache
+    SET
+        idtravailleur = COALESCE("SCA".idtravailleur_conv(_idtravailleur), idtravailleur),
+        idcellule = COALESCE("SCA".idcellule_conv(_idcellule), idcellule),
+        idcolis = COALESCE("SCA".idcolis_conv(_idcolis), idcolis),
+        date_creation = COALESCE(_date_creation, date_creation),
+        date_echeance = COALESCE(_date_echeance, date_echeance),
+        duree_estimee = COALESCE(_duree_estimee, duree_estimee),
+        description = COALESCE(_description, description),
+        priority = COALESCE(_priority, priority),
+        statut = COALESCE(_statut, statut),
+        type = COALESCE(_type, type)
+    WHERE idtache = "SCA".idtache_conv(_idtache);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 31. EXTERNE.Lot MODIFICATION
+create or replace procedure "EMIR".PLot_MOD(
+    _idplot TEXT,
+    _idorg TEXT DEFAULT NULL,
+    _idproduit TEXT DEFAULT NULL,
+    _quantite TEXT DEFAULT NULL,
+    _date_creation DATE DEFAULT NULL,
+    _statut TEXT DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "EXTERNE".Lot
+    SET
+        idorg = COALESCE("SCA".idorg_conv(_idorg), idorg),
+        idproduit = COALESCE("SCA".idproduit_conv(_idproduit), idproduit),
+        quantite = COALESCE("SCA".dims_conv(_quantite), quantite),
+        date_creation = COALESCE(_date_creation, date_creation),
+        statut = COALESCE(_statut::"SCA".etat_lot, statut)
+    WHERE idplot = "EXTERNE".idplot_conv(_idplot);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 32. EXTERNE.ContenuColis MODIFICATION
+create or replace procedure "EMIR".PContenuColis_MOD(
+    _idorg TEXT,
+    _idpcolis TEXT,
+    _idplot TEXT,
+    _quantite TEXT DEFAULT NULL,
+    _date_MAJ DATE DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "EXTERNE".ContenuColis
+    SET
+        quantite = COALESCE("SCA".dims_conv(_quantite), quantite),
+        date_maj = COALESCE(_date_MAJ, date_maj)
+    WHERE idorg = "SCA".idorg_conv(_idorg)
+      AND idpcolis = "EXTERNE".idpcolis_conv(_idpcolis)
+      AND idplot = "EXTERNE".idplot_conv(_idplot);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 33. EXTERNE.Colis MODIFICATION
+create or replace procedure "EMIR".PColis_MOD(
+    _idpcolis TEXT,
+    _idorg TEXT DEFAULT NULL,
+    _date_creation DATE DEFAULT NULL,
+    _expected_date DATE DEFAULT NULL,
+    _receiving_org TEXT DEFAULT NULL,
+    _statut TEXT DEFAULT NULL
+)
+AS $$
+BEGIN
+    UPDATE "EXTERNE".Colis
+    SET
+        idorg = COALESCE("SCA".idorg_conv(_idorg), idorg),
+        date_creation = COALESCE(_date_creation, date_creation),
+        expected_date = COALESCE(_expected_date, expected_date),
+        receiving_org = COALESCE("SCA".idorg_conv(_receiving_org), receiving_org),
+        statut = COALESCE(_statut::"SCA".retatcolis, statut)
+    WHERE idpcolis = "EXTERNE".idpcolis_conv(_idpcolis);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE "EMIR".inquiries_MOD(
+    _idinq        "EXTERNE".Idinquire,
+    _type         "EXTERNE".typeinquire,
+    _status       "EXTERNE".etatinq,
+    _description  text
+)
+AS $$
+BEGIN
+    UPDATE "EXTERNE".inquiries
+    SET type = _type,
+        status = _status,
+        description = _description
+    WHERE idinq = _idinq;
+END;
+$$ LANGUAGE plpgsql;
