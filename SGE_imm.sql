@@ -1692,11 +1692,10 @@ create or replace function "EMIR".InventaireEmplacement_EVA()
     returns table (
                       idcellule "SCA".Idcellule,
                       idlot "SCA".Idlot,
-                      quantite "SCA".dims,
                       datemaj date
                   ) as $$
 begin
-    return query select idcellule, idlot, quantite, datemaj from "SCA".InventaireEmplacement;
+    return query select idcellule, idlot,datemaj from "SCA".InventaireEmplacement;
 end; $$ language plpgsql;
 
 -- 18. TRAVAILLEUR
