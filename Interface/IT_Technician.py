@@ -42,7 +42,6 @@ class AccountSettingsPage(QWidget):
             "password_expiration_days": 0
         }
         self.db_connection = db_connection
-        self.id_bank = []
         self.state = False
         self._setup_ui()
 
@@ -138,6 +137,7 @@ class AccountSettingsPage(QWidget):
                 self.create_account_button.setEnabled(True)
             self.combobox_refresh_button.setEnabled(True)
             self.combobox_refresh_button.setText("Reload Individual List")
+            
         except Exception as e:
             QMessageBox.information(self, "Refresh Error", f"{e}")
             self.combobox_refresh_button.setEnabled(True)
@@ -262,6 +262,7 @@ class AccountSettingsPage(QWidget):
             query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
             cursor.execute(query, (username,))
             result = cursor.fetchone()
+            db_connection.commit()
             cursor.close()
             if result:
                 return True
@@ -586,6 +587,7 @@ class AccountSettingsPage(QWidget):
             query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
+            db_connection.commit()
             cursor.close()
             loaded_settings = {row[0]: row[1] for row in rows}
             self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
@@ -814,6 +816,7 @@ class SystemConfigurationPage(QWidget):
             query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'system_config';"
             cursor.execute(query)
             rows = cursor.fetchall()
+            db_connection.commit()
             cursor.close()
             loaded_settings = {row[0]: row[1] for row in rows}
 
@@ -1098,6 +1101,7 @@ class SecuritySettingPage(QWidget):
             query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
+            db_connection.commit()
             loaded_settings = {row[0]: row[1] for row in rows}
             self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
             self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
