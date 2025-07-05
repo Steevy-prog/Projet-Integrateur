@@ -1,4 +1,3 @@
-
 import sys, os
 import datetime
 import subprocess
@@ -19,7 +18,7 @@ import psycopg2
 from psycopg2 import Error
 
 from db_connection import db_connection
-from db_connection import host, database, user, password
+from db_connection import host, database, user, password, port
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -133,11 +132,6 @@ class DatabaseBackupManager(QObject):
         backup_filename = self._generate_backup_filename()
         backup_filepath = os.path.join(backup_dir, backup_filename)
 
-        # Construct the pg_dump command.
-        # Ensure 'pg_dump' is in your system's PATH, or provide its full path.
-        # Example for Windows: pg_dump_path = "C:\\Program Files\\PostgreSQL\\14\\bin\\pg_dump.exe"
-        # For Linux/macOS, if installed via package manager, "pg_dump" is usually sufficient.
-        
         self.thread = QThread()
         self.worker = BackupWorker(
             db_host=self.db_host,
@@ -148,71 +142,8 @@ class DatabaseBackupManager(QObject):
             backup_filepath=backup_filepath
         )
         
-        # pg_dump_command = [
-        #     "pg_dump",
-        #     "-h", self.db_host,
-        #     "-p", self.db_port,
-        #     "-U", self.db_user,
-        #     "-d", self.db_name,
-        #     "-F", "p", # Plain-text SQL dump format
-        #     "-f", backup_filepath # Output file path
-        # ]
-
-        # Set PGPASSWORD environment variable for non-interactive password input.
-        # Be aware of the security implications: the password is in the environment
-        # for the duration of the subprocess call. For highly secure environments,
-        # consider using a .pgpass file or other authentication methods.
-        
-        # env = os.environ.copy()
-        # if self.db_password:
-        #     env["PGPASSWORD"] = self.db_password
-        #     logger.info("PGPASSWORD environment variable set for pg_dump execution.")
-        # else:
-        #     logger.warning("No database password provided. pg_dump might prompt for password interactively.")
-
-        # logger.info(f"Attempting to execute pg_dump command: {' '.join(pg_dump_command)}")
-        # try:
-        #     # Execute the pg_dump command as a subprocess.
-        #     # capture_output=True: Captures stdout and stderr.
-        #     # text=True: Decodes stdout/stderr as text.
-        #     # check=False: Prevents subprocess.run from raising CalledProcessError
-        #     #              for non-zero exit codes; we handle it manually.
-        #     result = subprocess.run(
-        #         pg_dump_command,
-        #         env=env,
-        #         capture_output=True,
-        #         text=True,
-        #         check=False
-        #     )
-
-        #     if result.returncode == 0:
-        #         logger.info(f"Database backup successful: {backup_filepath}")
-        #         self.backup_finished.emit(True, f"Backup created at: {backup_filepath}")
-        #     else:
-        #         # Log detailed error information from pg_dump's output
-        #         error_message_detail = (f"pg_dump failed with exit code {result.returncode}.\n"
-        #                                 f"STDOUT: {result.stdout.strip()}\n"
-        #                                 f"STDERR: {result.stderr.strip()}")
-        #         logger.error(f"Database backup failed: {error_message_detail}")
-        #         # Emit a more user-friendly error message
-        #         user_error_message = result.stderr.strip() or result.stdout.strip() or "Unknown pg_dump error."
-        #         self.backup_error.emit(f"Backup failed: {user_error_message}")
-        #         self.backup_finished.emit(False, f"Backup failed. Check application logs for details.")
-
-        # except FileNotFoundError:
-        #     # This error occurs if 'pg_dump' command is not found in PATH
-        #     error_msg = ("Error: 'pg_dump' command not found. "
-        #                  "Please ensure PostgreSQL client tools are installed and 'pg_dump' is in your system's PATH.")
-        #     logger.critical(error_msg)
-        #     self.backup_error.emit(error_msg)
-        #     self.backup_finished.emit(False, "Backup failed: pg_dump not found.")
-        # except Exception as e:
-        #     # Catch any other unexpected Python exceptions
-        #     error_msg = f"An unexpected Python error occurred during backup: {e}"
-        #     logger.critical(error_msg, exc_info=True) # Log exception traceback
-        #     self.backup_error.emit(error_msg)
-        #     self.backup_finished.emit(False, "Backup failed due to an unexpected internal error.")
-
+ 
+      
         # Move the worker to the new thread
         self.worker.moveToThread(self.thread)
 
@@ -234,49 +165,7 @@ class DatabaseBackupManager(QObject):
         self.thread.start()
         logger.info("Backup thread started.")
 
-# --- Database Connection (Global for simplicity in mock, could be passed to pages) ---
-# IMPORTANT: For a production app, manage connection lifecycle more carefully
-# (e.g., passing connection pool/manager to pages, or using a singleton pattern).
-# Keeping it global as in your provided code for now.
 
-# host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"  # Replace with your database host
-# database = "test_bpdd"  # Replace with your database name
-# user = "test"  # Replace with your database username
-# password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"  # Replace with your database password
-# port = 5432  # Default PostgreSQL port, change if necessary
-
-# db_connection = None
-# try:
-#     db_connection = psycopg2.connect(
-#         host=host,
-#         database=database,
-#         user=user,
-#         password=password,
-#         port=port
-#     )
-#     print(f"Successfully connected to PostgreSQL database: {database}")
-
-# except Error as e:
-#     print(f"Error connecting to PostgreSQL database: {e}")
-
-
-# --- Custom Stream for QTextEdit (Our 'Terminal') ---
-
-# log_type = 'all'
-# class QTextEditLogger(QObject, logging.Handler):
-#     append_text = pyqtSignal(str)
-
-#     def __init__(self, text_edit):
-#         super().__init__()
-#         self.text_edit = text_edit
-#         self.append_text.connect(self.text_edit)
-
-#     def write(self, text):
-#         if text.strip():
-#             self.append_text.emit(text.strip())
-
-#     def flush(self):
-#         pass
 
 class BackupWorker(QThread):
     """
@@ -367,23 +256,7 @@ class TerminalPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-        # self.worker_thread = None
-        
-        # self.log_text_handler = QTextEditLogger(self)
-        # self.log_text_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        # logging.getLogger().addHandler(self.log_text_handler) # Add to root logger
-        # logging.getLogger().setLevel(logging.INFO) # Set default logging level
-        
-        # A specific logger for the worker, which will be connected to self.log_output directly
-        # self.worker_logger = logging.getLogger('backup_worker')
-        # self.worker_logger.setLevel(logging.INFO)
-        # # Ensure it doesn't propagate to the root logger if we are handling it directly
-        # self.worker_logger.propagate = False 
-
-        # --- CRITICAL FIX: Define command_list and command_description as instance attributes HERE ---
-        # This ensures they exist BEFORE init_ui() is called or any initial terminal messages
-        # that might indirectly trigger command parsing.
+      
         self.command_list = {
             'command_list': self.list_command,
             'help': self.display_help,
@@ -392,8 +265,6 @@ class TerminalPage(QWidget):
             'list_stock_product': self.list_product,
             'list_user': self.list_user,
             'clear_terminal': self.clear_terminal,
-            # 'set_report_settings': self.set_report_settings,
-            # 'generate_report': self.generate_report,
             'start_backup': self.start_backup,
             'display_all_logs': self.display_all_logs,
             'display_pre_logs': self.display_pre_logs,
@@ -409,8 +280,6 @@ class TerminalPage(QWidget):
             'list_stock_product': 'List of all products in stock.',
             'list_user': 'List of all users.',
             'clear_terminal': 'Clear the terminal output.',
-            # 'set_report_settings': 'Set report generation settings (not implemented).',
-            # 'generate_report': 'Generate a report based on current settings (not implemented).',
             'start_backup': 'Start a database backup.',
             'display_all_logs': 'Display all system logs.',
             'display_pre_logs': 'Display previous system logs as from a specific date',
@@ -422,10 +291,10 @@ class TerminalPage(QWidget):
         self.backup_manager = DatabaseBackupManager(
                parent_widget=self, # Pass 'self' (your QWidget/QMainWindow instance) as the parent
                db_host=host,
-               db_port='5432',
+               db_port=port,
                db_user=user,
-               db_password=password, # <--- CHANGE THIS TO YOUR ACTUAL DB PASSWORD!
-               db_name=database # <--- CHANGE THIS TO YOUR ACTUAL DB NAME!
+               db_password=password,
+               db_name=database
            )
 
         self.backup_manager.backup_started.connect(self.on_backup_started)
@@ -434,133 +303,11 @@ class TerminalPage(QWidget):
 
         self.init_ui()
         
-        # self.worker_thread = None
         
-        # self.log_text_handler = QTextEditLogger(self.terminal_output)
-        # self.log_text_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        # logging.getLogger().addHandler(self.log_text_handler) # Add to root logger
-        # logging.getLogger().setLevel(logging.INFO) # Set default logging level
-        
-        # # A specific logger for the worker, which will be connected to self.log_output directly
-        # self.worker_logger = logging.getLogger('backup_worker')
-        # self.worker_logger.setLevel(logging.INFO)
-        # # Ensure it doesn't propagate to the root logger if we are handling it directly
-        # self.worker_logger.propagate = False
-
-         # Now it's safe to call init_ui()
-
-        # Redirect stdout and stderr for this specific page's terminal output
-        # self.text_edit_logger = QTextEditLogger(self.terminal_output)
-        # self._original_stdout = sys.stdout
-        # self._original_stderr = sys.stderr
-        # sys.stdout = self.text_edit_logger
-        # sys.stderr = self.text_edit_logger
-
         self.terminal_output.append("Welcome to SGE Warehouse Automation Terminal!")
         self.terminal_output.append("Type 'sac --command_list' in the command input to see available commands.")
 
-    # def start_backup(self):
-    #     """Gathers input and starts the backup process in a new thread."""
-    #     # db_name = self.db_name_input.text().strip()
-    #     # host = self.host_input.text().strip()
-    #     # user = self.user_input.text().strip()
-    #     # port_str = self.port_input.text().strip()
-    #     # password = self.password_input.text() # Keep as is, it's read by the worker
-    #     # output_dir = self.output_dir_input.text().strip()
-    #     # pg_dump_path = self.pg_dump_path_input.text().strip() # Get the pg_dump path
-
-    #     # Basic input validation
-    #     QMessageBox.information(self, 'Okay', 'okay1')
-    #     self.backup_directory = QFileDialog.getExistingDirectory(self, "Select Backup Directory")
-    #     if not os.path.isdir(self.backup_directory):
-    #         return
-        
-    #     file_filter = "Executable Files (*.exe);;All Files (*)" if os.name == 'nt' else "All Files (*)"
-
-    #     self.file_path, _ = QFileDialog.getOpenFileName(
-    #         self,
-    #         "Select pg_dump Executable",
-    #         file_filter
-    #     )
-    #     if self.file_path:
-    #         logging.info(f"pg_dump binary path set to: {self.file_path}")
-  
-        
-    #     if not all([database, host, user, port, self.file_path, self.backup_directory]):
-    #         QMessageBox.warning(self, "Missing Information", "Please fill in all required database details, select an output directory, and provide the pg_dump binary path.")
-    #         return
-
-    #     try:
-    #         port = int(port)
-    #         if not (1 <= port <= 65535):
-    #             raise ValueError("Port must be between 1 and 65535.")
-    #     except ValueError:
-    #         QMessageBox.warning(self, "Invalid Port", "Port must be a valid number.")
-    #         return
-
-    #     if not os.path.isdir(self.backup_directory):
-    #         QMessageBox.critical(self, "Invalid Output Directory", "The selected output directory does not exist. Please create it or choose another.")
-    #         return
-        
-    #     # Check if pg_dump path is valid
-    #     if not (os.path.isfile(self.file_path) or self.file_path == "pg_dump"): # Allow "pg_dump" if it's expected to be in PATH
-    #         QMessageBox.critical(self, "Invalid pg_dump Path", "The specified pg_dump binary path does not exist or is not a valid file. Please check the path.")
-    #         return
-
-    #     if self.worker_thread and self.worker_thread.isRunning():
-    #         QMessageBox.information(self, "Backup in Progress", "A backup is already running. Please wait for it to finish.")
-    #         return
-
-    #     db_params = {
-    #         'db_name': database,
-    #         'host': host,
-    #         'user': user,
-    #         'port': port,
-    #         'password': password
-    #     }
-
-    #     # Create and start the worker thread
-    #     self.worker_thread = BackupWorker(
-    #         db_params=db_params,
-    #         output_dir=self.backup_directory,
-    #         compress=True, # Always compress in this GUI example
-    #         dump_options=['--format=c'], # Example: Always use custom format
-    #         dump_binary_path=self.file_path # Use the path provided by the user
-    #     )
-    #     self.worker_thread.backup_finished.connect(self.on_backup_finished)
-    #     self.worker_thread.start()
-
-    # def on_backup_finished(self, success: bool, message: str):
-    #     """Slot to handle the backup_finished signal from the worker thread."""
-
-    #     if success:
-    #         QMessageBox.information(self, "Backup Complete", message)
-    #     else:
-    #         QMessageBox.critical(self, "Backup Failed", message)
-        
-    #     # Clean up the worker thread
-    #     self.worker_thread.quit()
-    #     self.worker_thread.wait() # Wait for the thread to actually finish
-
-
-    # def closeEvent(self, event):
-    #     """Handle application close event to ensure worker thread is terminated."""
-    #     if self.worker_thread and self.worker_thread.isRunning():
-    #         reply = QMessageBox.question(self, 'Confirm Exit',
-    #                                      "A backup is in progress. Are you sure you want to exit?",
-    #                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-    #                                      QMessageBox.StandardButton.No)
-    #         if reply == QMessageBox.StandardButton.Yes:
-    #             self.worker_thread.quit()
-    #             self.worker_thread.wait(5000) # Wait up to 5 seconds for thread to finish
-    #             if self.worker_thread.isRunning():
-    #                 logging.warning("Backup thread did not terminate gracefully.")
-    #             event.accept()
-    #         else:
-    #             event.ignore()
-    #     else:
-    #         event.accept()
-        
+       
 
     def init_ui(self):
         page_layout = QVBoxLayout(self) # Layout directly on the widget
@@ -674,29 +421,6 @@ class TerminalPage(QWidget):
         self.terminal_output.append("For commands requiring arguments, specify them after the command name seperating each with '(space)--'. Example: sac --command_name --arguement_1 --argument_2 and so on")
         self.terminal_output.append("---------------------------\n")
 
-    # def set_report_settings(self):
-    #     self.terminal_output.append("Setting report generation settings is not implemented yet.")
-    #     self.terminal_output.append("This feature will be available in a future update.")
-    
-    # def generate_report(self):
-    #     self.terminal_output.append("Generating report is not implemented yet.")
-    #     self.terminal_output.append("This feature will be available in a future update.")  
-    
-    # def backup_database(self):
-    #     if db_connection:
-    #         try:
-    #             cursor = db_connection.cursor()
-    #             # Placeholder for actual backup logic
-    #             cursor.execute("SELECT pg_start_backup('backup');")  # Example command, adjust as needed
-    #             db_connection.commit()
-    #             self.terminal_output.append("Database backup started successfully.")
-    #         except Error as e:
-    #             self.terminal_output.append(f"Error starting database backup: {e}")
-    #         finally:
-    #             if cursor:
-    #                 cursor.close()
-    #     else:
-    #         self.terminal_output.append("Database connection not established. Cannot start backup.")
             
     def display_all_logs(self):
         if db_connection:
@@ -958,18 +682,11 @@ Phone: {user_data[2]}
     @pyqtSlot()
     def on_backup_started(self):
          """Slot to handle when the backup process begins."""
-#            # Example: Disable the backup button and update a status label
-#            self.my_backup_button.setEnabled(False)
-#            self.status_label.setText("Backup in progress... Please select a directory.")
-#            # No need for QCoreApplication.processEvents() here, as the blocking
-#            # operation is now in a separate thread. The GUI will remain responsive.
-
+         
     @pyqtSlot(bool, str)
     def on_backup_finished(self, success: bool, message: str):
         """Slot to handle when the backup process finishes."""
-        # Example: Re-enable button, update status, show message box
-        # self.my_backup_button.setEnabled(True)
-        # self.status_label.setText(f"Backup finished: {message}")
+        
         msg_box = QMessageBox(self) # Pass self as parent for the message box
         msg_box.setWindowTitle("Backup Status")
         msg_box.setText(message)
@@ -982,9 +699,7 @@ Phone: {user_data[2]}
     @pyqtSlot(str)
     def on_backup_error(self, error_message: str):
         """Slot to handle any errors during the backup process."""
-        # Example: Re-enable button, update status, show error message box
-        # self.my_backup_button.setEnabled(True)
-        # self.status_label.setText(f"Backup failed: {error_message}")
+        
         msg_box = QMessageBox(self) # Pass self as parent for the message box
         msg_box.setWindowTitle("Backup Error")
         msg_box.setText(f"An error occurred during backup:\n{error_message}")
@@ -1011,10 +726,10 @@ class AutomationPage(QWidget):
         self.backup_manager = DatabaseBackupManager(
                 parent_widget=self, # Pass 'self' (your QWidget/QMainWindow instance) as the parent
                 db_host=host,
-                db_port='5432',
+                db_port=port,
                 db_user=user,
-                db_password=password, # <--- CHANGE THIS TO YOUR ACTUAL DB PASSWORD!
-                db_name=database # <--- CHANGE THIS TO YOUR ACTUAL DB NAME!
+                db_password=password,
+                db_name=database 
             )
 
         self.backup_manager.backup_started.connect(self.on_backup_started)
@@ -1072,10 +787,7 @@ class AutomationPage(QWidget):
         self.btn_data_backup.clicked.connect(self.start_backup)
         tasks_layout.addWidget(self.btn_data_backup)
 
-        # self.btn_audit_log_cleanup = QPushButton("Clean Up Old Audit Logs")
-        # self.btn_audit_log_cleanup.setObjectName("primaryButton")
-        # self.btn_audit_log_cleanup.clicked.connect(lambda: self._log_automation_event("Old audit logs cleanup initiated."))
-        # tasks_layout.addWidget(self.btn_audit_log_cleanup)
+
 
         scroll_content_layout.addWidget(tasks_group_box)
 
@@ -1148,18 +860,11 @@ class AutomationPage(QWidget):
     @pyqtSlot()
     def on_backup_started(self):
          """Slot to handle when the backup process begins."""
-#            # Example: Disable the backup button and update a status label
-#            self.my_backup_button.setEnabled(False)
-#            self.status_label.setText("Backup in progress... Please select a directory.")
-#            # No need for QCoreApplication.processEvents() here, as the blocking
-#            # operation is now in a separate thread. The GUI will remain responsive.
 
     @pyqtSlot(bool, str)
     def on_backup_finished(self, success: bool, message: str):
         """Slot to handle when the backup process finishes."""
-        # Example: Re-enable button, update status, show message box
-        # self.my_backup_button.setEnabled(True)
-        # self.status_label.setText(f"Backup finished: {message}")
+        
         msg_box = QMessageBox(self) # Pass self as parent for the message box
         msg_box.setWindowTitle("Backup Status")
         msg_box.setText(message)
@@ -1172,9 +877,7 @@ class AutomationPage(QWidget):
     @pyqtSlot(str)
     def on_backup_error(self, error_message: str):
         """Slot to handle any errors during the backup process."""
-        # Example: Re-enable button, update status, show error message box
-        # self.my_backup_button.setEnabled(True)
-        # self.status_label.setText(f"Backup failed: {error_message}")
+        
         msg_box = QMessageBox(self) # Pass self as parent for the message box
         msg_box.setWindowTitle("Backup Error")
         msg_box.setText(f"An error occurred during backup:\n{error_message}")
@@ -1188,352 +891,3 @@ class AutomationPage(QWidget):
             sys.stdout = self._original_stdout
         if hasattr(self, '_original_stderr') and self._original_stderr is not None:
             sys.stderr = self._original_stderr
-
-    # def _trigger_low_stock_notifications(self):
-    #     self._log_automation_event("Triggering low stock notifications...")
-    #     QMessageBox.information(self, "Automation Task", "Low Stock Notifications triggered. (Check log for details)")
-    #     # This would typically involve checking inventory levels and sending alerts
-    #     self._log_automation_event("Low stock notifications sent to relevant personnel.")
-
-# --- Main Application Window ---
-
-# class MainWindow(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         self.setWindowTitle("Automation Dashboard")
-#         self.setGeometry(100, 100, 1200, 800)
-
-#         self.central_widget = QWidget()
-#         self.setCentralWidget(self.central_widget)
-#         self.main_layout = QHBoxLayout(self.central_widget)
-#         self.main_layout.setContentsMargins(20, 20, 20, 20)
-#         self.main_layout.setSpacing(15)
-
-#         self._setup_ui()
-#         self._apply_styles()
-
-#     def _setup_ui(self):
-#         """
-#         Sets up the main window's layout, sidebar, and stacked widget for content.
-#         """
-#         # 1. Left Sidebar
-#         self.sidebar_frame = QFrame()
-#         self.sidebar_frame.setObjectName("sidebarFrame")
-#         self.sidebar_frame.setFixedWidth(250)
-#         self.sidebar_layout = QVBoxLayout(self.sidebar_frame)
-#         self.sidebar_layout.setContentsMargins(20, 20, 20, 20)
-#         self.sidebar_layout.setSpacing(15)
-
-#         self.logged_in_label = QLabel("Logged in as <b>john.smit</b>")
-#         self.logged_in_label.setObjectName("loggedInLabel")
-#         self.logged_in_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-#         self.sidebar_layout.addWidget(self.logged_in_label)
-
-#         self.sidebar_layout.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
-
-#         # Navigation buttons and their corresponding page instances
-#         self.nav_buttons = {}
-#         self.pages = [] # List to hold instances of QWidget pages (matched to stacked_content_widget indices)
-
-#         self.stacked_content_widget = QStackedWidget()
-
-#         # Define navigation items and create their pages
-#         nav_items_map = {
-#             "TERMINAL": TerminalPage(), # Terminal Page
-#             "AUTOMATION": AutomationPage(),
-#         }
-
-#         for i, (text, page_widget) in enumerate(nav_items_map.items()):
-#             self.pages.append(page_widget)
-#             self.stacked_content_widget.addWidget(page_widget)
-
-#             btn = QPushButton(text)
-#             btn.setObjectName(f"navButton_{text.replace(' ', '')}")
-#             btn.clicked.connect(lambda checked, idx=i, b=btn: self._on_nav_button_clicked(idx, b))
-#             self.nav_buttons[text] = btn
-#             self.sidebar_layout.addWidget(btn)
-
-#         self.sidebar_layout.addStretch()
-
-#         # 2. Main Content Area
-#         self.content_area_container = QWidget()
-#         self.content_area_container.setObjectName("contentAreaContainer")
-#         self.content_area_layout = QVBoxLayout(self.content_area_container)
-#         self.content_area_layout.setContentsMargins(40, 30, 40, 30)
-#         self.content_area_layout.setSpacing(25)
-
-#         self.main_title_label = QLabel("Account Settings")
-#         self.main_title_label.setObjectName("mainTitleLabel")
-#         self.content_area_layout.addWidget(self.main_title_label)
-
-#         self.content_area_layout.addWidget(self.stacked_content_widget)
-
-#         # Set initial page and active button
-#         self.stacked_content_widget.setCurrentIndex(0)
-#         initial_nav_button_text = list(nav_items_map.keys())[0]
-#         self.nav_buttons[initial_nav_button_text].setProperty("active", True)
-#         self.nav_buttons[initial_nav_button_text].style().polish(self.nav_buttons[initial_nav_button_text])
-#         self.main_title_label.setText(initial_nav_button_text)
-
-#         self.main_layout.addWidget(self.sidebar_frame)
-#         self.main_layout.addWidget(self.content_area_container)
-
-#     def _on_nav_button_clicked(self, index, clicked_button):
-#         """
-#         Handles navigation button clicks, switching the QStackedWidget page
-#         and updating button active states.
-#         """
-#         self.main_title_label.setText(clicked_button.text())
-#         self.stacked_content_widget.setCurrentIndex(index)
-
-#         for text, btn_widget in self.nav_buttons.items():
-#             if btn_widget == clicked_button:
-#                 btn_widget.setProperty("active", True)
-#             else:
-#                 btn_widget.setProperty("active", False)
-#             btn_widget.style().polish(btn_widget)
-
-#     def _apply_styles(self):
-#         """
-#         Applies Qt Style Sheets (QSS) for the application's look and feel.
-#         """
-#         self.setStyleSheet("""
-#             QMainWindow {
-#                 background-color: #f0f2f5;
-#             }
-
-#             #sidebarFrame {
-#                 background-color: #2c3e50;
-#                 border-right: 1px solid #34495e;
-#             }
-
-#             #loggedInLabel {
-#                 color: #ecf0f1;
-#                 font-size: 16px;
-#                 padding-bottom: 10px;
-#                 border-bottom: 1px solid #34495e;
-#             }
-
-#             /* General QPushButton styles for navigation buttons */
-#             QPushButton {
-#                 background-color: #3498db;
-#                 color: white;
-#                 border: none;
-#                 padding: 10px 15px;
-#                 text-align: left;
-#                 font-size: 14px;
-#                 border-radius: 5px;
-#                 min-width: 150px;
-#             }
-
-#             QPushButton:hover {
-#                 background-color: #2980b9;
-#                 color: white;
-#             }
-
-#             QPushButton[active="true"] {
-#                 background-color: #f39c12;
-#                 color: #2c3e50;
-#                 font-weight: bold;
-#                 border-left: 5px solid #e67e22;
-#             }
-#             QPushButton[active="true"]:hover {
-#                 background-color: #e67e22;
-#             }
-
-#             #mainTitleLabel {
-#                 font-size: 28px;
-#                 font-weight: bold;
-#                 color: #2c3e50;
-#                 margin-bottom: 20px;
-#             }
-
-#             QGroupBox {
-#                 border: 1px solid #ccc;
-#                 border-radius: 8px;
-#                 margin-top: 1.5em;
-#                 font-size: 16px;
-#                 font-weight: bold;
-#                 color: #34495e;
-#             }
-#             QGroupBox::title {
-#                 subcontrol-origin: margin;
-#                 left: 15px;
-#                 padding: 0 5px;
-#             }
-
-#             QLineEdit#commandLineEdit {
-#                 background-color: #ffffff;
-#                 border: 1px solid #ccc;
-#                 border-radius: 5px;
-#                 padding: 10px;
-#                 font-size: 14px;
-#                 color: #2c3e50;
-#             }
-#             QLineEdit#commandLineEdit:focus {
-#                 border: 1px solid #3498db;
-#             }
-
-            # QTextEdit#terminalOutputTextEdit, QTextEdit#automationLogTextEdit { /* Applied to both terminal and automation log */
-            #     background-color: #1e1e1e;
-            #     color: #00ff00;
-            #     font-family: 'Consolas', 'Monaco', monospace;
-            #     font-size: 11pt;
-            #     border-radius: 5px;
-            #     padding: 10px;
-                
-            # }
-
-            # QPushButton#executeButton, QPushButton#clearOutputButton {
-            #     color: white;
-            #     padding: 10px 20px;
-            #     border-radius: 5px;
-            #     font-size: 14px;
-            #     border: none;
-            # }
-            # QPushButton#executeButton {
-            #     background-color: #008CBA;
-            # }
-            # QPushButton#executeButton:hover {
-            #     background-color: #007bb5;
-            # }
-            # QPushButton#clearOutputButton {
-            #     background-color: #f44336;
-            # }
-            # QPushButton#clearOutputButton:hover {
-            #     background-color: #da190b;
-            # }
-
-#             /* Placeholder Page Content Styling */
-#             QWidget#systemConfigurationPage QLabel,
-#             QWidget#databaseMaintenancePage QLabel,
-#             QWidget#securitySettingPage QLabel {
-#                 font-size: 24px;
-#                 color: #555;
-#                 text-align: center;
-#                 padding-top: 50px;
-#             }
-#             QWidget#systemConfigurationPage p,
-#             QWidget#databaseMaintenancePage p,
-#             QWidget#securitySettingPage p {
-#                 font-size: 16px;
-#                 color: #777;
-#                 text-align: center;
-#             }
-#             /* Specific adjustments for AutomationPage's new title/description */
-#             QWidget#AutomationPage #sectionTitle {
-#                 font-size: 28px; /* Override for specific title */
-#                 font-weight: bold;
-#                 color: #2c3e50;
-#                 margin-bottom: 20px;
-#             }
-#             QWidget#AutomationPage p {
-#                 text-align: left; /* Align paragraphs normally */
-#                 padding: 0 10px; /* Add some horizontal padding for readability */
-#             }
-
-
-#             /* Table widget styling (if used in future pages) */
-#             QTableWidget {
-#                 background-color: #ffffff;
-#                 border: 1px solid #ccc;
-#                 gridline-color: #eee;
-#                 font-size: 13px;
-#                 selection-background-color: #d1eaff;
-#                 selection-color: #333;
-#                 border-radius: 8px;
-#             }
-#             QTableWidget::item {
-#                 padding: 5px;
-#             }
-#             QTableWidget::item:selected {
-#                 background-color: #cceeff;
-#                 color: black;
-#             }
-#             QHeaderView::section {
-#                 background-color: #e6e6e6;
-#                 padding: 5px;
-#                 border: 1px solid #ccc;
-#                 font-weight: bold;
-#                 color: #333;
-#             }
-#             QHeaderView::section:horizontal {
-#                 border-bottom: 2px solid #aaa;
-#             }
-#             QHeaderView::section:vertical {
-#                 border-right: 2px solid #aaa;
-#             }
-#             #sectionSubTitle {
-#                 font-size: 18px;
-#                 font-weight: bold;
-#                 color: #555;
-#                 margin-bottom: 10px;
-#             }
-
-#             /* Buttons inside automation page */
-#             QPushButton#primaryButton { /* Reused from earlier primaryButton, adjust if needed */
-#                 background-color: #2ecc71; /* Green */
-#                 color: #ffffff;
-#                 border: none;
-#                 padding: 10px 20px;
-#                 font-size: 14px;
-#                 border-radius: 10px;
-#                 margin-top: 2px; /* Adjust spacing */
-#                 text-align: center;
-#             }
-#             QPushButton#primaryButton:hover {
-#                 background-color: #27ae60;
-#             }
-#             QPushButton#secondaryButton {
-#                 background-color: #95a5a6; /* Gray */
-#                 color: white;
-#                 border: none;
-#                 padding: 8px 15px;
-#                 font-size: 14px;
-#                 border-radius: 5px;
-#                 margin-top: 10px;
-#                 text-align: center;
-#             }
-#             QPushButton#secondaryButton:hover {
-#                 background-color: #7f8c8d;
-#             }
-
-
-#             /* Scrollbar styling */
-#             QScrollBar:vertical {
-#                 border: 1px solid #999;
-#                 background: #f0f0f0;
-#                 width: 10px;
-#                 margin: 0px 0px 0px 0px;
-#             }
-#             QScrollBar::handle:vertical {
-#                 background: #c0c0c0;
-#                 min-height: 20px;
-#                 border-radius: 4px;
-#             }
-#             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-#                 background: none;
-#             }
-#             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-#                 background: none;
-#             }
-#             #automationPageScrollArea{
-#                 border: none;
-#             }
-#         """)
-# # --- Main Application Execution ---
-# if __name__ == "__main__":
-#     app = QApplication(sys.argv)
-#     palette = QPalette()
-#     palette.setColor(QPalette.ColorRole.Window, QColor("#FFFFFF"))  # Dialog background
-#     palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
-#     palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
-#     palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
-#     palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
-#     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
-#     palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
-#     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
-#     app.setPalette(palette)
-#     window = MainWindow()
-#     window.show()
-#     sys.exit(app.exec())

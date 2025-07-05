@@ -53,3 +53,13 @@ VALUES
     ('2024-06-25 10:35:30', 'DEBUG', 'Cache hit for key: user_profile_456', '{"cache_key": "user_profile_456"}'),
     ('2024-06-25 10:40:40', 'INFO', 'New user registered: alice.smith@example.com', NULL),
     ('2024-06-25 10:45:50', 'ERROR', 'File not found during import operation', '{"file_path": "/data/import/missing.csv", "operation": "import"}');
+
+
+# INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group, description) VALUES
+# ('min_length', '8', 'password_policy', 'Minimum number of characters required for a password.'),
+# ('require_uppercase', 'True', 'password_policy', 'Boolean: Does password require an uppercase letter?'),
+# ('require_lowercase', 'True', 'password_policy', 'Boolean: Does password require a lowercase letter?'),
+# ('require_number', 'True', 'password_policy', 'Boolean: Does password require a number?'),
+# ('require_special', 'True', 'password_policy', 'Boolean: Does password require a special character?'),
+# ('password_expiration_days', '0', 'password_policy', 'Number of days after which password expires (0 for never).'),
+# ('enforce_expiration', 'False', 'password_policy', 'Boolean: Is password expiration enforced?');
