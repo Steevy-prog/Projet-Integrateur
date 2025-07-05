@@ -288,9 +288,8 @@ CREATE TABLE "SCA".LotEmballage(
 CREATE TABLE "SCA".ContenuColis(
   idcolis "SCA".Idcolis NOT NULL ,
   idlot "SCA".Idlot NOT NULL ,
-  quantite "SCA".dims NOT NULL ,
   date_MAJ date NOT NULL ,
-  CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot,quantite),
+  CONSTRAINT contenucolis_CC0 PRIMARY KEY (idcolis,idlot),
   CONSTRAINT ContenuColis_CR0 FOREIGN KEY (idcolis) REFERENCES "SCA".Colis(idcolis) ON DELETE CASCADE,
   FOREIGN KEY (idlot) REFERENCES "SCA".Lot(idlot) ON DELETE CASCADE
 );
@@ -457,9 +456,8 @@ CREATE TABLE "EXTERNE".ContenuColis(
   idorg "SCA".idorg NOT NULL,
   idpcolis "EXTERNE".Idpcolis NOT NULL ,
   idplot "EXTERNE".Idplot NOT NULL ,
-  quantite "SCA".dims NOT NULL ,
   date_MAJ date NOT NULL ,
-  CONSTRAINT pcontenucolis_CC0 PRIMARY KEY (idorg,idpcolis,idplot),
+  CONSTRAINT pcontenucolis_CC0 PRIMARY KEY (idpcolis,idplot),
   CONSTRAINT pContenuColis_CR0 FOREIGN KEY (idpcolis) REFERENCES "EXTERNE".Colis(idpcolis) ON DELETE CASCADE,
   CONSTRAINT pContenuColis_CR1 FOREIGN KEY (idplot) REFERENCES "EXTERNE".Lot(idplot) ON DELETE CASCADE,
   CONSTRAINT pContenuColis_CR2 FOREIGN KEY (idorg) REFERENCES "SCA".Organisation(idorganisation) ON DELETE CASCADE

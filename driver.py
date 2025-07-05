@@ -126,7 +126,7 @@ class SideBar(QFrame):
         layout.setContentsMargins(20, 20, 20, 20)
         
         # Logo/Header
-        header = QLabel("🚚 DeliveryPro")
+        header = QLabel("🚚 SCA Delivery Dashboard")
         header.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         header.setStyleSheet("color: #2d3748; padding: 10px 0;")
         layout.addWidget(header)
