@@ -413,7 +413,7 @@ CREATE TABLE "SCA".Travailleur(
 );
 
 CREATE TABLE "SCA".TravailleurCompetence (
-    idtravailleur VARCHAR(50) NOT NULL,
+    idtravailleur "SCA".idtravailleur NOT NULL,
     idcompetence VARCHAR(50) NOT NULL,
     niveau_maitrise VARCHAR(50) DEFAULT 'Débutant',
     date_acquisition DATE,
