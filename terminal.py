@@ -1006,6 +1006,21 @@ class AutomationPage(QWidget):
         super().__init__(parent)
         self.setObjectName("AutomationPage")
         self.terminal_page = TerminalPage()
+        
+
+        self.backup_manager = DatabaseBackupManager(
+                parent_widget=self, # Pass 'self' (your QWidget/QMainWindow instance) as the parent
+                db_host=host,
+                db_port='5432',
+                db_user=user,
+                db_password=password, # <--- CHANGE THIS TO YOUR ACTUAL DB PASSWORD!
+                db_name=database # <--- CHANGE THIS TO YOUR ACTUAL DB NAME!
+            )
+
+        self.backup_manager.backup_started.connect(self.on_backup_started)
+        self.backup_manager.backup_finished.connect(self.on_backup_finished)
+        self.backup_manager.backup_error.connect(self.on_backup_error)
+
         self.init_ui()
 
     def init_ui(self):
@@ -1054,7 +1069,7 @@ class AutomationPage(QWidget):
         # Add a few more placeholder buttons to ensure scrolling is evident
         self.btn_data_backup = QPushButton("Perform Database Backup")
         self.btn_data_backup.setObjectName("primaryButton")
-        self.btn_data_backup.clicked.connect(lambda: self.terminal_page.start_backup)
+        self.btn_data_backup.clicked.connect(self.start_backup)
         tasks_layout.addWidget(self.btn_data_backup)
 
         # self.btn_audit_log_cleanup = QPushButton("Clean Up Old Audit Logs")
@@ -1125,6 +1140,55 @@ class AutomationPage(QWidget):
                     cursor.close()
                     
         self._log_automation_event("Report generated and saved.")
+    
+    
+    def start_backup(self):
+        self.backup_manager.perform_backup()
+        
+    @pyqtSlot()
+    def on_backup_started(self):
+         """Slot to handle when the backup process begins."""
+#            # Example: Disable the backup button and update a status label
+#            self.my_backup_button.setEnabled(False)
+#            self.status_label.setText("Backup in progress... Please select a directory.")
+#            # No need for QCoreApplication.processEvents() here, as the blocking
+#            # operation is now in a separate thread. The GUI will remain responsive.
+
+    @pyqtSlot(bool, str)
+    def on_backup_finished(self, success: bool, message: str):
+        """Slot to handle when the backup process finishes."""
+        # Example: Re-enable button, update status, show message box
+        # self.my_backup_button.setEnabled(True)
+        # self.status_label.setText(f"Backup finished: {message}")
+        msg_box = QMessageBox(self) # Pass self as parent for the message box
+        msg_box.setWindowTitle("Backup Status")
+        msg_box.setText(message)
+        if success:
+            msg_box.setIcon(QMessageBox.Icon.Information)
+        else:
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+        msg_box.exec()
+
+    @pyqtSlot(str)
+    def on_backup_error(self, error_message: str):
+        """Slot to handle any errors during the backup process."""
+        # Example: Re-enable button, update status, show error message box
+        # self.my_backup_button.setEnabled(True)
+        # self.status_label.setText(f"Backup failed: {error_message}")
+        msg_box = QMessageBox(self) # Pass self as parent for the message box
+        msg_box.setWindowTitle("Backup Error")
+        msg_box.setText(f"An error occurred during backup:\n{error_message}")
+        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.exec()
+
+    def __del__(self):
+        """Restore original stdout/stderr when TerminalPage is destroyed."""
+        # Check if attributes exist before restoring, for safer shutdown
+        if hasattr(self, '_original_stdout') and self._original_stdout is not None:
+            sys.stdout = self._original_stdout
+        if hasattr(self, '_original_stderr') and self._original_stderr is not None:
+            sys.stderr = self._original_stderr
+
     # def _trigger_low_stock_notifications(self):
     #     self._log_automation_event("Triggering low stock notifications...")
     #     QMessageBox.information(self, "Automation Task", "Low Stock Notifications triggered. (Check log for details)")
