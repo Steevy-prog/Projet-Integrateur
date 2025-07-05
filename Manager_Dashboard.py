@@ -61,10 +61,10 @@ elif it == '2':
         port=5432
     )
 cur=conn.cursor()
-cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA1() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
+cur.execute("SELECT (p).* FROM \"EMIR\".PColis_EVA1() AS p;")
 pcolis_db = cur.fetchall() # Existing packages from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".contenucolis_eva() AS p;")

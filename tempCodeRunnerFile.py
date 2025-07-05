@@ -1,1 +1,1 @@
-send_packa
+pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
