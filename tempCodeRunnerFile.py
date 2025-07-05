@@ -1,1 +1,1 @@
-pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
+from reportlab.pdfgen import canvas

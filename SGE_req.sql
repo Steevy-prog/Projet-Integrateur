@@ -230,7 +230,6 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-SELECT "EMIR".colis_entrants_jour_count();
 
 -- Fonction pour confirmer la livraison d'un colis
 CREATE OR REPLACE FUNCTION "EMIR".confirmer_livraison_colis(
@@ -379,44 +378,6 @@ begin
     -- Appeler la fonction de confirmation de livraison
     perform "EMIR".confirmer_livraison_colis("SCA".idcolis_conv(_idcolis), date_livraison);
 end; $$ language plpgsql;
-create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
-    returns table(
-                     id int,
-                     _timestamp timestamp,
-                     level varchar(10),
-                     message text,
-                     extra jsonb
-                 )
-as $$
-begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp between _date1 and _date2;
-end; $$ language plpgsql;
-
-create or replace function "EMIR".Logs_gethigher(_date timestamp)
-    returns table(
-                     id int,
-                     _timestamp timestamp,
-                     level varchar(10),
-                     message text,
-                     extra jsonb
-                 )
-as $$
-begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Tache where _timestamp >= _date;
-end; $$ language plpgsql;
-
-create or replace function "EMIR".Logs_getlower(_date timestamp)
-    returns table(
-                     id int,
-                     _timestamp timestamp,
-                     level varchar(10),
-                     message text,
-                     extra jsonb
-                 )
-as $$
-begin
-    return query select id, timestamp,level,message,extra from "SCA".Logs where _timestamp <= _date;
-end; $$ language plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".getproductnames(_idcolis "SCA".Idcolis)
 RETURNS TABLE(nom_produit text) AS $$
@@ -527,3 +488,164 @@ BEFORE INSERT OR UPDATE ON "SCA".Tache
 FOR EACH ROW
 EXECUTE FUNCTION "SCA".check_tache_dates();
 
+create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
+    returns table(
+                     _id int,
+                     _timestamp timestamp,
+                     _level varchar(10),
+                     _message text,
+                     _extra jsonb
+                 )
+as $$
+begin
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Logs where timestamp between _date1 and _date2;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Logs_gethigher(_date timestamp)
+    returns table(
+                     _id int,
+                     _timestamp timestamp,
+                     _level varchar(10),
+                     _message text,
+                     _extra jsonb
+                 )
+as $$
+begin
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Logs where timestamp >= _date;
+end; $$ language plpgsql;
+
+create or replace function "EMIR".Logs_getlower(_date timestamp)
+    returns table(
+                     _id int,
+                     _timestamp timestamp,
+                     _level varchar(10),
+                     _message text,
+                     _extra jsonb
+                 )
+as $$
+begin
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Logs where timestamp <= _date;
+end; $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".pendingtasks(_idtravailleur "SCA".idtravailleur)
+RETURNS SETOF "SCA".Tache
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM "SCA".Tache
+    WHERE idtravailleur = _idtravailleur AND statut = 'en cours';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".completedtasks(_idtravailleur "SCA".idtravailleur)
+RETURNS SETOF "SCA".Tache
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM "SCA".Tache
+    WHERE idtravailleur = _idtravailleur AND statut = 'termine';
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".getvaluecol(_idorg "SCA".idorg,_idcolis "EXTERNE".idpcolis)
+returns int as $$
+begin
+    return(
+    select sum("SCA".Produit.prix_unitaire) from "EXTERNE".ContenuColis
+    join "EXTERNE".Lot on ("EXTERNE".ContenuColis.idplot = "EXTERNE".Lot.idplot)
+    join "SCA".Produit on ("EXTERNE".Lot.idproduit = "SCA".Produit.idproduit)
+    where "EXTERNE".ContenuColis.idorg = _idorg and "EXTERNE".ContenuColis.idpcolis = _idcolis);
+end;
+$$ language plpgsql;
+
+create or replace function "EMIR".getvaluecol(_idcolis "SCA".idcolis)
+returns int as $$
+begin
+    return(
+    select sum("SCA".Produit.prix_unitaire) from "SCA".ContenuColis
+    join "SCA".Lot on ("SCA".ContenuColis.idlot = "SCA".Lot.idlot)
+    join "SCA".Produit on ("SCA".Lot.idproduit = "SCA".Produit.idproduit)
+    where "SCA".ContenuColis.idcolis = _idcolis);
+end;
+$$ language plpgsql;
+
+create or replace function "EMIR".getvolume(_idcolis "SCA".idcolis)
+returns float as $$
+    declare
+        volume float;
+    begin
+        with it as(
+            select longueur as lon ,largeur as lar, hauteur as haut from "SCA".ProduitMateriel
+            join "SCA".lot on "SCA".lot.idproduit = "SCA".ProduitMateriel.idproduit
+            join "SCA".ContenuColis on "SCA".contenucolis.idlot = "SCA".lot.idlot
+            where _idcolis = "SCA".ContenuColis.idcolis
+        )
+       select  sum((lon*lar*haut))  from it into volume;
+        return volume;
+
+    end;
+
+    $$ language plpgsql;
+
+create or replace function "EMIR".getpoids(_idcolis "SCA".idcolis)
+returns float as $$
+    declare
+        volume float;
+    begin
+        with it as(
+            select masse poi from "SCA".ProduitMateriel
+            join "SCA".lot on "SCA".lot.idproduit = "SCA".ProduitMateriel.idproduit
+            join "SCA".ContenuColis on "SCA".contenucolis.idlot = "SCA".lot.idlot
+            where _idcolis = "SCA".ContenuColis.idcolis
+        )
+       select  sum(poi)  from it into volume;
+        return volume;
+
+    end;
+
+    $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".entransit()
+RETURNS int AS $$
+DECLARE
+    result int;
+BEGIN
+    SELECT COUNT(*) INTO result
+    FROM "SCA".Bonexpedition b
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM "SCA".Colis c
+        WHERE c.idcolis = b.idcolis
+    );
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".preparation_tasks()
+RETURNS int AS $$
+DECLARE
+    result int;
+BEGIN
+    SELECT COUNT(*) INTO result
+    FROM "SCA".Colis c
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM "SCA".Bonexpedition b
+        WHERE b.idcolis = c.idcolis
+    );
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".getsupplier(_idcolis "SCA".idcolis)
+returns setof "SCA".idorg as $$
+    begin
+        return query select idfournisseur from "SCA".bonreception
+        where idcolis = _idcolis
+        LIMIT 1;
+    end;
+$$ language plpgsql;
