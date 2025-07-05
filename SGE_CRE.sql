@@ -33,7 +33,7 @@ CREATE DOMAIN "SCA".idcontenu TEXT CHECK(
     );
 
 CREATE DOMAIN "SCA".idpcontenu TEXT CHECK(
-    VALUE~ '^CON[0-9]{3}$'
+    VALUE~ '^PCON[0-9]{3}$'
     );
 
 CREATE DOMAIN "SCA".idinventaire TEXT CHECK(
