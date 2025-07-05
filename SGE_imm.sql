@@ -1276,7 +1276,7 @@ create or replace procedure "EMIR".Lot_INS(
     _idlot text,
     _idproduit text,
     _quantite text,
-    _date_creation text,
+    _date_creation text
 )
 as $$
 begin
@@ -1288,7 +1288,6 @@ CREATE OR REPLACE PROCEDURE "EMIR".ContenuColis_INS(
     _idcontenu TEXT,
     _idcolis TEXT,
     _idlot TEXT,
-    _quantite TEXT,
     _date_MAJ TEXT
 )
 AS $$
@@ -1298,7 +1297,6 @@ BEGIN
         "SCA".idcontenu_conv(_idcontenu),
         "SCA".idcolis_conv(_idcolis),
         "SCA".idlot_conv(_idlot),
-        "SCA".dims_conv(_quantite),
         _date_MAJ::date
     );
 END;
@@ -1676,11 +1674,10 @@ create or replace function "EMIR".Organisation_EVA()
                       idorganisation "SCA".idOrg,
                       nom "SCA".Nom,
                       telephone "SCA".Numero,
-                      adresse "SCA".Adresse,
                       type "SCA".typeOrg
                   ) as $$
 begin
-    return query select idorganisation, nom, telephone, adresse, type from "SCA".Organisation;
+    return query select idorganisation, nom, telephone, type from "SCA".Organisation;
 end; $$ language plpgsql;
 
 -- 2. CELLULE
@@ -1743,7 +1740,7 @@ create or replace function "EMIR".Bonexpedition_EVA()
                       remarques text
                   ) as $$
 begin
-    return query select idbonexpedition, idcolis, date_creation, iddestinataire, statut, remarques from "SCA".Bonexpedition;
+    return query select idbonexpedition, idcolis,idtransporteur, date_creation, iddestinataire, statut, remarques from "SCA".Bonexpedition;
 end; $$ language plpgsql;
 
 -- 7. INDIVIDU
@@ -1835,10 +1832,10 @@ $$ LANGUAGE plpgsql;
 create or replace function "EMIR".Entrepot_EVA()
     returns table (
                       idcellule "SCA".Idcellule,
-                      zone "SCA".idzone
+                      position "SCA".idzone
                   ) as $$
 begin
-    return query select idcellule, zone from "SCA".Entrepot;
+    return query select idcellule, position from "SCA".Entrepot;
 end; $$ language plpgsql;
 
 -- 16. RAPPORTEXCEPTION
