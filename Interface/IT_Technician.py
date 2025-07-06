@@ -1207,7 +1207,7 @@ class MainWindow(QMainWindow):
         self.stacked_content_widget = QStackedWidget()
         nav_items_map = {
             "ACCOUNT SETTINGS": AccountSettingsPage(),
-            "SYSTEM CONFIGURATION": SystemConfigurationPage(),
+            # "SYSTEM CONFIGURATION": SystemConfigurationPage(),
             "DATABASE MAINTENANCE": DatabaseMaintenancePage(),
             "SECURITY SETTINGS": SecuritySettingPage(),
             "TERMINAL": TerminalPage(), # Terminal Page
