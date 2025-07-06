@@ -184,18 +184,18 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-create or replace function "EMIR".avgitemsreception()
-    returns float as $$
-declare
-    avg_value float;
-begin
-    select avg("SCA".ContenuColis.quantite) into avg_value
-    from "SCA".ContenuColis
-             join "SCA".BonReception on "SCA".ContenuColis.idcolis = "SCA".BonReception.idcolis
-    where "SCA".BonReception.date_creation = current_date;
+CREATE OR REPLACE FUNCTION "EMIR".avgitemsexpedition()
+RETURNS INTEGER AS $$
+DECLARE
+    nb_colis INTEGER;
+BEGIN
+    SELECT COUNT(DISTINCT idcolis)
+    INTO nb_colis
+    FROM "SCA".bonreception
+    WHERE date_creation = CURRENT_DATE;
 
-    return avg_value;
-end;
+    RETURN nb_colis;
+END;
 $$ LANGUAGE plpgsql;
 
 create or replace function "EMIR".valueexpedition()
@@ -216,18 +216,19 @@ end;
 $$ LANGUAGE plpgsql;
 
 
-create or replace function "EMIR".avgitemsexpedition()
-    returns float as $$
-declare
-    avg_value float;
-begin
-    select avg("SCA".ContenuColis.quantite) into avg_value
-    from "SCA".ContenuColis
-             join "SCA".Bonexpedition on "SCA".ContenuColis.idcolis = "SCA".Bonexpedition.idcolis
-    where "SCA".Bonexpedition.date_creation = current_date;
 
-    return avg_value;
-end;
+CREATE OR REPLACE FUNCTION "EMIR".avgitemsexpedition()
+RETURNS INTEGER AS $$
+DECLARE
+    nb_colis INTEGER;
+BEGIN
+    SELECT COUNT(DISTINCT idcolis)
+    INTO nb_colis
+    FROM "SCA".Bonexpedition
+    WHERE date_creation = CURRENT_DATE;
+
+    RETURN nb_colis;
+END;
 $$ LANGUAGE plpgsql;
 
 
@@ -265,9 +266,8 @@ BEGIN
     WHERE idcolis = _idcolis;
 
     -- Insérer un log de livraison
-    INSERT INTO "SCA".Logs (level, message, extra)
-    VALUES ('INFO', 'Colis livré avec succès',
-            jsonb_build_object('idcolis', _idcolis, 'date_livraison', _date_livraison));
+    INSERT INTO "SCA".Logs (level, message)
+    VALUES ('INFO', 'Colis livré avec succès');
 
     RAISE NOTICE 'Livraison du colis % confirmée pour le %', _idcolis, _date_livraison;
 END;
@@ -337,16 +337,14 @@ BEGIN
       AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
 
     -- Calculer la valeur totale livrée
-    SELECT COALESCE(SUM(p.prix_unitaire * cc.quantite), 0) INTO valeur_livree
-    FROM "SCA".Colis c
-             JOIN "SCA".Bonexpedition be ON c.idcolis = be.idcolis
-             JOIN "SCA".ContenuColis cc ON c.idcolis = cc.idcolis
-             JOIN "SCA".Lot l ON cc.idlot = l.idlot
-             JOIN "SCA".Produit p ON l.idproduit = p.idproduit
-    WHERE c.statut = 'livre'::"SCA".etat
-      AND (_date_debut IS NULL OR be.date_creation >= _date_debut)
-      AND (_date_fin IS NULL OR be.date_creation <= _date_fin);
-
+    select coalesce(sum("SCA".Produit.prix_unitaire*"SCA".lot.quantite),0) into valeur_livree from "SCA".colis
+    join "SCA".bonexpedition on ("SCA".colis.idcolis = "SCA".bonexpedition.idcolis)
+    join "SCA".ContenuColis on ("SCA".bonexpedition.idcolis = "SCA".contenucolis.idcolis)
+    join "SCA".Lot on ("SCA".ContenuColis.idlot = "SCA".Lot.idlot)
+    join "SCA".Produit on ("SCA".Lot.idproduit = "SCA".Produit.idproduit)
+    where "SCA".colis.statut = 'livre'::"SCA".etat
+     AND (_date_debut IS NULL OR "SCA".bonexpedition.date_creation >= _date_debut)
+      AND (_date_fin IS NULL OR "SCA".bonexpedition.date_creation <= _date_fin);
     RETURN QUERY
         SELECT
             colis_livres,
@@ -493,12 +491,11 @@ create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
                      _id int,
                      _timestamp timestamp,
                      _level varchar(10),
-                     _message text,
-                     _extra jsonb
+                     _message text
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Logs where timestamp between _date1 and _date2;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message from "SCA".Logs where timestamp between _date1 and _date2;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_gethigher(_date timestamp)
@@ -511,7 +508,7 @@ create or replace function "EMIR".Logs_gethigher(_date timestamp)
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Logs where timestamp >= _date;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message from "SCA".Logs where timestamp >= _date;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_getlower(_date timestamp)
@@ -524,7 +521,7 @@ create or replace function "EMIR".Logs_getlower(_date timestamp)
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message,extra from "SCA".Logs where timestamp <= _date;
+return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message from "SCA".Logs where timestamp <= _date;
 end; $$ language plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".pendingtasks(_idtravailleur "SCA".idtravailleur)
@@ -553,7 +550,7 @@ create or replace function "EMIR".getvaluecol(_idorg "SCA".idorg,_idcolis "EXTER
 returns int as $$
 begin
     return(
-    select sum("SCA".Produit.prix_unitaire) from "EXTERNE".ContenuColis
+    select sum("SCA".Produit.prix_unitaire * "SCA".lot.quantite) from "EXTERNE".ContenuColis
     join "EXTERNE".Lot on ("EXTERNE".ContenuColis.idplot = "EXTERNE".Lot.idplot)
     join "SCA".Produit on ("EXTERNE".Lot.idproduit = "SCA".Produit.idproduit)
     where "EXTERNE".ContenuColis.idorg = _idorg and "EXTERNE".ContenuColis.idpcolis = _idcolis);
@@ -564,7 +561,7 @@ create or replace function "EMIR".getvaluecol(_idcolis "SCA".idcolis)
 returns int as $$
 begin
     return(
-    select sum("SCA".Produit.prix_unitaire) from "SCA".ContenuColis
+    select sum("SCA".Produit.prix_unitaire * "SCA".lot.quantite) from "SCA".ContenuColis
     join "SCA".Lot on ("SCA".ContenuColis.idlot = "SCA".Lot.idlot)
     join "SCA".Produit on ("SCA".Lot.idproduit = "SCA".Produit.idproduit)
     where "SCA".ContenuColis.idcolis = _idcolis);
