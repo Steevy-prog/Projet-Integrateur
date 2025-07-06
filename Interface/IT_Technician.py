@@ -41,7 +41,7 @@ class AccountSettingsPage(QWidget):
             "enforce_expiration": False,
             "password_expiration_days": 0
         }
-        self.db_connection = db_connection
+        # self.db_connection = db_connection
         self.state = False
         self._setup_ui()
 
@@ -100,13 +100,14 @@ class AccountSettingsPage(QWidget):
             QMessageBox.information(self, "Error", f"{e}")
             return None
         
-    def extract_employee_data(self, connection):
+    def extract_employee_data(self):
         try:
-            cursor = connection.cursor()
+            cursor = db_connection.cursor()
             query = f"SELECT nom, prenom, username, email, niveau_acces, idutilisateur FROM \"EMIR\".lister_utilisateurs()"
             cursor.execute(query)
             rows = cursor.fetchall()
             cursor.close()
+            db_connection.commit()
             employee_data = []
             for row in rows:
                 employee = {
@@ -232,7 +233,7 @@ class AccountSettingsPage(QWidget):
         QTimer.singleShot(1500, self._populate_employee_list)
 
     def _populate_employee_list(self):
-        employees = self.extract_employee_data(db_connection)
+        employees = self.extract_employee_data()
         if not employees:
             self.initial_message_label.setText("No employees found.")
             self.initial_message_label.show()
@@ -590,7 +591,7 @@ class AccountSettingsPage(QWidget):
             if db_connection is None or db_connection.closed:
                 raise Exception("Database connection is not open.")
             cursor = self.db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
+            query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
             db_connection.commit()
@@ -649,266 +650,266 @@ class AccountSettingsPage(QWidget):
         self._load_employee_data_from_db()
         self._clear_selection_and_forms()
 
-class SystemConfigurationPage(QWidget):
-    # Signal to emit when custom QSS changes are saved
-    custom_qss_changed = pyqtSignal(str)
+# class SystemConfigurationPage(QWidget):
+#     # Signal to emit when custom QSS changes are saved
+#     custom_qss_changed = pyqtSignal(str)
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("systemConfigurationPage")
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setObjectName("systemConfigurationPage")
 
-        self.system_settings = {} 
+#         self.system_settings = {} 
 
-        self._setup_ui()
-        self._load_system_settings() # Load settings when the page is initialized
+#         self._setup_ui()
+#         self._load_system_settings() # Load settings when the page is initialized
 
-    def _setup_ui(self):
-        """
-        Sets up the layout and widgets for the System Configuration page.
-        """
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(25)
+#     def _setup_ui(self):
+#         """
+#         Sets up the layout and widgets for the System Configuration page.
+#         """
+#         main_layout = QVBoxLayout(self)
+#         main_layout.setContentsMargins(20, 20, 20, 20)
+#         main_layout.setSpacing(25)
 
-        title = QLabel("System Configuration")
-        title.setObjectName("sectionTitle") # Apply section title style
-        main_layout.addWidget(title)
+#         title = QLabel("System Configuration")
+#         title.setObjectName("sectionTitle") # Apply section title style
+#         main_layout.addWidget(title)
 
-        # Create a scroll area for the content if it grows
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        # PyQt6 Change: ScrollBarAlwaysOff is now in Qt.ScrollBarPolicy
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setObjectName("settingsScrollArea")
+#         # Create a scroll area for the content if it grows
+#         scroll_area = QScrollArea(self)
+#         scroll_area.setWidgetResizable(True)
+#         # PyQt6 Change: ScrollBarAlwaysOff is now in Qt.ScrollBarPolicy
+#         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+#         scroll_area.setObjectName("settingsScrollArea")
 
-        scroll_content_widget = QWidget()
-        scroll_content_widget.setObjectName("scrollContentWidget") # Add an object name for styling
+#         scroll_content_widget = QWidget()
+#         scroll_content_widget.setObjectName("scrollContentWidget") # Add an object name for styling
         
-        # CRITICAL FIX for black backgrounds on plain QWidgets if you're not using stylesheets
-        # and rely on the default background.
-        scroll_content_widget.setAutoFillBackground(True) 
+#         # CRITICAL FIX for black backgrounds on plain QWidgets if you're not using stylesheets
+#         # and rely on the default background.
+#         scroll_content_widget.setAutoFillBackground(True) 
 
 
-        content_layout = QVBoxLayout(scroll_content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(20)
+#         content_layout = QVBoxLayout(scroll_content_widget)
+#         content_layout.setContentsMargins(0, 0, 0, 0)
+#         content_layout.setSpacing(20)
 
-        # --- Custom Application Theme Section (with Name, Group, QSS) ---
-        custom_theme_frame = self._create_custom_theme_section()
-        content_layout.addWidget(custom_theme_frame)
+#         # --- Custom Application Theme Section (with Name, Group, QSS) ---
+#         custom_theme_frame = self._create_custom_theme_section()
+#         content_layout.addWidget(custom_theme_frame)
 
-        # --- Data Management Settings Section ---
-        data_settings_frame = self._create_data_management_section()
-        content_layout.addWidget(data_settings_frame)
+#         # --- Data Management Settings Section ---
+#         data_settings_frame = self._create_data_management_section()
+#         content_layout.addWidget(data_settings_frame)
 
-        # --- Save Button ---
-        self.save_button = QPushButton("Save System Settings")
-        self.save_button.setObjectName("primaryButton")
-        self.save_button.clicked.connect(self._save_system_settings)
-        # PyQt6 Change: AlignCenter is now in Qt.AlignmentFlag
-        content_layout.addWidget(self.save_button, alignment=Qt.AlignmentFlag.AlignCenter)
+#         # --- Save Button ---
+#         self.save_button = QPushButton("Save System Settings")
+#         self.save_button.setObjectName("primaryButton")
+#         self.save_button.clicked.connect(self._save_system_settings)
+#         # PyQt6 Change: AlignCenter is now in Qt.AlignmentFlag
+#         content_layout.addWidget(self.save_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        content_layout.addStretch() # Push content to the top
+#         content_layout.addStretch() # Push content to the top
 
-        scroll_area.setWidget(scroll_content_widget)
-        main_layout.addWidget(scroll_area)
+#         scroll_area.setWidget(scroll_content_widget)
+#         main_layout.addWidget(scroll_area)
 
-    def _create_custom_theme_section(self):
-        """
-        Creates and returns the QFrame for Custom Application Theme settings.
-        Includes fields for Theme Name, Interface's Group, and QSS Content.
-        """
-        frame = QFrame()
-        frame.setObjectName("sectionFrame")
+#     def _create_custom_theme_section(self):
+#         """
+#         Creates and returns the QFrame for Custom Application Theme settings.
+#         Includes fields for Theme Name, Interface's Group, and QSS Content.
+#         """
+#         frame = QFrame()
+#         frame.setObjectName("sectionFrame")
         
-        # CRITICAL FIX for black backgrounds on plain QWidgets (like QFrame which inherits QWidget)
-        # if you're not using stylesheets and rely on the default background.
-        frame.setAutoFillBackground(True)
+#         # CRITICAL FIX for black backgrounds on plain QWidgets (like QFrame which inherits QWidget)
+#         # if you're not using stylesheets and rely on the default background.
+#         frame.setAutoFillBackground(True)
         
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+#         layout = QVBoxLayout(frame)
+#         layout.setContentsMargins(20, 20, 20, 20)
+#         layout.setSpacing(15)
 
-        section_title = QLabel("Custom Application Theme")
-        section_title.setObjectName("sectionSubTitle")
-        layout.addWidget(section_title)
+#         section_title = QLabel("Custom Application Theme")
+#         section_title.setObjectName("sectionSubTitle")
+#         layout.addWidget(section_title)
 
-        theme_form_layout = QGridLayout()
-        theme_form_layout.setSpacing(10)
+#         theme_form_layout = QGridLayout()
+#         theme_form_layout.setSpacing(10)
 
-        # Theme Name
-        theme_form_layout.addWidget(QLabel("Theme Name:"), 0, 0)
-        self.theme_name_input = QLineEdit()
-        self.theme_name_input.setPlaceholderText("e.g., Dark Mode for Admin")
-        theme_form_layout.addWidget(self.theme_name_input, 0, 1)
+#         # Theme Name
+#         theme_form_layout.addWidget(QLabel("Theme Name:"), 0, 0)
+#         self.theme_name_input = QLineEdit()
+#         self.theme_name_input.setPlaceholderText("e.g., Dark Mode for Admin")
+#         theme_form_layout.addWidget(self.theme_name_input, 0, 1)
 
-        # Interface's Group
-        theme_form_layout.addWidget(QLabel("Interface's Group:"), 1, 0)
-        self.interface_group_input = QLineEdit()
-        self.interface_group_input.setPlaceholderText("e.g., Admin_UI, Reports_Module")
-        theme_form_layout.addWidget(self.interface_group_input, 1, 1)
+#         # Interface's Group
+#         theme_form_layout.addWidget(QLabel("Interface's Group:"), 1, 0)
+#         self.interface_group_input = QLineEdit()
+#         self.interface_group_input.setPlaceholderText("e.g., Admin_UI, Reports_Module")
+#         theme_form_layout.addWidget(self.interface_group_input, 1, 1)
 
-        # QSS Content
-        # PyQt6 Change: AlignTop is now in Qt.AlignmentFlag
-        theme_form_layout.addWidget(QLabel("QSS Content:"), 2, 0, Qt.AlignmentFlag.AlignTop) # Align label to top
-        self.custom_qss_input = QTextEdit()
-        self.custom_qss_input.setPlaceholderText("Paste your custom Qt Style Sheet (QSS) content here...")
-        self.custom_qss_input.setMinimumHeight(200) # Give it some height
-        theme_form_layout.addWidget(self.custom_qss_input, 2, 1)
+#         # QSS Content
+#         # PyQt6 Change: AlignTop is now in Qt.AlignmentFlag
+#         theme_form_layout.addWidget(QLabel("QSS Content:"), 2, 0, Qt.AlignmentFlag.AlignTop) # Align label to top
+#         self.custom_qss_input = QTextEdit()
+#         self.custom_qss_input.setPlaceholderText("Paste your custom Qt Style Sheet (QSS) content here...")
+#         self.custom_qss_input.setMinimumHeight(200) # Give it some height
+#         theme_form_layout.addWidget(self.custom_qss_input, 2, 1)
 
-        layout.addLayout(theme_form_layout)
-        return frame
+#         layout.addLayout(theme_form_layout)
+#         return frame
 
 
-    def _create_data_management_section(self):
-        """
-        Creates and returns the QFrame for Data Management Settings.
-        """
-        frame = QFrame()
-        frame.setObjectName("sectionFrame")
+#     def _create_data_management_section(self):
+#         """
+#         Creates and returns the QFrame for Data Management Settings.
+#         """
+#         frame = QFrame()
+#         frame.setObjectName("sectionFrame")
         
-        # CRITICAL FIX for black backgrounds on plain QWidgets (like QFrame which inherits QWidget)
-        # if you're not using stylesheets and rely on the default background.
-        frame.setAutoFillBackground(True)
+#         # CRITICAL FIX for black backgrounds on plain QWidgets (like QFrame which inherits QWidget)
+#         # if you're not using stylesheets and rely on the default background.
+#         frame.setAutoFillBackground(True)
         
 
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+#         layout = QVBoxLayout(frame)
+#         layout.setContentsMargins(20, 20, 20, 20)
+#         layout.setSpacing(15)
 
-        section_title = QLabel("Data Management")
-        section_title.setObjectName("sectionSubTitle")
-        layout.addWidget(section_title)
+#         section_title = QLabel("Data Management")
+#         section_title.setObjectName("sectionSubTitle")
+#         layout.addWidget(section_title)
 
-        form_layout = QGridLayout()
-        form_layout.setSpacing(10)
+#         form_layout = QGridLayout()
+#         form_layout.setSpacing(10)
 
-        # Local Data Backup Path
-        form_layout.addWidget(QLabel("Local Backup Path:"), 0, 0)
-        self.backup_path_input = QLineEdit()
-        self.backup_path_input.setPlaceholderText("e.g., C:/Backups/MyApp")
-        form_layout.addWidget(self.backup_path_input, 0, 1)
+#         # Local Data Backup Path
+#         form_layout.addWidget(QLabel("Local Backup Path:"), 0, 0)
+#         self.backup_path_input = QLineEdit()
+#         self.backup_path_input.setPlaceholderText("e.g., C:/Backups/MyApp")
+#         form_layout.addWidget(self.backup_path_input, 0, 1)
 
-        self.browse_backup_button = QPushButton("Browse...")
-        self.browse_backup_button.setObjectName("secondaryButton")
-        self.browse_backup_button.clicked.connect(self._browse_backup_path)
-        form_layout.addWidget(self.browse_backup_button, 0, 2)
+#         self.browse_backup_button = QPushButton("Browse...")
+#         self.browse_backup_button.setObjectName("secondaryButton")
+#         self.browse_backup_button.clicked.connect(self._browse_backup_path)
+#         form_layout.addWidget(self.browse_backup_button, 0, 2)
 
-        layout.addLayout(form_layout)
-        return frame
+#         layout.addLayout(form_layout)
+#         return frame
 
-    def _browse_backup_path(self):
-        """
-        Opens a directory dialog to select the backup path.
-        """
-        # QDir.homePath() is correct for PyQt6
-        current_path = self.backup_path_input.text() if self.backup_path_input.text() else QDir.homePath()
+#     def _browse_backup_path(self):
+#         """
+#         Opens a directory dialog to select the backup path.
+#         """
+#         # QDir.homePath() is correct for PyQt6
+#         current_path = self.backup_path_input.text() if self.backup_path_input.text() else QDir.homePath()
         
-        directory = QFileDialog.getExistingDirectory(self, "Select Backup Directory", current_path)
-        if directory:
-            self.backup_path_input.setText(directory)
+#         directory = QFileDialog.getExistingDirectory(self, "Select Backup Directory", current_path)
+#         if directory:
+#             self.backup_path_input.setText(directory)
 
-    def _load_system_settings(self):
-        """
-        Loads system configuration settings from the database and populates the UI fields.
-        """
-        cursor = None
-        try:
-            # Check for db_connection existence and state
-            if db_connection is None:
-                raise Exception("Database connection is not initialized.")
-            if db_connection.closed:
-                db_connection.connect() # Attempt to reconnect if closed
+#     def _load_system_settings(self):
+#         """
+#         Loads system configuration settings from the database and populates the UI fields.
+#         """
+#         cursor = None
+#         try:
+#             # Check for db_connection existence and state
+#             if db_connection is None:
+#                 raise Exception("Database connection is not initialized.")
+#             if db_connection.closed:
+#                 db_connection.connect() # Attempt to reconnect if closed
             
-            cursor = db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'system_config';"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            db_connection.commit()
-            cursor.close()
-            loaded_settings = {row[0]: row[1] for row in rows}
+#             cursor = db_connection.cursor()
+#             query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA WHERE setting_group = 'system_config';"
+#             cursor.execute(query)
+#             rows = cursor.fetchall()
+#             db_connection.commit()
+#             cursor.close()
+#             loaded_settings = {row[0]: row[1] for row in rows}
 
-            self.backup_path_input.setText(loaded_settings.get("backup_path", ""))
+#             self.backup_path_input.setText(loaded_settings.get("backup_path", ""))
 
-            # Load custom theme settings
-            self.theme_name_input.setText(loaded_settings.get("custom_theme_name", "Default Custom Theme"))
-            self.interface_group_input.setText(loaded_settings.get("custom_theme_interface_group", "General"))
-            self.custom_qss_input.setPlainText(loaded_settings.get("custom_theme_qss", ""))
+#             # Load custom theme settings
+#             self.theme_name_input.setText(loaded_settings.get("custom_theme_name", "Default Custom Theme"))
+#             self.interface_group_input.setText(loaded_settings.get("custom_theme_interface_group", "General"))
+#             self.custom_qss_input.setPlainText(loaded_settings.get("custom_theme_qss", ""))
 
-            self.system_settings = loaded_settings # Store for potential internal use
+#             self.system_settings = loaded_settings # Store for potential internal use
 
-        except Error as e:
-            db_connection.rollback()
-            QMessageBox.warning(self, "Load Error",
-                                 f"Could not load system configuration. Using default settings. Error: {e}",
-                                 QMessageBox.StandardButton.Ok) # Added explicit button for consistency
-        except Exception as e:
-            db_connection.rollback()
-            QMessageBox.warning(self, "Load Error",
-                                 f"An unexpected error occurred while loading system configuration. Error: {e}",
-                                 QMessageBox.StandardButton.Ok) # Added explicit button for consistency
-        finally:
-            if cursor:
-                cursor.close()
+#         except Error as e:
+#             db_connection.rollback()
+#             QMessageBox.warning(self, "Load Error",
+#                                  f"Could not load system configuration. Using default settings. Error: {e}",
+#                                  QMessageBox.StandardButton.Ok) # Added explicit button for consistency
+#         except Exception as e:
+#             db_connection.rollback()
+#             QMessageBox.warning(self, "Load Error",
+#                                  f"An unexpected error occurred while loading system configuration. Error: {e}",
+#                                  QMessageBox.StandardButton.Ok) # Added explicit button for consistency
+#         finally:
+#             if cursor:
+#                 cursor.close()
 
-    def _save_system_settings(self):
-        """
-        Saves the current system configuration settings from the UI fields to the database.
-        Uses UPSERT (UPDATE or INSERT) logic.
-        """
-        backup_path = self.backup_path_input.text().strip()
+#     def _save_system_settings(self):
+#         """
+#         Saves the current system configuration settings from the UI fields to the database.
+#         Uses UPSERT (UPDATE or INSERT) logic.
+#         """
+#         backup_path = self.backup_path_input.text().strip()
         
-        # Get custom theme details
-        theme_name = self.theme_name_input.text().strip()
-        interface_group = self.interface_group_input.text().strip()
-        custom_qss = self.custom_qss_input.toPlainText().strip()
+#         # Get custom theme details
+#         theme_name = self.theme_name_input.text().strip()
+#         interface_group = self.interface_group_input.text().strip()
+#         custom_qss = self.custom_qss_input.toPlainText().strip()
 
-        settings_to_save = {
-            "backup_path": backup_path,
-            "custom_theme_name": theme_name,
-            "custom_theme_interface_group": interface_group,
-            "custom_theme_qss": custom_qss
-        }
+#         settings_to_save = {
+#             "backup_path": backup_path,
+#             "custom_theme_name": theme_name,
+#             "custom_theme_interface_group": interface_group,
+#             "custom_theme_qss": custom_qss
+#         }
 
-        cursor = None
-        try:
-            # Check for db_connection existence and state
-            if db_connection is None:
-                raise Exception("Database connection is not initialized.")
-            if db_connection.closed:
-                db_connection.connect() # Attempt to reconnect if closed
+#         cursor = None
+#         try:
+#             # Check for db_connection existence and state
+#             if db_connection is None:
+#                 raise Exception("Database connection is not initialized.")
+#             if db_connection.closed:
+#                 db_connection.connect() # Attempt to reconnect if closed
 
-            cursor = db_connection.cursor()
+#             cursor = db_connection.cursor()
             
-            for setting_name, setting_value in settings_to_save.items():
-                upsert_query = """
-                    INSERT INTO "CREDENTIALS".PasswordPolicies (setting_group, setting_name, setting_value)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (setting_group, setting_name) DO UPDATE
-                    SET setting_value = EXCLUDED.setting_value;
-                """
-                cursor.execute(upsert_query, ('system_config', setting_name, setting_value))
+#             for setting_name, setting_value in settings_to_save.items():
+#                 upsert_query = """
+#                     INSERT INTO "CREDENTIALS".PasswordPolicies (setting_group, setting_name, setting_value)
+#                     VALUES (%s, %s, %s)
+#                     ON CONFLICT (setting_group, setting_name) DO UPDATE
+#                     SET setting_value = EXCLUDED.setting_value;
+#                 """
+#                 cursor.execute(upsert_query, ('system_config', setting_name, setting_value))
             
-            db_connection.commit()
-            cursor.close()
-            QMessageBox.information(self, "Success", "System settings saved successfully!", QMessageBox.StandardButton.Ok)
+#             db_connection.commit()
+#             cursor.close()
+#             QMessageBox.information(self, "Success", "System settings saved successfully!", QMessageBox.StandardButton.Ok)
             
-            # Emit the signal with the new custom QSS content
-            self.custom_qss_changed.emit(custom_qss)
+#             # Emit the signal with the new custom QSS content
+#             self.custom_qss_changed.emit(custom_qss)
 
-            self._load_system_settings() # Reload to confirm
+#             self._load_system_settings() # Reload to confirm
             
-        except Error as e:
-            if db_connection: # Ensure db_connection exists before trying to rollback
-                db_connection.rollback()
-            QMessageBox.critical(self, "Save Error", f"Failed to save system settings: {e}", QMessageBox.StandardButton.Ok)
-        except Exception as e:
-            if db_connection: # Ensure db_connection exists before trying to rollback
-                db_connection.rollback()
-            QMessageBox.critical(self, "Save Error", f"An unexpected error occurred while saving system settings: {e}", QMessageBox.StandardButton.Ok)
-        finally:
-            if cursor:
-                cursor.close()
+#         except Error as e:
+#             if db_connection: # Ensure db_connection exists before trying to rollback
+#                 db_connection.rollback()
+#             QMessageBox.critical(self, "Save Error", f"Failed to save system settings: {e}", QMessageBox.StandardButton.Ok)
+#         except Exception as e:
+#             if db_connection: # Ensure db_connection exists before trying to rollback
+#                 db_connection.rollback()
+#             QMessageBox.critical(self, "Save Error", f"An unexpected error occurred while saving system settings: {e}", QMessageBox.StandardButton.Ok)
+#         finally:
+#             if cursor:
+#                 cursor.close()
 
 class DatabaseMaintenancePage(QWidget):
     
