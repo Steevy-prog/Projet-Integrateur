@@ -1696,11 +1696,11 @@ end; $$ language plpgsql;
 -- 3. COLIS
 CREATE OR REPLACE FUNCTION "EMIR".Colis_EVA()
 RETURNS TABLE (
-    idcolis "SCA".Idcolis,
-    date_creation DATE,
-    expected_date DATE,
-    receiving_org "SCA".idOrg,
-    statut "SCA".etatcolis
+    _idcolis "SCA".Idcolis,
+    _date_creation DATE,
+    _expected_date DATE,
+    _receiving_org "SCA".idOrg,
+    _statut "SCA".etatcolis
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idcolis, date_creation, expected_date, receiving_org, statut FROM "SCA".Colis;
@@ -1820,10 +1820,10 @@ end; $$ language plpgsql;
 -- 13. CONTENUCOLIS
 CREATE OR REPLACE FUNCTION "EMIR".ContenuColis_EVA()
 RETURNS TABLE (
-    idcontenu "SCA".idcontenu,
-    idcolis "SCA".Idcolis,
-    idlot "SCA".Idlot,
-    date_maj DATE
+    _idcontenu "SCA".idcontenu,
+    _idcolis "SCA".Idcolis,
+    _idlot "SCA".Idlot,
+    _date_maj DATE
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idcontenu, idcolis, idlot, date_maj FROM "SCA".ContenuColis;

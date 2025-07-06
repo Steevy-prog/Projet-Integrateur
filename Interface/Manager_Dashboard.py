@@ -55,9 +55,9 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="USER",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 cur=conn.cursor()
@@ -98,7 +98,7 @@ class WarehouseData:
                 columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
         
         for product in self.products_df.itertuples():
             print(f"Product ID: {product.ID}, Name: {product.Name}")
