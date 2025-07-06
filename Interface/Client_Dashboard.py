@@ -18,7 +18,6 @@ import random
 import psycopg2
 from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
 from helpbot import ChatBot
-import send_sca_mail
 import internalmail
 
 # Global organization ID for the client currently logged in
