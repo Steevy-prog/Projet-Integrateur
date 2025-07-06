@@ -428,6 +428,7 @@ class TerminalPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\".Logs ORDER BY timestamp;")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
+                db_connection.commit()
                 self.terminal_output.append("\n--- ALl System Logs ---")
                 if logs:
                     for log in logs:
@@ -444,6 +445,7 @@ class TerminalPage(QWidget):
                     if reply == QMessageBox.StandardButton.Yes:
                         self.generate_logs_report(logs)
             except Error as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
             finally:
                 if cursor:
@@ -471,6 +473,7 @@ class TerminalPage(QWidget):
                     if reply == QMessageBox.StandardButton.Yes:
                         self.generate_logs_report(logs)
             except Exception as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
             finally:
                 if cursor:
@@ -484,6 +487,7 @@ class TerminalPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"EMIR\".Logs_gethigher('{date}':: timestamp)")
                 logs = cursor.fetchall()
+                db_connection.commit()
                 self.terminal_output.append(f"\n--- System Logs after {date} ---")
                 if logs:
                     for log in logs:
@@ -500,6 +504,7 @@ class TerminalPage(QWidget):
                     if reply == QMessageBox.StandardButton.Yes:
                         self.generate_logs_report(logs)
             except Error as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
             finally:
                 if cursor:
@@ -514,6 +519,7 @@ class TerminalPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"EMIR\".Logs_get('{date_1}':: timestamp, '{date_2}':: timestamp)")
                 logs = cursor.fetchall()
+                db_connection.commit()
                 self.terminal_output.append(f"\n--- System Logs between {date_1} and {date_2} ---")
                 if logs:
                     for log in logs:
@@ -530,6 +536,7 @@ class TerminalPage(QWidget):
                     if reply == QMessageBox.StandardButton.Yes:
                         self.generate_logs_report(logs)
             except Error as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
             finally:
                 if cursor:
@@ -574,6 +581,7 @@ class TerminalPage(QWidget):
 
             self.terminal_output.append(f'Logs report generated an saved as {filename}')
         except Exception as e:
+            db_connection.rollback()
             QMessageBox.information(self, 'error', f'{e}')
             
             
@@ -594,8 +602,10 @@ class TerminalPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute("SELECT \"EMIR\".produitsnum();") # Assuming a 'products' table
                 count = cursor.fetchone()[0]
+                db_connection.commit()
                 self.terminal_output.append(f"Number of products in stock: {count}")
             except Error as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error counting products: {e}")
             finally:
                 if cursor:
@@ -609,8 +619,10 @@ class TerminalPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute("SELECT COUNT(*) FROM \"SCA\".individu;") # Assuming a 'users' table
                 count = cursor.fetchone()[0]
+                db_connection.commit()
                 self.terminal_output.append(f"Number of users: {count}")
             except Error as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error counting users: {e}")
             finally:
                 if cursor:
@@ -624,6 +636,7 @@ class TerminalPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute("SELECT idproduit, nom, prix_unitaire FROM \"SCA\".Produit;") # Assuming 'products' table
                 products = cursor.fetchall()
+                db_connection.commit()
                 self.terminal_output.append("\n--- Products in Stock ---")
                 if products:
                     for product in products:
@@ -636,7 +649,8 @@ Unit Price: {product[2]}
                 else:
                     self.terminal_output.append("No products found.")
                 self.terminal_output.append("---------------------------\n")
-            except Error as e:
+            except Error as e:    
+                db_connection.rollback()
                 self.terminal_output.append(f"Error listing products: {e}")
             finally:
                 if cursor:
@@ -650,6 +664,7 @@ Unit Price: {product[2]}
                 cursor = db_connection.cursor()
                 cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"SCA\".individu;") # Assuming 'users' table
                 users = cursor.fetchall()
+                db_connection.commit()
                 self.terminal_output.append("\n--- Users List ---")
                 if users:
                     for user_data in users:
@@ -665,6 +680,7 @@ Phone: {user_data[2]}
                 self.terminal_output.append("-------------------\n")
                 cursor.close()
             except Error as e:
+                db_connection.rollback()
                 self.terminal_output.append(f"Error listing users: {e}")
             finally:
                 if cursor:
@@ -830,6 +846,7 @@ class AutomationPage(QWidget):
                 cursor = db_connection.cursor()
                 cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\".Logs ORDER BY timestamp;")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
+                db_connection.commit()
                 self.automation_log_output.append("\n--- ALl System Logs ---")
                 if logs:
                     for log in logs:
@@ -846,6 +863,7 @@ class AutomationPage(QWidget):
                     if reply == QMessageBox.StandardButton.Yes:
                         self.terminal_page.generate_logs_report(logs)
             except Error as e:
+                db_connection.rollback()
                 self._log_automation_event(f"Error retrieving logs: {e}")
             finally:
                 if cursor:

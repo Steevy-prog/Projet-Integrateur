@@ -121,6 +121,7 @@ class AccountSettingsPage(QWidget):
             return employee_data
         except Error as e:
             QMessageBox.warning(self,"Error", f"Error extracting user data: {e}")
+            db_connection.rollback()
             if cursor:
                 cursor.close()
             return []
@@ -163,6 +164,7 @@ class AccountSettingsPage(QWidget):
                 else:
                     return []
         except Exception as e:
+            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Fail to get Individuals' data from the database \n{e}")
@@ -269,6 +271,7 @@ class AccountSettingsPage(QWidget):
             else:
                 return False
         except Exception as e:
+            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Failed to check for existing employee in the database.\n {e}")
@@ -285,6 +288,7 @@ class AccountSettingsPage(QWidget):
             self.state = True
             cursor.close()
         except Exception as e:
+            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.warning(self, "Database Error", f"Error adding employee: {e}")
@@ -310,6 +314,7 @@ class AccountSettingsPage(QWidget):
             cursor.close()
             QMessageBox.information(f"Employee {username} updated successfully.")
         except Error as e:
+            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.warning(self, "Database Error", f"Error updating employee: {e}")
@@ -344,6 +349,7 @@ class AccountSettingsPage(QWidget):
             cursor.close()
             return True
         except Error as e:
+            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Error deleting employee: {e}")
@@ -598,9 +604,11 @@ class AccountSettingsPage(QWidget):
             self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
             self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
         except Error as e:
+            db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
                                 f"Could not load password policy. Using default settings. Error: {e}")
         except Exception as e:
+            db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
                                 f"An unexpected error occurred while loading password policy. Error: {e}")
         finally:
@@ -830,10 +838,12 @@ class SystemConfigurationPage(QWidget):
             self.system_settings = loaded_settings # Store for potential internal use
 
         except Error as e:
+            db_connection.rollback()
             QMessageBox.warning(self, "Load Error",
                                  f"Could not load system configuration. Using default settings. Error: {e}",
                                  QMessageBox.StandardButton.Ok) # Added explicit button for consistency
         except Exception as e:
+            db_connection.rollback()
             QMessageBox.warning(self, "Load Error",
                                  f"An unexpected error occurred while loading system configuration. Error: {e}",
                                  QMessageBox.StandardButton.Ok) # Added explicit button for consistency
@@ -1011,6 +1021,7 @@ class DatabaseMaintenancePage(QWidget):
             if cursor:
                 cursor.close()
         except Exception as e:
+            db_connection.rollback()
             error_message = f"An unexpected error occurred: {e}"
             QMessageBox.critical(self, "Application Error", error_message)
             self.results_message_text.setText(error_message)
@@ -1118,9 +1129,11 @@ class SecuritySettingPage(QWidget):
             self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
             self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
         except Error as e:
+            db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
             print(f"Error loading password policy: {e}")
         except Exception as e:
+            db_connection.rollback()
             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while loading password policy: {e}")
             print(f"Unexpected error: {e}")
         finally:
@@ -1157,6 +1170,7 @@ class SecuritySettingPage(QWidget):
             QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")
             print(f"Error saving password policy: {e}")
         except Exception as e:
+            db_connection.rollback()
             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while saving password policy: {e}")
             print(f"Unexpected error: {e}")
         finally:
