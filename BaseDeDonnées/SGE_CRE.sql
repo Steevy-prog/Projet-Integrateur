@@ -156,7 +156,7 @@ CREATE TYPE "SCA".type_vehicule AS ENUM ('camion','fourgon','camionnette','remor
 CREATE TYPE "SCA".statut_vehicule AS ENUM ('disponible','en maintenance','en livraison','hors service');
 CREATE TYPE "SCA".statut_conducteur AS ENUM ('disponible','en livraison','en congé','en formation');
 CREATE TYPE "SCA".statut_utilisateur AS ENUM ('actif','inactif','suspendu','en attente_validation');
-CREATE TYPE "SCA".niveau_acces AS ENUM ('admin','manager','employe');
+CREATE TYPE "SCA".niveau_acces AS ENUM ('admin','manager','employee');
 
 
 CREATE TABLE "SCA".REF_Marque (
