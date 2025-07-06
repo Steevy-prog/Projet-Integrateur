@@ -426,7 +426,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\".Logs ORDER BY timestamp;")  # Assuming a 'logs' table
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY timestamp;")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
                 db_connection.commit()
                 self.terminal_output.append("\n--- ALl System Logs ---")
@@ -455,7 +455,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"EMIR\".Logs_getlower('{date}':: timestamp)")
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_getlower('{date}':: timestamp)")
                 logs = cursor.fetchall()
                 self.terminal_output.append(f"\n--- System Logs before {date} ---")
                 if logs:
@@ -485,7 +485,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"EMIR\".Logs_gethigher('{date}':: timestamp)")
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_gethigher('{date}':: timestamp)")
                 logs = cursor.fetchall()
                 db_connection.commit()
                 self.terminal_output.append(f"\n--- System Logs after {date} ---")
@@ -517,7 +517,7 @@ class TerminalPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"EMIR\".Logs_get('{date_1}':: timestamp, '{date_2}':: timestamp)")
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_get('{date_1}':: timestamp, '{date_2}':: timestamp)")
                 logs = cursor.fetchall()
                 db_connection.commit()
                 self.terminal_output.append(f"\n--- System Logs between {date_1} and {date_2} ---")
@@ -844,7 +844,7 @@ class AutomationPage(QWidget):
         if db_connection:
             try:
                 cursor = db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, level, message FROM \"SCA\".Logs ORDER BY timestamp;")  # Assuming a 'logs' table
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY timestamp;")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
                 db_connection.commit()
                 self.automation_log_output.append("\n--- ALl System Logs ---")
