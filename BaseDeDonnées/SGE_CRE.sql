@@ -583,6 +583,17 @@ CREATE TABLE "EXTERNE".inquiries (
     FOREIGN KEY (idutilisateur) REFERENCES "SCA".Utilisateur(idutilisateur)
 );
 
+CREATE TABLE "SCA".inquiries (
+    idorg "SCA".idorg NOT NULL,
+    idinq         "EXTERNE".Idinquire NOT NULL,
+    type          "EXTERNE".typeinquire NOT NULL,
+    period        timestamp NOT NULL,
+    status        "EXTERNE".etatinq NOT NULL,
+    description   text,
+    CONSTRAINT inq_pk PRIMARY KEY (idinq),
+    FOREIGN KEY (idorg) REFERENCES "SCA".Organisation(idorganisation)
+);
+
 CREATE TABLE "SCA".Bugreport (
   id SERIAL PRIMARY KEY,
   idutilisateur "SCA".idutilisateur NOT NULL,
