@@ -7,6 +7,7 @@
 CREATE OR REPLACE FUNCTION "EMIR".inscrire_utilisateur(
     _idindividu TEXT,
     _username TEXT,
+    _niveau_acces TEXT,
     _nom TEXT,
     _prenom TEXT,
     _email TEXT,
@@ -29,7 +30,7 @@ BEGIN
         statut, niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
-        'en attente_validation', 'employe'
+        'en attente_validation', COALESCE(_niveau_acces,'employee')
     );
 
     -- Insérer les credentials (données d'authentification)

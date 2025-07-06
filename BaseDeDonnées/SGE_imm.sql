@@ -1575,14 +1575,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE PROCEDURE "EMIR".PasswordPolicies_INS(
-    _setting_name TEXT,
-    _setting_value TEXT,
     _setting_group TEXT,
-    _description TEXT
+    _setting_name TEXT,
+    _setting_value TEXT
 )
 AS $$
 BEGIN
-    INSERT INTO "CREDENTIALS".PasswordPolicies(setting_name, setting_value, setting_group, description) VALUES (_setting_name, _setting_value, _setting_group, _description);
+    INSERT INTO "CREDENTIALS".PasswordPolicies (setting_group, setting_name, setting_value)
+    VALUES (_setting_group, _setting_name, _setting_value)
+    ON CONFLICT (setting_group, setting_name) DO UPDATE
+    SET setting_value = EXCLUDED.setting_value;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -2996,5 +2998,104 @@ CREATE OR REPLACE PROCEDURE "EMIR".InventaireEmplacement_RET(
 AS $$
 BEGIN
     DELETE FROM "SCA".InventaireEmplacement WHERE idinventaire = "SCA".idinventaire_conv(_idinventaire);
+END;
+$$ LANGUAGE plpgsql;
+
+-- ========================================
+-- FONCTIONS DE COMPTAGE
+-- ========================================
+
+-- Fonction pour compter le nombre total d'individus dans le système
+CREATE OR REPLACE FUNCTION "EMIR".CompterIndividus()
+RETURNS INTEGER AS $$
+DECLARE
+    nombre_individus INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO nombre_individus
+    FROM "SCA".Individu;
+    
+    RETURN nombre_individus;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour compter le nombre total d'utilisateurs dans le système
+CREATE OR REPLACE FUNCTION "EMIR".CompterUtilisateurs()
+RETURNS INTEGER AS $$
+DECLARE
+    nombre_utilisateurs INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO nombre_utilisateurs
+    FROM "SCA".Utilisateur;
+    
+    RETURN nombre_utilisateurs;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour compter le nombre d'utilisateurs actifs
+CREATE OR REPLACE FUNCTION "EMIR".CompterUtilisateursActifs()
+RETURNS INTEGER AS $$
+DECLARE
+    nombre_utilisateurs_actifs INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO nombre_utilisateurs_actifs
+    FROM "SCA".Utilisateur
+    WHERE statut = 'actif';
+    
+    RETURN nombre_utilisateurs_actifs;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir des statistiques détaillées sur les utilisateurs
+CREATE OR REPLACE FUNCTION "EMIR".StatistiquesUtilisateurs()
+RETURNS TABLE (
+    total_individus INTEGER,
+    total_utilisateurs INTEGER,
+    utilisateurs_actifs INTEGER,
+    utilisateurs_inactifs INTEGER,
+    travailleurs INTEGER,
+    conducteurs INTEGER,
+    utilisateurs_simples INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        (SELECT COUNT(*) FROM "SCA".Individu) AS total_individus,
+        (SELECT COUNT(*) FROM "SCA".Utilisateur) AS total_utilisateurs,
+        (SELECT COUNT(*) FROM "SCA".Utilisateur WHERE statut = 'actif') AS utilisateurs_actifs,
+        (SELECT COUNT(*) FROM "SCA".Utilisateur WHERE statut = 'inactif') AS utilisateurs_inactifs,
+        (SELECT COUNT(*) FROM "SCA".Travailleur) AS travailleurs,
+        (SELECT COUNT(*) FROM "SCA".Conducteur) AS conducteurs,
+        (SELECT COUNT(*) FROM "SCA".Utilisateur u 
+         WHERE u.idutilisateur NOT IN (SELECT idutilisateur FROM "SCA".Travailleur)
+         AND u.idutilisateur NOT IN (SELECT idutilisateur FROM "SCA".Conducteur)) AS utilisateurs_simples;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction EMIR pour récupérer les informations de base des produits
+CREATE OR REPLACE FUNCTION "EMIR".ProduitInfoBasique_EVA()
+RETURNS TABLE (
+    idproduit "SCA".Idproduit,
+    nom "SCA".Nom,
+    prix_unitaire FLOAT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idproduit, nom, prix_unitaire 
+    FROM "SCA".Produit;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction EMIR pour récupérer les informations de base des individus
+CREATE OR REPLACE FUNCTION "EMIR".IndividuInfoBasique_EVA()
+RETURNS TABLE (
+    nom "SCA".Nom,
+    adresse "SCA".Adresse,
+    telephone "SCA".Numero,
+    prenom "SCA".Nom
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT nom, adresse, telephone, prenom 
+    FROM "SCA".Individu;
 END;
 $$ LANGUAGE plpgsql;
