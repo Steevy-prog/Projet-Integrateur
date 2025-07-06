@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QPainter, QPixmap, QColor, QBrush, QLinearGradient
 import psycopg2
 import hashlib
-from yo import interface as dashboard
+from Interface.Workers_App.yo import interface as dashboard
 
 
 class BackgroundWidget(QWidget):

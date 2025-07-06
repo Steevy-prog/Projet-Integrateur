@@ -17,8 +17,8 @@ import random
 import psycopg2
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
 from PyQt6.QtGui import QBrush
-import login as login
-import internalmail
+import Interface.Workers_App.login as login
+import Interface.Workers_App.internalmail as internalmail
 
 # Configuration de la base de données
 global conn

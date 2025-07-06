@@ -19,9 +19,28 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal, QDir, QObject, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
-from terminal import TerminalPage, AutomationPage
-from db_connection import db_connection
+from Interface.IT_App.terminal import TerminalPage, AutomationPage
+from Interface.Workers_App.db_connection import db_connection
+# host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com"
+# database = "test_bpdd"
+# user = "test"
+# password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh"
+# port = 5432
 
+
+# db_connection = None
+# try:
+#     db_connection = psycopg2.connect(
+#         host=host,
+#         database=database,
+#         user=user,
+#         password=password,
+#         port=port
+#     )
+#     print(f"Successfully connected to PostgreSQL database: {database}")
+
+# except Error as e:
+#     print(f"Error connecting to PostgreSQL database: {e}")
 
 class AccountSettingsPage(QWidget):
     """
@@ -42,6 +61,7 @@ class AccountSettingsPage(QWidget):
             "password_expiration_days": 0
         }
         self.db_connection = db_connection
+        self.id_bank = []
         self.state = False
         self._setup_ui()
 
@@ -121,7 +141,6 @@ class AccountSettingsPage(QWidget):
             return employee_data
         except Error as e:
             QMessageBox.warning(self,"Error", f"Error extracting user data: {e}")
-            db_connection.rollback()
             if cursor:
                 cursor.close()
             return []
@@ -138,7 +157,6 @@ class AccountSettingsPage(QWidget):
                 self.create_account_button.setEnabled(True)
             self.combobox_refresh_button.setEnabled(True)
             self.combobox_refresh_button.setText("Reload Individual List")
-            
         except Exception as e:
             QMessageBox.information(self, "Refresh Error", f"{e}")
             self.combobox_refresh_button.setEnabled(True)
@@ -164,7 +182,6 @@ class AccountSettingsPage(QWidget):
                 else:
                     return []
         except Exception as e:
-            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Fail to get Individuals' data from the database \n{e}")
@@ -180,8 +197,11 @@ class AccountSettingsPage(QWidget):
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
         self.individual_combobox = QComboBox()
+        # data_set = self.get_individual_data()
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
+        # for item in data_set:
+        #     self.individual_combobox.addItem(item)
         
         form_layout.addWidget(QLabel("Individual"), 0, 0)
         form_layout.addWidget(self.individual_combobox, 1, 0)
@@ -192,6 +212,7 @@ class AccountSettingsPage(QWidget):
         self.combobox_refresh_button.setObjectName("primaryButton")
         self.combobox_refresh_button.clicked.connect(self.refresh_individual_list)
         layout.addWidget(self.combobox_refresh_button)
+        # layout.addStretch()
         
         return frame
         
@@ -264,14 +285,12 @@ class AccountSettingsPage(QWidget):
             query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
             cursor.execute(query, (username,))
             result = cursor.fetchone()
-            db_connection.commit()
             cursor.close()
             if result:
                 return True
             else:
                 return False
         except Exception as e:
-            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Failed to check for existing employee in the database.\n {e}")
@@ -288,13 +307,17 @@ class AccountSettingsPage(QWidget):
             self.state = True
             cursor.close()
         except Exception as e:
-            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.warning(self, "Database Error", f"Error adding employee: {e}")
             self.state = False
 
-    
+        
+
+                
+                
+                
+
     def update_employee_in_db(self, original_username, first_name, last_name, username, access_level, email):
         password = first_name + last_name + "mmMM@@7777"
         try:
@@ -314,7 +337,6 @@ class AccountSettingsPage(QWidget):
             cursor.close()
             QMessageBox.information(f"Employee {username} updated successfully.")
         except Error as e:
-            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.warning(self, "Database Error", f"Error updating employee: {e}")
@@ -349,7 +371,6 @@ class AccountSettingsPage(QWidget):
             cursor.close()
             return True
         except Error as e:
-            db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Error deleting employee: {e}")
@@ -405,6 +426,10 @@ class AccountSettingsPage(QWidget):
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
 
+        # self.create_password_input = QLineEdit()
+        # self.create_password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        # self.create_confirm_password_input = QLineEdit()
+        # self.create_confirm_password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.create_first_name_input = QLineEdit()
         self.create_last_name_input = QLineEdit()
         self.create_username_input = QLineEdit()
@@ -419,7 +444,12 @@ class AccountSettingsPage(QWidget):
         form_layout.addWidget(self.create_username_input, 2, 1)
         form_layout.addWidget(QLabel("Email :"), 3, 0)
         form_layout.addWidget(self.create_email_input, 3, 1)
-
+        # form_layout.addWidget(QLabel("Telephone :"), 5, 0)
+        # form_layout.addWidget(self.create_telephone_input, 5, 1)
+        # form_layout.addWidget(QLabel("Password :"), 4, 0)
+        # form_layout.addWidget(self.create_password_input, 4, 1)
+        # form_layout.addWidget(QLabel("Confirm Password:"), 4, 0)
+        # form_layout.addWidget(self.create_confirm_password_input, 4, 1)
         form_layout.addWidget(QLabel("Access Level :"), 4, 0)
         form_layout.addWidget(self.create_access_level_combobox, 4, 1)
         layout.addLayout(form_layout)
@@ -463,7 +493,10 @@ class AccountSettingsPage(QWidget):
         form_layout.addWidget(self.edit_username_input, 2, 1)
         form_layout.addWidget(QLabel("Email :"), 3, 0)
         form_layout.addWidget(self.edit_email_input, 3, 1)
-
+        # form_layout.addWidget(QLabel("Telephone :"), 5, 0)
+        # form_layout.addWidget(self.edit_telephone_input, 5, 1)
+        # form_layout.addWidget(QLabel("Password :"), 4, 0)
+        # form_layout.addWidget(self.edit_password_input, 4, 1)
         form_layout.addWidget(QLabel("Access Level :"), 4, 0)
         form_layout.addWidget(self.edit_access_level_combobox, 4, 1)
         
@@ -502,6 +535,8 @@ class AccountSettingsPage(QWidget):
         form_layout.addWidget(self.delete_username, 2, 1)
         form_layout.addWidget(QLabel("Email :"), 3, 0)
         form_layout.addWidget(self.delete_email, 3, 1)
+        # form_layout.addWidget(QLabel("Telephone :"), 5, 0)
+        # form_layout.addWidget(self.delete_telephone, 5, 1)
         form_layout.addWidget(QLabel("Access Level :"), 4, 0)
         form_layout.addWidget(self.delete_access_level, 4, 1)
         layout.addLayout(form_layout)
@@ -546,10 +581,13 @@ class AccountSettingsPage(QWidget):
         first_name = self.create_first_name_input.text().strip()
         last_name = self.create_last_name_input.text().strip()
         username = self.create_username_input.text().strip()
+        # password = self.create_password_input.text()
         password = f"{first_name.upper() + last_name.lower() + "mmMM@@7777"}"
         
+        # confirm_password = self.create_confirm_password_input.text()
         access_level = self.create_access_level_combobox.currentText()
         email = self.create_email_input.text().strip()
+        # ID  = self.generate_id('^I[A-Z0-9]{5}$', self.id_bank      
         text = self.individual_combobox.currentText().strip()
         for line in self.create_data:
             if text in line.strip():
@@ -567,6 +605,9 @@ class AccountSettingsPage(QWidget):
         if not self.is_email_valid(email):
             QMessageBox.warning(self, "Email Error", "Invalid email format.")
             return
+        # if password != confirm_password:
+        #     QMessageBox.warning(self, "Input Error", "Passwords do not match.")
+        #     return
         error_list = self._validate_password(password)
         error_message = ''
         if error_list:
@@ -581,6 +622,8 @@ class AccountSettingsPage(QWidget):
             self.create_first_name_input.clear()
             self.create_last_name_input.clear()
             self.create_username_input.clear()
+            # self.create_password_input.clear()
+            # self.create_confirm_password_input.clear()
             self.create_email_input.clear()
             self._load_employee_data_from_db()
 
@@ -593,7 +636,6 @@ class AccountSettingsPage(QWidget):
             query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
-            db_connection.commit()
             cursor.close()
             loaded_settings = {row[0]: row[1] for row in rows}
             self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
@@ -604,11 +646,9 @@ class AccountSettingsPage(QWidget):
             self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
             self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
         except Error as e:
-            db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
                                 f"Could not load password policy. Using default settings. Error: {e}")
         except Exception as e:
-            db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
                                 f"An unexpected error occurred while loading password policy. Error: {e}")
         finally:
@@ -655,9 +695,9 @@ class SystemConfigurationPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("systemConfigurationPage")
+        self.setObjectName("systemConfigurationPage") # For QSS styling
 
-        self.system_settings = {} 
+        self.system_settings = {} # Dictionary to store loaded settings
 
         self._setup_ui()
         self._load_system_settings() # Load settings when the page is initialized
@@ -687,6 +727,10 @@ class SystemConfigurationPage(QWidget):
         # CRITICAL FIX for black backgrounds on plain QWidgets if you're not using stylesheets
         # and rely on the default background.
         scroll_content_widget.setAutoFillBackground(True) 
+        # Optionally, set a palette color for scroll_content_widget if it's supposed to be white/light
+        # palette = scroll_content_widget.palette()
+        # palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.white)
+        # scroll_content_widget.setPalette(palette)
 
 
         content_layout = QVBoxLayout(scroll_content_widget)
@@ -724,7 +768,10 @@ class SystemConfigurationPage(QWidget):
         # CRITICAL FIX for black backgrounds on plain QWidgets (like QFrame which inherits QWidget)
         # if you're not using stylesheets and rely on the default background.
         frame.setAutoFillBackground(True)
-        
+        # palette = frame.palette()
+        # palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.white) # Or a light gray, etc.
+        # frame.setPalette(palette)
+
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
@@ -770,7 +817,9 @@ class SystemConfigurationPage(QWidget):
         # CRITICAL FIX for black backgrounds on plain QWidgets (like QFrame which inherits QWidget)
         # if you're not using stylesheets and rely on the default background.
         frame.setAutoFillBackground(True)
-        
+        # palette = frame.palette()
+        # palette.setColor(QPalette.ColorRole.Window, Qt.GlobalColor.white) # Or a light gray, etc.
+        # frame.setPalette(palette)
 
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -824,7 +873,6 @@ class SystemConfigurationPage(QWidget):
             query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'system_config';"
             cursor.execute(query)
             rows = cursor.fetchall()
-            db_connection.commit()
             cursor.close()
             loaded_settings = {row[0]: row[1] for row in rows}
 
@@ -838,12 +886,10 @@ class SystemConfigurationPage(QWidget):
             self.system_settings = loaded_settings # Store for potential internal use
 
         except Error as e:
-            db_connection.rollback()
             QMessageBox.warning(self, "Load Error",
                                  f"Could not load system configuration. Using default settings. Error: {e}",
                                  QMessageBox.StandardButton.Ok) # Added explicit button for consistency
         except Exception as e:
-            db_connection.rollback()
             QMessageBox.warning(self, "Load Error",
                                  f"An unexpected error occurred while loading system configuration. Error: {e}",
                                  QMessageBox.StandardButton.Ok) # Added explicit button for consistency
@@ -989,6 +1035,12 @@ class DatabaseMaintenancePage(QWidget):
             QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
             return
         
+        # msg_box = QMessageBox(self, "Status", "Query will be executed", QMessageBox.StandardButton.NoButton)
+        # timer = QTimer(msg_box)
+        # timer.setSingleShot(True)
+        # timer.timeout.connect(msg_box.close)
+        # timer.start(1500)
+        # msg_box.exec()
         
         self.results_table.clearContents()
         self.results_table.setRowCount(0)
@@ -1021,7 +1073,6 @@ class DatabaseMaintenancePage(QWidget):
             if cursor:
                 cursor.close()
         except Exception as e:
-            db_connection.rollback()
             error_message = f"An unexpected error occurred: {e}"
             QMessageBox.critical(self, "Application Error", error_message)
             self.results_message_text.setText(error_message)
@@ -1112,7 +1163,6 @@ class SecuritySettingPage(QWidget):
             query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
             cursor.execute(query)
             rows = cursor.fetchall()
-            db_connection.commit()
             loaded_settings = {row[0]: row[1] for row in rows}
             self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
             self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
@@ -1129,11 +1179,9 @@ class SecuritySettingPage(QWidget):
             self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
             self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
         except Error as e:
-            db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
             print(f"Error loading password policy: {e}")
         except Exception as e:
-            db_connection.rollback()
             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while loading password policy: {e}")
             print(f"Unexpected error: {e}")
         finally:
@@ -1170,7 +1218,6 @@ class SecuritySettingPage(QWidget):
             QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")
             print(f"Error saving password policy: {e}")
         except Exception as e:
-            db_connection.rollback()
             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while saving password policy: {e}")
             print(f"Unexpected error: {e}")
         finally:
@@ -1596,3 +1643,11 @@ if __name__ == "__main__":
     sys.exit(app.exec())
     
 
+# INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group, description) VALUES
+# ('min_length', '8', 'password_policy', 'Minimum number of characters required for a password.'),
+# ('require_uppercase', 'True', 'password_policy', 'Boolean: Does password require an uppercase letter?'),
+# ('require_lowercase', 'True', 'password_policy', 'Boolean: Does password require a lowercase letter?'),
+# ('require_number', 'True', 'password_policy', 'Boolean: Does password require a number?'),
+# ('require_special', 'True', 'password_policy', 'Boolean: Does password require a special character?'),
+# ('password_expiration_days', '0', 'password_policy', 'Number of days after which password expires (0 for never).'),
+# ('enforce_expiration', 'False', 'password_policy', 'Boolean: Is password expiration enforced?');

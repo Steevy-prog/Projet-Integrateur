@@ -16,7 +16,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
-import login as login
+import Interface.Workers_App.login as login
 
 worker_id = 'TR1234'
 global conn

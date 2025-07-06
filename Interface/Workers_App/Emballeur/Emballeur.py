@@ -14,7 +14,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
-from helpbot import ChatBot
+from Emballeur.helpbot import ChatBot
 
 # Assuming 'id.py' exists and contains idgenerator
 # from id import idgenerator 

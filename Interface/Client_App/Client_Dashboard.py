@@ -1,4 +1,4 @@
-import login as login
+import Interface.Workers_App.login as login
 import sys,os
 import numpy as np
 import pandas as pd
@@ -16,9 +16,10 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
-from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
-from helpbot import ChatBot
-import internalmail
+from Interface.id import idgenerator # Assuming 'id.py' exists and contains idgenerator
+from Interface.Workers_App.helpbot import ChatBot
+import Interface.Workers_App.send_sca_mail as send_sca_mail
+import Interface.Workers_App.internalmail as internalmail
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
@@ -2055,7 +2056,7 @@ class HelpWidget(QWidget):
         layout.setSpacing(30)
         layout.setContentsMargins(40, 40, 40, 40)
         
-        from helpbot import ChatBot
+        from Interface.Workers_App.helpbot import ChatBot
         
         # --- Card 1: AI Assistant Placeholder --
         ai_card = QFrame()
