@@ -550,7 +550,7 @@ create or replace function "EMIR".getvaluecol(_idorg "SCA".idorg,_idcolis "EXTER
 returns int as $$
 begin
     return(
-    select sum("SCA".Produit.prix_unitaire * "SCA".lot.quantite) from "EXTERNE".ContenuColis
+    select sum("SCA".Produit.prix_unitaire * "EXTERNE".lot.quantite) from "EXTERNE".ContenuColis
     join "EXTERNE".Lot on ("EXTERNE".ContenuColis.idplot = "EXTERNE".Lot.idplot)
     join "SCA".Produit on ("EXTERNE".Lot.idproduit = "SCA".Produit.idproduit)
     where "EXTERNE".ContenuColis.idorg = _idorg and "EXTERNE".ContenuColis.idpcolis = _idcolis);
@@ -645,4 +645,17 @@ returns setof "SCA".idorg as $$
         where idcolis = _idcolis
         LIMIT 1;
     end;
+$$ language plpgsql;
+
+create or replace function "EMIR".getnameandid()
+returns table(
+id "SCA".idindividu,
+first_name "SCA".nom,
+last_name "SCA".nom
+)
+as $$
+begin
+return query
+select idindividu,nom,prenom from "SCA".individu;
+end;
 $$ language plpgsql;

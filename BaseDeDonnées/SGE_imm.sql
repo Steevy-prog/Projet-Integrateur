@@ -1671,10 +1671,10 @@ $$ LANGUAGE plpgsql;
 -- 1. ORGANISATION
 create or replace function "EMIR".Organisation_EVA()
     returns table (
-                      idorganisation "SCA".idOrg,
-                      nom "SCA".Nom,
-                      telephone "SCA".Numero,
-                      type "SCA".typeOrg
+                      _idorganisation "SCA".idOrg,
+                      _nom "SCA".Nom,
+                      _telephone "SCA".Numero,
+                      _type "SCA".typeOrg
                   ) as $$
 begin
     return query select idorganisation, nom, telephone, type from "SCA".Organisation;
@@ -2090,6 +2090,22 @@ BEGIN
     WHERE idutilisateur = _idutilisateur;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".inquiries_EVA(_idorg "SCA".idorg)
+RETURNS TABLE (
+    idinq        "EXTERNE".Idinquire,
+    type         "EXTERNE".typeinquire,
+    period       timestamp,
+    status       "EXTERNE".etatinq,
+    description  text
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT idinq, type, period, status, description
+    FROM "SCA".inquiries
+    WHERE idorg = _idorg;
+END;
+$$ LANGUAGE plpgsql;
 -- Routines de RETRAIT (_RET)
 
 -- 1. ORGANISATION
@@ -2418,14 +2434,27 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour EXTERNE.ContenuColis
 CREATE OR REPLACE FUNCTION "EMIR".PContenuColis_EVA()
 RETURNS TABLE (
-    idpcontenu "SCA".idpcontenu,
-    idorg "SCA".idOrg,
-    idpcolis "EXTERNE".Idpcolis,
-    idplot "EXTERNE".Idplot,
-    date_maj DATE
+    _idpcontenu "SCA".idpcontenu,
+    _idorg "SCA".idOrg,
+    _idpcolis "EXTERNE".Idpcolis,
+    _idplot "EXTERNE".Idplot,
+    _date_maj DATE
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idpcontenu, idorg, idpcolis, idplot, date_maj FROM "EXTERNE".ContenuColis;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "EMIR".PContenuColis_EVA(_idorg "SCA".idorg)
+RETURNS TABLE (
+    _idpcontenu "SCA".idpcontenu,
+    _idorg "SCA".idOrg,
+    _idpcolis "EXTERNE".Idpcolis,
+    _idplot "EXTERNE".Idplot,
+    _date_maj DATE
+) AS $$
+BEGIN
+    RETURN QUERY SELECT idpcontenu, idorg, idpcolis, idplot, date_maj FROM "EXTERNE".ContenuColis where idorg = _idorg;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -2795,13 +2824,13 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Bonexpedition (manque idtransporteur)
 CREATE OR REPLACE FUNCTION "EMIR".Bonexpedition_EVA()
 RETURNS TABLE (
-    idbonexpedition "SCA".Bonexped,
-    idcolis "SCA".Idcolis,
-    idtransporteur "SCA".idconducteur,
-    date_creation DATE,
-    iddestinataire "SCA".idOrg,
-    statut "SCA".etat,
-    remarques TEXT
+    _idbonexpedition "SCA".Bonexped,
+    _idcolis "SCA".Idcolis,
+    _idtransporteur "SCA".idconducteur,
+    _date_creation DATE,
+    _iddestinataire "SCA".idOrg,
+    _statut "SCA".etat,
+    _remarques TEXT
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idbonexpedition, idcolis, idtransporteur, date_creation, iddestinataire, statut, remarques FROM "SCA".Bonexpedition;
@@ -2811,13 +2840,13 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Produit (manque idmodele)
 CREATE OR REPLACE FUNCTION "EMIR".Produit_EVA()
 RETURNS TABLE (
-    idproduit "SCA".Idproduit,
-    idfournisseur "SCA".idOrg,
-    nom "SCA".Nom,
-    description TEXT,
-    prix_unitaire FLOAT,
-    idmodele "SCA".idmodele,
-    categorie "SCA".categorie_produit
+    _idproduit "SCA".Idproduit,
+    _idfournisseur "SCA".idOrg,
+    _nom "SCA".Nom,
+    _description TEXT,
+    _prix_unitaire FLOAT,
+    _idmodele "SCA".idmodele,
+    _categorie "SCA".categorie_produit
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idproduit, idfournisseur, nom, description, prix_unitaire, idmodele, categorie FROM "SCA".Produit;
@@ -2911,12 +2940,12 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour inquiries (correction des colonnes)
 CREATE OR REPLACE FUNCTION "EMIR".inquiries_EVA()
 RETURNS TABLE (
-    idutilisateur "SCA".idutilisateur,
-    idinq "EXTERNE".Idinquire,
-    type "EXTERNE".typeinquire,
-    period TIMESTAMP,
-    status "EXTERNE".etatinq,
-    description TEXT
+    _idutilisateur "SCA".idutilisateur,
+    _idinq "EXTERNE".Idinquire,
+    _type "EXTERNE".typeinquire,
+    _period TIMESTAMP,
+    _status "EXTERNE".etatinq,
+    _description TEXT
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idutilisateur, idinq, type, period, status, description FROM "EXTERNE".inquiries;

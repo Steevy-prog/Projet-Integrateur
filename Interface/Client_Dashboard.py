@@ -1,4 +1,4 @@
-import login as login
+#import login as login
 import sys,os
 import numpy as np
 import pandas as pd
@@ -45,7 +45,7 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="USER",
         user="postgres",
         password="steevy",
         port=5432
@@ -70,7 +70,7 @@ lots_db = cur.fetchall() # Existing products from the database
 cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
 produits_db = cur.fetchall() # Existing products from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".inquiries_eva(%s) AS p;",(client_org_id,))
+cur.execute("SELECT (p).* FROM \"EMIR\".inquiries_eva(\"SCA\".idorg_conv(%s)) AS p;",(client_org_id,))
 inq_db = cur.fetchall() # Existing products from the database
 
 # Global lists to keep track of generated IDs for uniqueness checks
@@ -159,9 +159,9 @@ class ClientData:
                 ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
                 ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
             ]
-        self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+        self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
         self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','expected_date','receiving_org','statut'])
-        self.contenu_df = pd.DataFrame(contenu,columns=['idcol','idlot','quantity','date_maj'])
+        self.contenu_df = pd.DataFrame(contenu,columns=['idcontenu','idcol','idlot','date_maj'])
         self.inq_df = pd.DataFrame(inq_db,columns=['id','type','period','status','description'])
 
         #my_pending_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if  t['status'] == 'en cours'])
@@ -2614,7 +2614,7 @@ class ClientMainWindow(QMainWindow):
         )
         if response == QMessageBox.StandardButton.Yes:
             self.close()
-            self.loginpage = login.FlipCard()
+            #self.loginpage = login.FlipCard()
             self.loginpage.show()
 
     def create_content_area(self):
