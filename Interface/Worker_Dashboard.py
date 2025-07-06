@@ -16,7 +16,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
-import login as login
+#import login as login
 
 worker_id = 'TR1234'
 global conn
@@ -37,7 +37,7 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="USER",
         user="postgres",
         password="steevy",
         port=5432
@@ -77,7 +77,7 @@ class WorkerData:
                 columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire','idModel', 'Category'])
 
         # Expedition Tasks data
         task_statuses = ['Pending', 'In Progress', 'Completed', 'Cancelled']
@@ -1846,7 +1846,7 @@ class MainWindow(QMainWindow):
         navbar_layout.addWidget(self.exceptions_btn)
         navbar_layout.addWidget(self.cells_btn) # Add new button to navbar layout
         navbar_layout.addStretch() # For more centered look if desired
-        navbar_layout.addWidget(self.logout.btn)
+        #navbar_layout.addWidget(self.logout.btn)
 
         self.main_layout.addWidget(self.navbar)
 
@@ -1884,7 +1884,7 @@ class MainWindow(QMainWindow):
         )
         if response == QMessageBox.StandardButton.Yes:
             self.close()
-            self.loginpage = login.FlipCard()
+            #self.loginpage = login.FlipCard()
             self.loginpage.show()
 
     def navigate_to_widget(self, target_widget):
