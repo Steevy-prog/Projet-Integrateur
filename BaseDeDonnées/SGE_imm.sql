@@ -1777,10 +1777,9 @@ begin
     return query select idproduit, longueur, largeur, hauteur, masse from "SCA".ProduitMateriel;
 end; $$ language plpgsql;
 
-create or replace function "EMIR".Tache_EVA(_id_travailleur "SCA".idtravailleur)
+create or replace function "EMIR".Tache_EVA(_idtravailleur "SCA".idtravailleur)
     returns table(
                      _idtache "SCA".idtache,
-                     _idtravailleur "SCA".idtravailleur,
                      _idcellule "SCA".idcellule,
                      _idlot "SCA".idlot,
                      _date_creation date,
@@ -1792,7 +1791,7 @@ create or replace function "EMIR".Tache_EVA(_id_travailleur "SCA".idtravailleur)
                  )
 as $$
 begin
-    return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estimee,description,statut,type from "SCA".Tache where idtravailleur = __id_travailleur;
+    return query select idtache,idcellule,idlot,date_creation,date_echeance,duree_estimee,description,statut,type from "SCA".Tache where idtravailleur = _idtravailleur;
 end; $$ language plpgsql;
 
 -- 11. PRODUITLOGICIEL
@@ -2077,11 +2076,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".inquiries_EVA(_idutilisateur "SCA".idutilisateur)
 RETURNS TABLE (
-    idinq        "EXTERNE".Idinquire,
-    type         "EXTERNE".typeinquire,
-    period       timestamp,
-    status       "EXTERNE".etatinq,
-    description  text
+    _idinq        "EXTERNE".Idinquire,
+    _type         "EXTERNE".typeinquire,
+    _period       timestamp,
+    _status       "EXTERNE".etatinq,
+    _description  text
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -2093,11 +2092,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".inquiries_EVA(_idorg "SCA".idorg)
 RETURNS TABLE (
-    idinq        "EXTERNE".Idinquire,
-    type         "EXTERNE".typeinquire,
-    period       timestamp,
-    status       "EXTERNE".etatinq,
-    description  text
+    _idinq        "EXTERNE".Idinquire,
+    _type         "EXTERNE".typeinquire,
+    _period       timestamp,
+    _status       "EXTERNE".etatinq,
+    _description  text
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -2448,13 +2447,12 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "EMIR".PContenuColis_EVA(_idorg "SCA".idorg)
 RETURNS TABLE (
     _idpcontenu "SCA".idpcontenu,
-    _idorg "SCA".idOrg,
     _idpcolis "EXTERNE".Idpcolis,
     _idplot "EXTERNE".Idplot,
     _date_maj DATE
 ) AS $$
 BEGIN
-    RETURN QUERY SELECT idpcontenu, idorg, idpcolis, idplot, date_maj FROM "EXTERNE".ContenuColis where idorg = _idorg;
+    RETURN QUERY SELECT idpcontenu, idpcolis, idplot, date_maj FROM "EXTERNE".ContenuColis where idorg = _idorg;
 END;
 $$ LANGUAGE plpgsql;
 
