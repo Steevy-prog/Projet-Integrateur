@@ -314,3 +314,22 @@ BEGIN
         END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "CREDENTIALS".connexion_travailleur(
+    _username TEXT,
+    _ancien_mot_de_passe TEXT
+)
+RETURNS TEXT AS $$
+DECLARE
+    v_poste TEXT;
+BEGIN
+    SELECT t.poste INTO v_poste
+    FROM "SCA".Utilisateur u
+    JOIN "CREDENTIALS".Credentials c ON u.idutilisateur = c.idutilisateur
+    JOIN "SCA".Travailleur t ON t.idutilisateur = u.idutilisateur
+    WHERE u.username = _username
+      AND c.mot_de_passe_hash = encode(digest(_ancien_mot_de_passe, 'sha256'), 'hex');
+
+    RETURN v_poste;
+END;
+$$ LANGUAGE plpgsql;
