@@ -1027,7 +1027,8 @@ class DatabaseMaintenancePage(QWidget):
             QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
             return
         
-        
+        QMessageBox.information(self, "Query", "Query is executing.")
+
         self.results_table.clearContents()
         self.results_table.setRowCount(0)
         self.results_table.setColumnCount(0)
