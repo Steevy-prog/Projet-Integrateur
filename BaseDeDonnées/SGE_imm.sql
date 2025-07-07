@@ -2277,11 +2277,11 @@ end; $$ language plpgsql;
 
 -- 21. UTILISATEUR
 create or replace procedure "EMIR".Utilisateur_RET(
-    _idutilisateur "SCA".idutilisateur
+    _username "SCA".username
 )
 as $$
 begin
-    delete from "SCA".Utilisateur where idutilisateur = _idutilisateur;
+    delete from "SCA".Utilisateur where username = _username;
 end; $$ language plpgsql;
 
 -- 22. LOTEMBALLAGE
