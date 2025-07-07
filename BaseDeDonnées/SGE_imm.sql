@@ -2877,14 +2877,14 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Travailleur (manque competences)
 CREATE OR REPLACE FUNCTION "EMIR".Travailleur_EVA()
 RETURNS TABLE (
-    idtravailleur "SCA".idtravailleur,
-    idutilisateur "SCA".idutilisateur,
-    date_embauche DATE,
-    poste "SCA".Nom,
-    departement "SCA".Nom,
-    salaire_horaire DECIMAL(10,2),
-    statut "SCA".statut_travailleur,
-    date_derniere_evaluation DATE
+    _idtravailleur "SCA".idtravailleur,
+    _idutilisateur "SCA".idutilisateur,
+    _date_embauche DATE,
+    _poste "SCA".Nom,
+    _departement "SCA".Nom,
+    _salaire_horaire DECIMAL(10,2),
+    _statut "SCA".statut_travailleur,
+    _date_derniere_evaluation DATE
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idtravailleur, idutilisateur, date_embauche, poste, departement, salaire_horaire, statut, date_derniere_evaluation FROM "SCA".Travailleur;
