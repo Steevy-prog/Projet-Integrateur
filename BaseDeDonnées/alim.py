@@ -22,6 +22,13 @@ global conn
 print("1. online")
 print("2. offline")
 it = input("Enter the number of bd you want to use : ")
+if it == '0':
+    conn = psycopg2.connect(
+        host = "dpg-d1b612gdl3ps73eapfr0-a.oregon-postgres.render.com",
+        database = "test_bpdd",
+        user = "test",
+        password = "w95g3tjqj0S9DLwNiaFEMb1SACWuuIjh",
+        port = 5432)
 
 if it == '1':
     print("You have chosen the online database.")
