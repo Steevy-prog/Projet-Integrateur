@@ -107,24 +107,24 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                query = f"SELECT nom, prenom, username, email, niveau_acces, idutilisateur FROM \"EMIR\".lister_utilisateurs()"
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                cursor.close()
-                self.db_connection.commit()
-                employee_data = []
-                for row in rows:
-                    employee = {
-                        "first_name": row[0],
-                        "last_name": row[1],
-                        "username": row[2],
-                        "email": row[3],
-                        "access_level": row[4],
-                        "id": row[5]
-                    }
-                    employee_data.append(employee)
+            
+            cursor = self.db_connection.cursor()
+            query = f"SELECT nom, prenom, username, email, niveau_acces, idutilisateur FROM \"EMIR\".lister_utilisateurs()"
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            cursor.close()
+            self.db_connection.commit()
+            employee_data = []
+            for row in rows:
+                employee = {
+                    "first_name": row[0],
+                    "last_name": row[1],
+                    "username": row[2],
+                    "email": row[3],
+                    "access_level": row[4],
+                    "id": row[5]
+                }
+                employee_data.append(employee)
                 return employee_data
         except Error as e:
             QMessageBox.warning(self,"Error", f"Error extracting user data: {e}")
@@ -157,22 +157,22 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
+            
+            cursor = self.db_connection.cursor()
+            query = "SELECT id, first_name, last_name FROM \"EMIR\".getnameandid()"
+            cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            data = []
+            self.create_data = []
+            if results:   
+                for result in results:
+                    line = f"{result[1]} {result[2]} {result[0]}"
+                    self.create_data.append(line)
+                    data.append(f"{result[1]} {result[2]}")
+                return data
             else:
-                cursor = self.db_connection.cursor()
-                query = "SELECT id, first_name, last_name FROM \"EMIR\".getnameandid()"
-                cursor.execute(query)
-                results = cursor.fetchall()
-                cursor.close()
-                data = []
-                self.create_data = []
-                if results:   
-                    for result in results:
-                        line = f"{result[1]} {result[2]} {result[0]}"
-                        self.create_data.append(line)
-                        data.append(f"{result[1]} {result[2]}")
-                    return data
-                else:
-                    return []
+                return []
         except Exception as e:
             self.db_connection.rollback()
             if cursor:
@@ -190,6 +190,8 @@ class AccountSettingsPage(QWidget):
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
         self.individual_combobox = QComboBox()
+        self.individual_combobox.addItem("My God")
+        self.individual_combobox.currentIndexChanged[int].connect(self.initial_create)
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
         
@@ -205,7 +207,16 @@ class AccountSettingsPage(QWidget):
         
         return frame
         
-        
+    def initial_create(self):
+        text = self.individual_combobox.currentText().strip()
+        first_name = text.split(' ')[0]
+        last_name = text.split(' ')[1]
+        self.create_first_name_input.setText(first_name)
+        self.create_last_name_input.setText(last_name)
+        self.create_first_name_input.setReadOnly(True)
+        self.create_last_name_input.setReadOnly(True)
+
+
     def _create_employee_list_section(self):
         frame = QFrame()
         frame.setObjectName("sectionFrame")
@@ -272,17 +283,17 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
+
+            cursor = self.db_connection.cursor()
+            query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
+            cursor.execute(query, (username,))
+            result = cursor.fetchone()
+            self.db_connection.commit()
+            cursor.close()
+            if result:
+                return True
             else:
-                cursor = self.db_connection.cursor()
-                query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
-                cursor.execute(query, (username,))
-                result = cursor.fetchone()
-                self.db_connection.commit()
-                cursor.close()
-                if result:
-                    return True
-                else:
-                    return False
+                return False
         except Exception as e:
             self.db_connection.rollback()
             if cursor:
@@ -296,13 +307,13 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                insert_query = f"SELECT \"EMIR\".inscrire_utilisateur (%s, %s, %s, %s, %s, %s, %s);"
-                cursor.execute(insert_query, (id, username, access_level, first_name, last_name, email, password,))
-                self.db_connection.commit()
-                self.state = True
-                cursor.close()
+        
+            cursor = self.db_connection.cursor()
+            insert_query = f"SELECT \"EMIR\".inscrire_utilisateur (%s, %s, %s, %s, %s, %s, %s);"
+            cursor.execute(insert_query, (id, username, access_level, first_name, last_name, email, password,))
+            self.db_connection.commit()
+            self.state = True
+            cursor.close()
         except Exception as e:
             self.db_connection.rollback()
             if cursor:
@@ -316,19 +327,19 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                update_query = f"""
-                    CALL "EMIR".NModifier_utilisateur(
-                usernameanc    => %s,
-                usernamenouv   => %s,
-                _email          => %s,
-                _niveau_acces  => %s,
-                """
-                cursor.execute(update_query, (original_username, username, email, access_level,))
-                self.db_connection.commit()
-                cursor.close()
-                QMessageBox.information(f"Employee {username} updated successfully.")
+            
+            cursor = self.db_connection.cursor()
+            update_query = f"""
+                CALL "EMIR".NModifier_utilisateur(
+            usernameanc    => %s,
+            usernamenouv   => %s,
+            _email          => %s,
+            _niveau_acces  => %s,
+            """
+            cursor.execute(update_query, (original_username, username, email, access_level,))
+            self.db_connection.commit()
+            cursor.close()
+            QMessageBox.information(f"Employee {username} updated successfully.")
         except Error as e:
             self.db_connection.rollback()
             if cursor:
@@ -361,13 +372,13 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                delete_query = f"SELECT \"EMIR\".Utilisateur_RET(%s);"
-                cursor.execute(delete_query, (username,))
-                self.db_connection.commit()
-                cursor.close()
-                return True
+            
+            cursor = self.db_connection.cursor()
+            delete_query = f"SELECT \"EMIR\".Utilisateur_RET(%s);"
+            cursor.execute(delete_query, (username,))
+            self.db_connection.commit()
+            cursor.close()
+            return True
         except Error as e:
             self.db_connection.rollback()
             if cursor:
@@ -426,7 +437,9 @@ class AccountSettingsPage(QWidget):
         form_layout.setSpacing(10)
 
         self.create_first_name_input = QLineEdit()
+        self.create_first_name_input.setReadOnly(False)
         self.create_last_name_input = QLineEdit()
+        self.create_last_name_input.setReadOnly(False)
         self.create_username_input = QLineEdit()
         self.create_email_input = QLineEdit()
         self.create_access_level_combobox = QComboBox()
@@ -610,21 +623,21 @@ class AccountSettingsPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE setting_group = 'password_policy';"
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                self.db_connection.commit()
-                cursor.close()
-                loaded_settings = {row[0]: row[1] for row in rows}
-                self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
-                self.password_policy["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
-                self.password_policy["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
-                self.password_policy["require_number"] = (loaded_settings.get("require_number", "True") == "True")
-                self.password_policy["require_special"] = (loaded_settings.get("require_special", "True") == "True")
-                self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
-                self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+            
+            cursor = self.db_connection.cursor()
+            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'password_policy';"
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            self.db_connection.commit()
+            cursor.close()
+            loaded_settings = {row[0]: row[1] for row in rows}
+            self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
+            self.password_policy["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+            self.password_policy["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+            self.password_policy["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+            self.password_policy["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+            self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+            self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
         except Error as e:
             self.db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
@@ -1008,6 +1021,7 @@ class DatabaseMaintenancePage(QWidget):
         main_layout.addWidget(scroll_area)
 
     def _execute_sql_query(self):
+        self.results_message_text.setText("Executing query...")
         query = self.query_text_edit.toPlainText().strip()
         if not query:
             QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
@@ -1022,25 +1036,25 @@ class DatabaseMaintenancePage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
+        
+            cursor = self.db_connection.cursor()
+            cursor.execute(query)
+            if cursor.description:
+                column_names = [desc[0] for desc in cursor.description]
+                self.results_table.setColumnCount(len(column_names))
+                self.results_table.setHorizontalHeaderLabels(column_names)
+                rows = cursor.fetchall()
+                self.results_table.setRowCount(len(rows))
+                for row_idx, row_data in enumerate(rows):
+                    for col_idx, item in enumerate(row_data):
+                        self.results_table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+                self.db_connection.commit()
+                self.results_message_text.setText(f"Query executed successfully. Fetched {len(rows)} rows.")
             else:
-                cursor = self.db_connection.cursor()
-                cursor.execute(query)
-                if cursor.description:
-                    column_names = [desc[0] for desc in cursor.description]
-                    self.results_table.setColumnCount(len(column_names))
-                    self.results_table.setHorizontalHeaderLabels(column_names)
-                    rows = cursor.fetchall()
-                    self.results_table.setRowCount(len(rows))
-                    for row_idx, row_data in enumerate(rows):
-                        for col_idx, item in enumerate(row_data):
-                            self.results_table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
-                    self.db_connection.commit()
-                    self.results_message_text.setText(f"Query executed successfully. Fetched {len(rows)} rows.")
-                else:
-                    row_count = cursor.rowcount
-                    self.db_connection.commit()
-                    self.results_message_text.setText(f"Query executed successfully. Affected {row_count} rows.")
-                cursor.close()
+                row_count = cursor.rowcount
+                self.db_connection.commit()
+                self.results_message_text.setText(f"Query executed successfully. Affected {row_count} rows.")
+            cursor.close()
         except Error as e:
             self.db_connection.rollback()
             error_message = f"Database Error: {e}"
@@ -1141,27 +1155,27 @@ class SecuritySettingPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE setting_group = 'password_policy';"
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                self.db_connection.commit()
-                loaded_settings = {row[0]: row[1] for row in rows}
-                self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
-                self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
-                self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
-                self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
-                self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
-                self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
-                self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
-                self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
-                self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
-                self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
-                self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
-                self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
-                self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
-                self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
+        
+            cursor = self.db_connection.cursor()
+            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'password_policy';"
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            self.db_connection.commit()
+            loaded_settings = {row[0]: row[1] for row in rows}
+            self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
+            self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+            self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+            self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+            self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+            self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+            self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+            self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
+            self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
+            self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
+            self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
+            self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
+            self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
+            self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
         except Error as e:
             self.db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
@@ -1187,17 +1201,17 @@ class SecuritySettingPage(QWidget):
             if not self.db_connection:
                 self.connection_info = Connection.connection()
                 self.db_connection = self.connection_info['db_connection']
-            else:
-                cursor = self.db_connection.cursor()
-                for setting_name, value in self.password_policy_settings.items():
-                    setting_value_str = str(value)
-                    query = """
-                        CALL "EMIR".PasswordPolicies_INS('password_policy', %s, %s)
-                    """
-                    cursor.execute(query, (setting_name, setting_value_str))
-                self.db_connection.commit()
-                QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
-                print("Password policy saved to database.")
+            
+            cursor = self.db_connection.cursor()
+            for setting_name, value in self.password_policy_settings.items():
+                setting_value_str = str(value)
+                query = """
+                    CALL "EMIR".PasswordPolicies_INS('password_policy', %s, %s)
+                """
+                cursor.execute(query, (setting_name, setting_value_str))
+            self.db_connection.commit()
+            QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
+            print("Password policy saved to database.")
         except Error as e:
             self.db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")

@@ -1734,19 +1734,20 @@ begin
 end; $$ language plpgsql;
 
 -- 6. BONEXPEDITION
-create or replace function "EMIR".Bonexpedition_EVA()
-    returns table (
-                      idbonexpedition "SCA".Bonexped,
-                      idcolis "SCA".Idcolis,
-                      idtransporteur "SCA".idconducteur,
-                      date_creation date,
-                      iddestinataire "SCA".idOrg,
-                      statut "SCA".etat,
-                      remarques text
-                  ) as $$
-begin
-    return query select idbonexpedition, idcolis,idtransporteur, date_creation, iddestinataire, statut, remarques from "SCA".Bonexpedition;
-end; $$ language plpgsql;
+
+-- create or replace function "EMIR".Bonexpedition_EVA()
+--     returns table (
+--                       idbonexpedition "SCA".Bonexped,
+--                       idcolis "SCA".Idcolis,
+--                       idtransporteur "SCA".idconducteur,
+--                       date_creation date,
+--                       iddestinataire "SCA".idOrg,
+--                       statut "SCA".etat,
+--                       remarques text
+--                   ) as $$
+-- begin
+--     return query select idbonexpedition, idcolis,idtransporteur, date_creation, iddestinataire, statut, remarques from "SCA".Bonexpedition;
+-- end; $$ language plpgsql;
 
 -- 7. INDIVIDU
 create or replace function "EMIR".Individu_EVA()
@@ -2052,9 +2053,9 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".PasswordPolicies_EVA()
 RETURNS TABLE (
-    setting_name VARCHAR,
-    setting_value VARCHAR,
-    setting_group VARCHAR,
+    _setting_name VARCHAR,
+    _setting_value VARCHAR,
+    _setting_group VARCHAR,
     description VARCHAR
 ) AS $$
 BEGIN

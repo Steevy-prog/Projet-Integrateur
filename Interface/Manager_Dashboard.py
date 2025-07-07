@@ -35,32 +35,43 @@ import datetime
 import random
 import psycopg2
 
+from db_connection import ConnectionDB
+
+Connection = ConnectionDB()
+
 idorg = 'OABCDE'
 
-global conn
-print("1. online")
-print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# global conn
+# print("1. online")
+# print("2. offline")
+# it = input("Enter the number of bd you want to use : ")
 
-if it == '1':
-    print("You have chosen the online database.")
-    conn = psycopg2.connect(
-        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-        database="projet_integrateur",
-        user="group13",
-        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-        port=5432
-    )
-elif it == '2':
-    print("You have chosen the offline database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="USER",
-        user="postgres",
-        password="steevy",
-        port=5432
-    )
-cur=conn.cursor()
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="USER",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
+# cur=conn.cursor()
+
+db_connection = None
+if not db_connection:
+                connection_info = Connection.connection()
+                db_connection = connection_info['db_connection']
+
+
 cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
