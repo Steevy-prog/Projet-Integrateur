@@ -434,26 +434,26 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY _timestamp;")  # Assuming a 'logs' table
+                logs = cursor.fetchall()
+                self.db_connection.commit()
+                self.terminal_output.append("\n--- ALl System Logs ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
                 else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY _timestamp;")  # Assuming a 'logs' table
-                    logs = cursor.fetchall()
-                    self.db_connection.commit()
-                    self.terminal_output.append("\n--- ALl System Logs ---")
-                    if logs:
-                        for log in logs:
-                            self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
-                    else:
-                        self.terminal_output.append("No logs found.")
-                    self.terminal_output.append("-------------------\n")
-                    if logs:
-                        reply = QMessageBox.question(self,'Report Suggestion',
-                            f"Do you want a report document of these logs?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.No
-                                            )
-                        if reply == QMessageBox.StandardButton.Yes:
-                            self.generate_logs_report(logs)
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                        )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
             except Error as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
@@ -467,25 +467,25 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_getlower('{date}':: timestamp)")
+                logs = cursor.fetchall()
+                self.terminal_output.append(f"\n--- System Logs before {date} ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
                 else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_getlower('{date}':: timestamp)")
-                    logs = cursor.fetchall()
-                    self.terminal_output.append(f"\n--- System Logs before {date} ---")
-                    if logs:
-                        for log in logs:
-                            self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
-                    else:
-                        self.terminal_output.append("No logs found.")
-                    self.terminal_output.append("-------------------\n")
-                    if logs:
-                        reply = QMessageBox.question(self,'Report Suggestion',
-                            f"Do you want a report document of these logs?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.No
-                                            )
-                        if reply == QMessageBox.StandardButton.Yes:
-                            self.generate_logs_report(logs)
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                        )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
             except Exception as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
@@ -501,26 +501,26 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_gethigher('{date}':: timestamp)")
+                logs = cursor.fetchall()
+                self.db_connection.commit()
+                self.terminal_output.append(f"\n--- System Logs after {date} ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
                 else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_gethigher('{date}':: timestamp)")
-                    logs = cursor.fetchall()
-                    self.db_connection.commit()
-                    self.terminal_output.append(f"\n--- System Logs after {date} ---")
-                    if logs:
-                        for log in logs:
-                            self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
-                    else:
-                        self.terminal_output.append("No logs found.")
-                    self.terminal_output.append("-------------------\n")
-                    if logs:
-                        reply = QMessageBox.question(self,'Report Suggestion',
-                            f"Do you want a report document of these logs?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.No
-                                            )
-                        if reply == QMessageBox.StandardButton.Yes:
-                            self.generate_logs_report(logs)
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                        )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
             except Error as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
@@ -537,26 +537,26 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_get('{date_1}':: timestamp, '{date_2}':: timestamp)")
+                logs = cursor.fetchall()
+                self.db_connection.commit()
+                self.terminal_output.append(f"\n--- System Logs between {date_1} and {date_2} ---")
+                if logs:
+                    for log in logs:
+                        self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
                 else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_get('{date_1}':: timestamp, '{date_2}':: timestamp)")
-                    logs = cursor.fetchall()
-                    self.db_connection.commit()
-                    self.terminal_output.append(f"\n--- System Logs between {date_1} and {date_2} ---")
-                    if logs:
-                        for log in logs:
-                            self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
-                    else:
-                        self.terminal_output.append("No logs found.")
-                    self.terminal_output.append("-------------------\n")
-                    if logs:
-                        reply = QMessageBox.question(self,'Report Suggestion',
-                            f"Do you want a report document of these logs?",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                            QMessageBox.StandardButton.No
-                                            )
-                        if reply == QMessageBox.StandardButton.Yes:
-                            self.generate_logs_report(logs)
+                    self.terminal_output.append("No logs found.")
+                self.terminal_output.append("-------------------\n")
+                if logs:
+                    reply = QMessageBox.question(self,'Report Suggestion',
+                        f"Do you want a report document of these logs?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                                        )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.generate_logs_report(logs)
             except Error as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error retrieving logs: {e}")
@@ -623,12 +623,12 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
-                else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT \"EMIR\".produitsnum();") # Assuming a 'products' table
-                    count = cursor.fetchone()[0]
-                    self.db_connection.commit()
-                    self.terminal_output.append(f"Number of products in stock: {count}")
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute("SELECT \"EMIR\".produitsnum();") # Assuming a 'products' table
+                count = cursor.fetchone()[0]
+                self.db_connection.commit()
+                self.terminal_output.append(f"Number of products in stock: {count}")
             except Error as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error counting products: {e}")
@@ -643,12 +643,12 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
-                else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT \"EMIR\".CompterUtilisateurs()") # Assuming a 'users' table
-                    count = cursor.fetchone()[0]
-                    self.db_connection.commit()
-                    self.terminal_output.append(f"Number of users: {count}")
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute("SELECT \"EMIR\".CompterUtilisateurs()") # Assuming a 'users' table
+                count = cursor.fetchone()[0]
+                self.db_connection.commit()
+                self.terminal_output.append(f"Number of users: {count}")
             except Error as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error counting users: {e}")
@@ -663,23 +663,23 @@ class TerminalPage(QWidget):
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
-                else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT _idproduit, _nom, _prix_unitaire FROM \"EMIR\".ProduitInfoBasique_EVA()") # Assuming 'products' table
-                    products = cursor.fetchall()
-                    self.db_connection.commit()
-                    self.terminal_output.append("\n--- Products in Stock ---")
-                    if products:
-                        for product in products:
-                            self.terminal_output.append(f"""
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute("SELECT _idproduit, _nom, _prix_unitaire FROM \"EMIR\".ProduitInfoBasique_EVA()") # Assuming 'products' table
+                products = cursor.fetchall()
+                self.db_connection.commit()
+                self.terminal_output.append("\n--- Products in Stock ---")
+                if products:
+                    for product in products:
+                        self.terminal_output.append(f"""
 ID: {product[0]},
 Name: {product[1]},
 Unit Price: {product[2]}
 {'*' * 100}
 """)
-                    else:
-                        self.terminal_output.append("No products found.")
-                    self.terminal_output.append("---------------------------\n")
+                else:
+                    self.terminal_output.append("No products found.")
+                self.terminal_output.append("---------------------------\n")
             except Error as e:    
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error listing products: {e}")
@@ -694,25 +694,25 @@ Unit Price: {product[2]}
                 if not self.db_connection:
                     self.connection_info = Connection.connection()
                     self.db_connection = self.connection_info['db_connection']
-                else:
-                    cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"SCA\".UtilisateursComplets") # Assuming 'users' table
-                    users = cursor.fetchall()
-                    self.db_connection.commit()
-                    self.terminal_output.append("\n--- Users List ---")
-                    if users:
-                        for user_data in users:
-                            self.terminal_output.append(f"""
+            
+                cursor = self.db_connection.cursor()
+                cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"SCA\".UtilisateursComplets") # Assuming 'users' table
+                users = cursor.fetchall()
+                self.db_connection.commit()
+                self.terminal_output.append("\n--- Users List ---")
+                if users:
+                    for user_data in users:
+                        self.terminal_output.append(f"""
 first_name: {user_data[0]}, 
 Last_name: {user_data[3]}
 Address: {user_data[1]},
 Phone: {user_data[2]}
 {'*' * 100}
 """)
-                    else:
-                        self.terminal_output.append("No users found.")
-                    self.terminal_output.append("-------------------\n")
-                    cursor.close()
+                else:
+                    self.terminal_output.append("No users found.")
+                self.terminal_output.append("-------------------\n")
+                cursor.close()
             except Error as e:
                 self.db_connection.rollback()
                 self.terminal_output.append(f"Error listing users: {e}")

@@ -134,8 +134,8 @@ class AccountSettingsPage(QWidget):
             return []
     
     def refresh_individual_list(self):
-        self.combobox_refresh_button.setEnabled(False)
         try:
+            self.combobox_refresh_button.setEnabled(False)
             self.combobox_refresh_button.setText("Loading...")
             data_set  = self.get_individual_data()
             self.individual_combobox.clear()
@@ -1026,8 +1026,6 @@ class DatabaseMaintenancePage(QWidget):
         if not query:
             QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
             return
-        
-        QMessageBox.information(self, "Query", "Query is executing.")
 
         self.results_table.clearContents()
         self.results_table.setRowCount(0)
