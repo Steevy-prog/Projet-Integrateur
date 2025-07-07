@@ -645,7 +645,7 @@ class TerminalPage(QWidget):
                     self.db_connection = self.connection_info['db_connection']
                 else:
                     cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM \"SCA\".individu;") # Assuming a 'users' table
+                    cursor.execute("SELECT \"EMIR\".CompterUtilisateurs()") # Assuming a 'users' table
                     count = cursor.fetchone()[0]
                     self.db_connection.commit()
                     self.terminal_output.append(f"Number of users: {count}")
@@ -665,7 +665,7 @@ class TerminalPage(QWidget):
                     self.db_connection = self.connection_info['db_connection']
                 else:
                     cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT idproduit, nom, prix_unitaire FROM \"SCA\".Produit;") # Assuming 'products' table
+                    cursor.execute("SELECT idproduit, nom, prix_unitaire FROM \"EMIR\".ProduitInfoBasique_EVA()") # Assuming 'products' table
                     products = cursor.fetchall()
                     self.db_connection.commit()
                     self.terminal_output.append("\n--- Products in Stock ---")
@@ -696,7 +696,7 @@ Unit Price: {product[2]}
                     self.db_connection = self.connection_info['db_connection']
                 else:
                     cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"SCA\".individu;") # Assuming 'users' table
+                    cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"EMIR\".IndividuInfoBasique_EVA()") # Assuming 'users' table
                     users = cursor.fetchall()
                     self.db_connection.commit()
                     self.terminal_output.append("\n--- Users List ---")

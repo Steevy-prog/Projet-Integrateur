@@ -363,8 +363,8 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             else:
                 cursor = self.db_connection.cursor()
-                delete_query = f"SELECT \"EMIR\".Utilisateur_RET({username});"
-                cursor.execute(delete_query)
+                delete_query = f"SELECT \"EMIR\".Utilisateur_RET(%s);"
+                cursor.execute(delete_query, (username,))
                 self.db_connection.commit()
                 cursor.close()
                 return True

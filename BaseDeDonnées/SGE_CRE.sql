@@ -238,7 +238,7 @@ CREATE TABLE "SCA".Utilisateur(
   date_inscription TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_derniere_connexion TIMESTAMP,
   statut "SCA".statut_utilisateur DEFAULT 'en attente_validation',
-  niveau_acces "SCA".niveau_acces DEFAULT 'employe',
+  niveau_acces "SCA".niveau_acces DEFAULT 'employee',
   CONSTRAINT Utilisateur_CC0 PRIMARY KEY (idutilisateur),
   CONSTRAINT Utilisateur_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE
 );
