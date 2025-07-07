@@ -49,9 +49,11 @@ from db_connection import ConnectionDB
 
 
 Connection = ConnectionDB()
-Connection_info = Connection.
+Connection_info = Connection.connection()
 
-cur = conn.cursor()
+db_connection = Connection_info['db_connection']
+
+cur = db_connection.cursor()
 
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
@@ -81,6 +83,8 @@ class LogisticsData:
     """Data generator and manager for logistics operations"""
     
     def __init__(self):
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
     def generate_sample_data(self):
         self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva'])
@@ -99,6 +103,10 @@ class LogisticsData:
             'Order_Fulfillment_Rate': np.random.uniform(85, 99, len(dates))
         })
 
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
 
         #reports
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
@@ -234,6 +242,7 @@ class PerformanceWidget(QWidget):
 
     def __init__(self, data):
         super().__init__()
+
         self.data = data
         self.init_ui()
 
@@ -474,6 +483,9 @@ class LogisticsOverviewWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
     
     def init_ui(self):
@@ -513,6 +525,11 @@ class LogisticsOverviewWidget(QWidget):
         header_layout.addWidget(refresh_btn)
         
         # Metrics cards
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
+        cur = self.db_connection.cursor()
         metrics_layout = QHBoxLayout()
         cur.execute("SELECT \"EMIR\".entransit()")
         cmd_en_transit = cur.fetchone()[0]

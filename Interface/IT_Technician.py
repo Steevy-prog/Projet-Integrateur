@@ -625,7 +625,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             
             cursor = self.db_connection.cursor()
-            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'password_policy';"
+            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'Default-Strong';"
             cursor.execute(query)
             rows = cursor.fetchall()
             self.db_connection.commit()
@@ -1157,7 +1157,7 @@ class SecuritySettingPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
         
             cursor = self.db_connection.cursor()
-            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'password_policy';"
+            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'Default-Strong';"
             cursor.execute(query)
             rows = cursor.fetchall()
             self.db_connection.commit()
@@ -1206,7 +1206,7 @@ class SecuritySettingPage(QWidget):
             for setting_name, value in self.password_policy_settings.items():
                 setting_value_str = str(value)
                 query = """
-                    CALL "EMIR".PasswordPolicies_INS('password_policy', %s, %s)
+                    CALL "EMIR".PasswordPolicies_INS('Default-Strong', %s, %s)
                 """
                 cursor.execute(query, (setting_name, setting_value_str))
             self.db_connection.commit()
