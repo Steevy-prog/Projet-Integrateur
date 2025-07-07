@@ -18,6 +18,7 @@ import random
 import psycopg2
 
 idorg = 'OABCDE'
+
 global conn
 print("1. online")
 print("2. offline")
@@ -38,7 +39,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="steevy",
+        password="1234",
         port=5432
     )
 
@@ -96,10 +97,10 @@ class WarehouseData:
                     ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
                     ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
                 ],
-                columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category']
+                columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
         
         for product in self.products_df.itertuples():
             print(f"Product ID: {product.ID}, Name: {product.Name}")
@@ -1007,7 +1008,7 @@ class MenuExpedition(QWidget):
         layout.addWidget(bouton, alignment=Qt.AlignmentFlag.AlignCenter) # Center the button
         layout.addStretch() # Push content to top
 
-    def clear_layout(self, layout):
+    def clear_layout(self: 'MenuExpedition', layout):
         if layout is not None:
             while layout.count():
                 item = layout.takeAt(0)
@@ -1296,14 +1297,27 @@ class ReceptionOrderCard(QFrame):
         layout.addLayout(button_layout)
         layout.addStretch()
 
+    def get_menu_reception_parent(self):
+        """Helper to find the MenuReception parent widget."""
+        parent_widget = self.parentWidget()
+        while parent_widget is not None:
+            if isinstance(parent_widget, MenuReception):
+                return parent_widget
+            parent_widget = parent_widget.parentWidget()
+        return None
+
     def show_details(self):
         dialog = ProductDetailDialog(self.order_data, self)
-        dialog.product_validated.connect(self.parent().parent().parent().handle_order_validated) # Connect to MenuReception's handler
-        dialog.product_refused.connect(self.parent().parent().parent().handle_order_refused)   # Connect to MenuReception's handler
+        menu_reception_widget = self.get_menu_reception_parent()
+        if menu_reception_widget:
+            dialog.product_validated.connect(menu_reception_widget.handle_order_validated)
+            dialog.product_refused.connect(menu_reception_widget.handle_order_refused)
+        else:
+            QMessageBox.warning(self, "Error", "Could not find parent MenuReception widget to connect signals.")
         dialog.exec()
 
     def validate_order(self):
-        menu_reception_widget = self.parent().parent().parent()
+        menu_reception_widget = self.get_menu_reception_parent()
         if isinstance(menu_reception_widget, MenuReception):
             menu_reception_widget.validate_order(self.order_data['Order_ID'])
             self.deleteLater() # Remove card after action
@@ -1311,7 +1325,7 @@ class ReceptionOrderCard(QFrame):
             QMessageBox.warning(self, "Error", "Could not find parent MenuReception widget.")
 
     def refuse_order(self):
-        menu_reception_widget = self.parent().parent().parent()
+        menu_reception_widget = self.get_menu_reception_parent()
         if isinstance(menu_reception_widget, MenuReception):
             menu_reception_widget.refuse_order(self.order_data['Order_ID'])
             self.deleteLater() # Remove card after action

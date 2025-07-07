@@ -9,9 +9,9 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QSpacerItem, QGridLayout, QMessageBox, QComboBox, QStackedWidget,
     QTableWidgetItem, QTableWidget, QHeaderView, QTextEdit, QSplitter, QSpinBox,
     QAbstractItemView, QGroupBox, QListWidget, QListWidgetItem, QRadioButton, QDoubleSpinBox, QButtonGroup, QStyle,
-    QDialog
+    QDialog,QDateEdit
 )
-from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QDate
 from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
@@ -50,6 +50,17 @@ elif it == '2':
         password="steevy",
         port=5432
     )
+
+elif it == '3':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="Projet",
+        user="postgres",
+        password="Lune.Hatik123",
+        port=5432
+    )
+
 
 cur = conn.cursor()
 
@@ -1200,6 +1211,7 @@ class ClientLogisticsWidget(QWidget):
         self.clear_package_rows()
 
 
+
     def create_send_section(self, name):
         section = QFrame()
         section.setStyleSheet("""
@@ -1214,7 +1226,7 @@ class ClientLogisticsWidget(QWidget):
                 font-size: 16px;
                 color: #333;
             }
-            QLineEdit, QComboBox {
+            QLineEdit, QComboBox, QDateEdit { /* Ensure QDateEdit is styled */
                 padding: 15px;
                 border: 1px solid #CCCCCC;
                 border-radius: 5px;
@@ -1230,8 +1242,16 @@ class ClientLogisticsWidget(QWidget):
         layout.addWidget(title)
 
         form = QGridLayout()
-        self.transporting_org_combo = QComboBox()
+        # self.transporting_org_combo = QComboBox() # This combo box is declared but not used in the form layout
         self.receiving_org_combo = QComboBox()
+        
+        self.expedition_date_edit = QDateEdit()
+        # --- IMPORTANT: Configure QDateEdit for calendar popup ---
+        self.expedition_date_edit.setCalendarPopup(True) # This line enables the popup
+        self.expedition_date_edit.setDisplayFormat("yyyy-MM-dd") # Set your desired display format
+        self.expedition_date_edit.setDate(QDate.currentDate()) # Optional: Set initial date to today
+        # --------------------------------------------------------
+
         for org in orgs:
             if org[0] != client_org_id:
                 self.receiving_org_combo.addItem(org[1], org[0])
@@ -1245,11 +1265,14 @@ class ClientLogisticsWidget(QWidget):
         form.addWidget(self.receiving_org_combo, 0, 1)
         form.addWidget(QLabel("Choose a Package:"), 1, 0)
         form.addWidget(self.package_to_send_combo, 1, 1)
+        form.addWidget(QLabel("Expedition Date:"), 2, 0)
+        form.addWidget(self.expedition_date_edit, 2, 1) # <--- Ensure it's added to the layout
+        
         layout.addLayout(form)
 
-        # Apply styling to combos
+        # Apply styling to combos and QDateEdit
         combo_style = """
-            QComboBox {
+            QComboBox, QDateEdit {
                 background-color: #F0F2F5;
                 color: #333;
                 border: 1px solid #D0D0D0;
@@ -1262,14 +1285,45 @@ class ClientLogisticsWidget(QWidget):
                 width: 20px;
             }
             QComboBox::down-arrow {
-                image: url(icons/arrow_down.png);
+                /* If you don't want an image, you can remove this */
+                /* image: url(icons/arrow_down.png); */
                 width: 12px;
                 height: 12px;
             }
+
+            /* --- Specific Styling for QDateEdit Drop-down/Arrow WITHOUT IMAGE --- */
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 25px; /* Give enough width for the clickable area */
+                border-left: 1px solid #D0D0D0; /* Add a separator line */
+                border-top-right-radius: 6px;
+                border-bottom-right-radius: 6px;
+                background-color: #E0E2E5; /* Slightly darker background for the button part */
+            }
+
+            QDateEdit::down-arrow {
+                /* Remove the image line entirely */
+                /* image: url(icons/calendar_icon.png); */
+
+                /* Style to create a simple triangle arrow */
+                border: 4px solid transparent; /* Base for the triangle */
+                border-top-color: #555555; /* Color of the arrow itself */
+                width: 0px; /* Essential for border-based triangles */
+                height: 0px; /* Essential for border-based triangles */
+                margin-left: auto; /* Center the arrow horizontally */
+                margin-right: auto;
+            }
+            /* Optional: Hover effect for the drop-down area */
+            QDateEdit::drop-down:hover {
+                background-color: #D0D2D5;
+            }
         """
-        self.transporting_org_combo.setStyleSheet(combo_style)
+        self.expedition_date_edit.setStyleSheet(combo_style)
+        # self.transporting_org_combo.setStyleSheet(combo_style) # Not in layout
         self.receiving_org_combo.setStyleSheet(combo_style)
         self.package_to_send_combo.setStyleSheet(combo_style)
+        self.expedition_date_edit.setStyleSheet(combo_style) # Apply style to QDateEdit
 
         send_btn = QPushButton("Send Package")
         send_btn.setStyleSheet("""
@@ -1289,12 +1343,12 @@ class ClientLogisticsWidget(QWidget):
                 transform: translateY(-2px);
             }
         """)
-        send_btn.clicked.connect(self.send_package)
+        # Placeholder for send_package method
+        send_btn.clicked.connect(self.send_package) 
 
         layout.addWidget(send_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
         return section
-
 
     def send_package(self):
         receive_org_id = self.receiving_org_combo.currentData()
