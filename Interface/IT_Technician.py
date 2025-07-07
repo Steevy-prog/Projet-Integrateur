@@ -1258,6 +1258,7 @@ class MainWindow(QMainWindow):
             "SECURITY SETTINGS": SecuritySettingPage(),
             "TERMINAL": TerminalPage(), # Terminal Page
             "AUTOMATION": AutomationPage(),
+            
         }
         for i, (text, page_widget) in enumerate(nav_items_map.items()):
             self.pages.append(page_widget)
