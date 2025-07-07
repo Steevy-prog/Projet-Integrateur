@@ -3,11 +3,46 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QTableWidget, QTableWidgetItem, QTabWidget,
     QLabel, QMessageBox, QHeaderView, QFrame, QLineEdit,
-    QScrollArea, QSplitter, QStackedWidget, QSpacerItem, QSizePolicy
+    QScrollArea, QSplitter, QStackedWidget, QSpacerItem, QSizePolicy,QDialog
 )
 from PyQt6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QPainter, QColor, QBrush, QPen
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+class ConducteurSelectionDialog(QDialog):
+    def __init__(self, conducteurs, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Assigner un conducteur")
+        self.setModal(True)
+        self.selected_conducteur = None
+        
+        layout = QVBoxLayout(self)
+        
+        # Liste des conducteurs
+        self.liste_conducteurs = QListWidget()
+        for conducteur in conducteurs:
+            item = QListWidgetItem(f"{conducteur['prenom']} {conducteur['nom']} ({conducteur['vehicule']})")
+            item.setData(Qt.ItemDataRole.UserRole, conducteur)
+            self.liste_conducteurs.addItem(item)
+        
+        # Boutons
+        btn_layout = QHBoxLayout()
+        btn_assigner = QPushButton("Assigner")
+        btn_annuler = QPushButton("Annuler")
+        
+        btn_assigner.clicked.connect(self.accept_selection)
+        btn_annuler.clicked.connect(self.reject)
+        
+        btn_layout.addWidget(btn_assigner)
+        btn_layout.addWidget(btn_annuler)
+        
+        layout.addWidget(self.liste_conducteurs)
+        layout.addLayout(btn_layout)
+    
+    def accept_selection(self):
+        selected_item = self.liste_conducteurs.currentItem()
+        if selected_item:
+            self.selected_conducteur = selected_item.data(Qt.ItemDataRole.UserRole)
+            self.accept()
 
 class AnimatedButton(QPushButton):
     """Custom animated button with hover effects"""
@@ -189,11 +224,19 @@ class SideBar(QFrame):
         self.current_index = index
         self.navigation_changed.emit(index)
 
-class DriverApp(QWidget):
-    def __init__(self, driver_info):
+class DriverApp(QMainWindow):
+    def __init__(self):
         super().__init__()
-        self.driver_info = driver_info
-        self.setWindowTitle(f"DeliveryPro - {driver_info['prenom']} {driver_info['nom']}")
+        self.driver_info = {
+            "id_chauffeur": 1,
+            "nom": "Doe",
+            "prenom": "John",
+            "email": "john.doe@example.com",
+            "telephone": "+237677123456",
+            "vehicule": "Toyota Hilux"
+        }
+        
+        self.setWindowTitle(f"DeliveryPro - {self.driver_info['prenom']} {self.driver_info['nom']}")
         self.setGeometry(100, 100, 1400, 900)
 
         self.pending_deliveries_data = []
@@ -202,6 +245,8 @@ class DriverApp(QWidget):
         self.init_ui()
         self.apply_modern_styles()
         self.load_all_deliveries()
+        self.transporteurs_tab = self.create_transporteurs_tab()
+        self.content_stack.addWidget(self.transporteurs_tab)
 
     def load_simulated_data(self):
         self.pending_deliveries_data = [
@@ -251,7 +296,10 @@ class DriverApp(QWidget):
         ]
 
     def init_ui(self):
-        main_layout = QHBoxLayout(self)
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        main_layout = QHBoxLayout(central_widget)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -764,131 +812,142 @@ class DriverApp(QWidget):
                 color: #2d3748;
             }
         """)
-
-class LoginScreen(QWidget):
-    login_successful = pyqtSignal(dict)
-
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("DeliveryPro - Connexion")
-        self.setGeometry(500, 300, 400, 350)
-        self.init_ui()
-        self.apply_login_styles()
-
-    def init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(20)
-        layout.setContentsMargins(50, 50, 50, 50)
-
-        title = QLabel("🚚 DeliveryPro")
-        title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
-        title.setStyleSheet("color: #4f46e5;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    def create_transporteurs_tab(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # Titre section
+        title = QLabel("Colis à expédier")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px;")
         layout.addWidget(title)
-
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Nom d'utilisateur")
-        self.username_input.setMinimumHeight(40)
-        self.username_input.setFont(QFont("Segoe UI", 11))
-        layout.addWidget(self.username_input)
-
-        self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Mot de passe")
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setMinimumHeight(40)
-        self.password_input.setFont(QFont("Segoe UI", 11))
-        layout.addWidget(self.password_input)
-
-        login_button = QPushButton("Se connecter")
-        login_button.setMinimumHeight(45)
-        login_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        login_button.clicked.connect(self.attempt_login)
-        layout.addWidget(login_button)
-
-        layout.addStretch()
-
-    def apply_login_styles(self):
-        self.setStyleSheet("""
-            QWidget {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                                 stop:0 #a7bfe8, stop:1 #6190e8);
-                border-radius: 20px;
-            }
-            QLabel {
-                color: white;
-            }
-            QLineEdit {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 10px;
-                padding: 10px 15px;
-                color: #2d3748;
-            }
-            QLineEdit:focus {
-                border: 2px solid #4f46e5;
-            }
-            QPushButton {
-                background: #4f46e5;
-                color: white;
-                border: none;
-                border-radius: 12px;
-                padding: 12px 20px;
-                font-weight: 600;
-                letter-spacing: 1px;
-            }
-            QPushButton:hover {
-                background: #4338ca;
+        
+        # Scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        self.scroll_layout = QVBoxLayout(scroll_content)  # Garder une référence
+        
+        # Initialiser la liste des frames de colis
+        self.colis_frames = []
+        self.update_colis_frames()
+        
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
+        
+        return widget
+    
+    def update_colis_frames(self):
+        # Nettoyer les frames existantes
+        for i in reversed(range(self.scroll_layout.count())): 
+            widget = self.scroll_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        
+        self.colis_frames = []
+        
+        # Simuler des données de colis (remplacez par vos vraies données)
+        colis_data = [
+            {"id": "COL001", "destination": "Yaoundé", "date": "2023-12-15"},
+            {"id": "COL002", "destination": "Douala", "date": "2023-12-16"},
+            {"id": "COL003", "destination": "Bafoussam", "date": "2023-12-17"}
+        ]
+        
+        for colis in colis_data:
+            frame = self.create_colis_frame(colis)
+            self.scroll_layout.addWidget(frame)
+            self.colis_frames.append(frame)
+        
+        self.scroll_layout.addStretch()
+    
+    def create_colis_frame(self, colis):
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 5px;
+                border: 1px solid #e0e0e0;
+                padding: 10px;
             }
         """)
-
-    def attempt_login(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-
-        # Simulate a successful login with dummy data
-        if username == "driver" and password == "password":
-            driver_info = {
-                "id_chauffeur": 1,
-                "nom": "Doe",
-                "prenom": "John",
-                "email": "john.doe@example.com",
-                "telephone": "+237677123456",
-                "vehicule": "Toyota Hilux"
+        
+        layout = QHBoxLayout(frame)
+        
+        # Infos colis
+        info_layout = QVBoxLayout()
+        id_label = QLabel(f"ID: {colis['id']}")
+        dest_label = QLabel(f"Destination: {colis['destination']}")
+        date_label = QLabel(f"Date: {colis['date']}")
+        
+        for label in [id_label, dest_label, date_label]:
+            label.setStyleSheet("font-size: 12px; color: #555;")
+            info_layout.addWidget(label)
+        
+        layout.addLayout(info_layout)
+        layout.addStretch()
+        
+        # Bouton assigner
+        btn_assigner = QPushButton("Assigner")
+        btn_assigner.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 12px;
             }
-            self.login_successful.emit(driver_info)
-        else:
-            QMessageBox.warning(self, "Erreur de connexion", "Nom d'utilisateur ou mot de passe incorrect.")
+            QPushButton:hover {
+                background-color: #43A047;
+            }
+        """)
+        btn_assigner.clicked.connect(lambda _, c=colis: self.assigner_colis(c))
+        
+        layout.addWidget(btn_assigner)
+        return frame
+    
+    def assigner_colis(self, colis):
+        # Simuler une liste de conducteurs (remplacez par vos vraies données)
+        conducteurs = [
+            {"id": 1, "prenom": "Jean", "nom": "Dupont", "vehicule": "Toyota Hilux"},
+            {"id": 2, "prenom": "Marie", "nom": "Martin", "vehicule": "Hyundai Tucson"}
+        ]
+        
+        dialog = ConducteurSelectionDialog(conducteurs, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.selected_conducteur:
+            conducteur = dialog.selected_conducteur
+            QMessageBox.information(
+                self, 
+                "Assignation réussie",
+                f"Le colis {colis['id']} a été assigné à {conducteur['prenom']} {conducteur['nom']}"
+            )
+            
+            # 1. Faire disparaître la carte du colis de l'interface d'assignation
+            self.update_colis_frames()
+            
+            # 2. Ajouter le colis à l'interface du conducteur
+            self.ajouter_colis_conducteur(colis, conducteur)
+    
+    def ajouter_colis_conducteur(self, colis, conducteur):
+        # Trouver l'onglet du conducteur concerné
+        # (Adaptez cette partie à votre structure d'interface)
+        
+        # Exemple simplifié :
+        for idx in range(self.content_stack.count()):
+            widget = self.content_stack.widget(idx)
+            if hasattr(widget, 'conducteur_id') and widget.conducteur_id == conducteur['id']:
+                widget.ajouter_colis(colis)
+                break
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.current_app = None
-        self.show_login_screen()
 
-    def show_login_screen(self):
-        self.login_screen = LoginScreen()
-        self.setCentralWidget(self.login_screen)
-        self.login_screen.login_successful.connect(self.start_driver_app)
-        self.resize(self.login_screen.size()) # Adjust main window size to login screen
-
-    def start_driver_app(self, driver_info):
-        self.current_app = DriverApp(driver_info)
-        self.setCentralWidget(self.current_app)
-        self.current_app.showMaximized() # Maximize the window for the main app
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
-    # High-DPI scaling is often enabled by default in recent PyQt6 versions,
-    # so these lines are usually not needed and can cause an AttributeError.
-    # app.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
-    # app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
-
     # Set default font for better consistency
     font = QFont("Segoe UI", 10)
     app.setFont(font)
 
-    main_window = MainWindow()
-    main_window.show()
+    driver_app = DriverApp()
+    driver_app.showMaximized()
     sys.exit(app.exec())

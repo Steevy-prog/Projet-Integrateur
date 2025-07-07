@@ -843,28 +843,43 @@ class TransportManagementWidget(QWidget):
         return table
     
     def create_transporteurs_tab(self):
-        class data:
-            def __init__(self,date,receiving_org,id):
-                self.id = id
-                self.receiving_org = receiving_org
-                self.date = date
         widget = QWidget()
-        layout = QVBoxLayout(widget)
+        self.layout = QVBoxLayout(widget)  # Gardez une référence au layout principal
+        self.scroll_content = QWidget()    # Gardez une référence au contenu scrollable
+        self.scroll_layout = QVBoxLayout(self.scroll_content)  # Gardez une référence au layout des cartes
 
         # Titre section
         title = QLabel("Colis à expédier")
         title.setStyleSheet("font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px;")
-        layout.addWidget(title)
+        self.layout.addWidget(title)
 
         # Scroll area pour les frames
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(10)
+
+        # Initialiser la liste pour stocker les frames des colis
+        self.colis_frames = []
 
         # Création des frames pour chaque colis
+        self.update_colis_frames()
+
+        scroll.setWidget(self.scroll_content)
+        self.layout.addWidget(scroll)
+
+            return widget
+    
+        def update_colis_frames(self):
+        # Nettoyer le layout existant
+        for i in reversed(range(self.scroll_layout.count())): 
+            self.scroll_layout.itemAt(i).widget().setParent(None)
+        
+        self.colis_frames = []  # Réinitialiser la liste
+        
         for idx, (_, colis) in enumerate(self.data.expeditions_df.iterrows()):
+            # Ne pas afficher les colis déjà assignés
+            if pd.notna(colis['id_transporteur']):
+                continue
+                
             frame = QFrame()
             frame.setFrameShape(QFrame.Shape.StyledPanel)
             frame.setStyleSheet("""
@@ -875,28 +890,28 @@ class TransportManagementWidget(QWidget):
                     padding: 10px;
                 }
             """)
-
+            
             frame_layout = QHBoxLayout(frame)
-
+    
             # Infos colis
             info_layout = QVBoxLayout()
             info_layout.setSpacing(5)
-
+    
             id_label = QLabel(f"ID Colis: {colis['id_commande']}")
             dest_label = QLabel(f"Destination: {colis['destination']}")
             date_label = QLabel(f"Date expédition: {str(colis['date_expedition'])}")
-
+    
             for label in [id_label, dest_label, date_label]:
                 label.setStyleSheet("font-size: 12px; color: #555;")
                 info_layout.addWidget(label)
-
+    
             frame_layout.addLayout(info_layout)
             frame_layout.addStretch()
-
+    
             # Bouton assigner
             assign_btn = QPushButton("Assigner conducteur")
             assign_btn.setFixedWidth(150)
-            assign_btn.setProperty("colis_index", idx)  # Stocker l'index du colis
+            assign_btn.setProperty("colis_index", idx)
             assign_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #4CAF50;
@@ -910,84 +925,24 @@ class TransportManagementWidget(QWidget):
                     background-color: #43A047;
                 }
             """)
-
-            # Connecter le bouton à l'ouverture de la fenêtre de sélection
+    
             assign_btn.clicked.connect(
                 lambda _, b=assign_btn, colis_data=colis: 
-                self.open_conducteur_dialog(b, data(colis_data['date_expedition'], colis_data['destination'], colis_data['id_commande']))
+                self.open_conducteur_dialog(b, colis_data)
             )
-
-            frame_layout.addWidget(assign_btn)
-            scroll_layout.addWidget(frame)
-
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_content)
-        layout.addWidget(scroll)
-
-        return widget
-
-    def open_conducteur_dialog(self, button,datas):
-        """Ouvre la fenêtre de sélection des conducteurs"""
-        colis_index = button.property("colis_index")
-        dialog = ConducteurSelectionDialog(self.data.transporteurs_df, self)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            selected = dialog.selected_conducteur
-            if selected:
-                # Mettre à jour l'assignation du conducteur pour ce colis
-                self.data.expeditions_df.at[colis_index, 'id_transporteur'] = selected['id']
-                self.data.expeditions_df.at[colis_index, 'idutil_transporteur'] = selected['idutil']
-
-                # Afficher un message de confirmation
-                QMessageBox.information(
-                    self, 
-                    "Assignation réussie",
-                    f"Le conducteur {selected['id']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
-                    QMessageBox.StandardButton.Ok
-                )
-                print(datas.date)
-                internalmail.send_conducteur("SCA ASSIGNATION COLIS","thibaud.ambiana@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
-                internalmail.send_conducteur("SCA ASSIGNATION COLIS","steevy.tongoue@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
-
-    def create_planif_tab(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Graphique de capacité
-        cap_chart = ChartWidget(title="Capacité des transporteurs", y_label="Capacité (kg)", x_label="Transporteur")
-        self.create_capacity_chart(cap_chart)
-        
-        # Tableau des expéditions
-        expeditions_table = self.create_expeditions_table()
-        
-        # Bouton d'assignation
-        assign_btn = QPushButton("Assigner transporteur")
-        assign_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-                margin-top: 10px;
-            }
-            QPushButton:hover {
-                background-color: #43A047;
-            }
-        """)
-        
-        layout.addWidget(cap_chart)
-        layout.addWidget(expeditions_table)
-        layout.addWidget(assign_btn, alignment=Qt.AlignmentFlag.AlignRight)
-        
-        return widget
     
-    def create_transporteurs_table(self):
-        table = QTableWidget()
-        table.setRowCount(len(self.data.transporteurs_df))
-        table.setColumnCount(5)
-        table.setHorizontalHeaderLabels(['ID', 'IDUtil', 'Num permis', 'Type permis', 'annee d\'xp)'])
+            frame_layout.addWidget(assign_btn)
+            self.scroll_layout.addWidget(frame)
+            self.colis_frames.append(frame)  # Stocker la référence
+        
+        self.scroll_layout.addStretch()
+        
+        
+        def create_transporteurs_table(self):
+            table = QTableWidget()
+            table.setRowCount(len(self.data.transporteurs_df))
+            table.setColumnCount(5)
+            table.setHorizontalHeaderLabels(['ID', 'IDUtil', 'Num permis', 'Type permis', 'annee d\'xp)'])
         
         for i, (_, row) in enumerate(self.data.transporteurs_df.iterrows()):
             table.setItem(i, 0, QTableWidgetItem(row['id']))

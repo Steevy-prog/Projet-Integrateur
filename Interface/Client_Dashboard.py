@@ -1334,11 +1334,10 @@ class ClientLogisticsWidget(QWidget):
                 )
                 print("sucess")
                 cur.execute(
-                    'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s, %s)',
+                    'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s)',
                     (   client_org_id,
                         idcolis,
-                        nlotid,                         # _idproduit
-                        str(len(lots)),              # _quantite
+                        nlotid,                         # _idproduit             # _quantite
                         str(datetime.date.today().isoformat()),  #                     # _statut
                     )
                 )
