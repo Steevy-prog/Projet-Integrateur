@@ -2,35 +2,17 @@ import sys
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-from PyQt6.QtGui import QIcon, QPixmap, QPen
-from PyQt6.QtCore import QRectF, Qt, pyqtSignal
-from PyQt6.QtWidgets import QProgressBar
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
-from PyQt6.QtWidgets import QScrollArea
-from PyQt6.QtWidgets import QWidget, QTableWidget, QTableWidgetItem, QFormLayout
-from PyQt6.QtWidgets import QLineEdit, QComboBox, QDialog
-from PyQt6.QtWidgets import QSpinBox, QListWidget, QSizePolicy, QSplitter
+from PyQt6.QtGui import QIcon, QPixmap, QPen, QPainter, QColor, QPalette, QFont
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QSequentialAnimationGroup, QDate, QTimer
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QStackedWidget, QFrame, QButtonGroup,
-    QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
-    QLineEdit, QComboBox, QDialog, QTextEdit, QSpinBox, QListWidget,QSizePolicy,
-    QFormLayout, QSplitter, QMessageBox, QGridLayout, QFileDialog, QTabWidget, QDateEdit,
-    QHeaderView # Import QHeaderView for table stretching
-)
-
-from PyQt6.QtCore import (
-    QPropertyAnimation,
-    QEasingCurve,
-    QParallelAnimationGroup,
-    QSequentialAnimationGroup
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
+    QScrollArea, QWidget, QTableWidget, QTableWidgetItem, QFormLayout,
+    QLineEdit, QComboBox, QDialog, QSpinBox, QListWidget, QSizePolicy, QSplitter,
+    QMessageBox, QGridLayout, QFileDialog, QTabWidget, QDateEdit, QProgressBar,
+    QHeaderView, QGroupBox
 )
 from PyQt6.QtWidgets import QGraphicsOpacityEffect, QGraphicsBlurEffect
-from PyQt6.QtGui import QPainter
-from PyQt6.QtWidgets import QGraphicsOpacityEffect
-from PyQt6.QtCore import QParallelAnimationGroup
-from PyQt6.QtCore import Qt, QDate, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette,QIcon,QPixmap
+
 import datetime
 import random
 import psycopg2
@@ -167,8 +149,14 @@ class WarehouseData:
             
             # Add a status to each product item in the list for assignment tracking
             for item in items:
-                item['assignment_status'] = 'pending_assignment' # New field for lot assignment
-            
+                # Ensure 'assignment_status' is set for existing items, default to 'pending_assignment'
+                if 'assignment_status' not in item:
+                    item['assignment_status'] = 'pending_assignment' 
+                if 'assigned_worker_id' not in item:
+                    item['assigned_worker_id'] = None
+                if 'assignment_date' not in item:
+                    item['assignment_date'] = None
+
             quan = len(items)
             reception_data.append({
                 'Order_ID': i.id,
@@ -241,6 +229,8 @@ class ChartWidget(pg.PlotWidget):
         self.plotItem.showGrid(x=True, y=True, alpha=0.3)
         self.setBackground('w')
         self.setAntialiasing(True) # Improve plot smoothness
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(200, 200)
 
     def plot_data(self, *args, **kwargs):
         self.clear()
@@ -419,11 +409,7 @@ class RealtimeInventoryViewWidget(QWidget):
 
         # Hide scroll bars but keep scrolling functionality
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        # Ensure scrolling still works with mouse wheel
-        scroll_area.verticalScrollBar().setEnabled(True)
-        scroll_area.horizontalScrollBar().setEnabled(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded) # Allow vertical scrolling
 
         # Set minimum sizes
         content_widget.setMinimumWidth(800)
@@ -489,7 +475,8 @@ class RealtimeInventoryViewWidget(QWidget):
             self.data.inventory_df['Quantity'], errors='coerce'
         ).fillna(0)
     
-        top_products = self.data.inventory_df.nlargest(8, 'Quantity')
+        # Modified to take only 3 products for top stocks level
+        top_products = self.data.inventory_df.nlargest(3, 'Quantity')
     
         x_vals = np.arange(len(top_products))
         y_vals = top_products['Quantity'].values
@@ -600,6 +587,166 @@ class CircularProgress(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         inner_rect = QRectF(30, 30, self.width() - 60, self.height() - 60)
         painter.drawEllipse(inner_rect)
+
+class ColisEmballageCard(QFrame):
+    """Aesthetic card for a colis to be wrapped."""
+    def __init__(self, colis_data, parent=None):
+        super().__init__(parent)
+        self.colis_data = colis_data
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #E0E0E0;
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+            QLabel {
+                color: #333;
+                font-size: 14px;
+            }
+            QLabel.title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #6C63FF;
+                margin-bottom: 5px;
+            }
+            QPushButton {
+                background-color: #00BFA5;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #00897B;
+            }
+        """)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        
+        title_label = QLabel(f"Colis ID: {self.colis_data['Order_ID']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+        
+        layout.addWidget(QLabel(f"Supplier: <b>{self.colis_data['Supplier']}</b>"))
+        layout.addWidget(QLabel(f"Items Count: <b>{self.colis_data['Items_Count']}</b>"))
+        layout.addWidget(QLabel(f"Expected Date: <b>{self.colis_data['Expected_Date']}</b>"))
+        layout.addWidget(QLabel(f"Status: <b>{self.colis_data['Status']}</b>"))
+
+        # Simulate interaction with emballeur.py / database
+        wrap_button = QPushButton("Mark as Wrapped")
+        wrap_button.clicked.connect(self.mark_as_wrapped)
+        layout.addWidget(wrap_button)
+        layout.addStretch()
+
+    def mark_as_wrapped(self):
+        # Simulate updating database via emballeur.py
+        # In a real scenario, this would call a backend function in emballeur.py
+        # For now, we update the local data frame and notify the parent widget
+        
+        # Find the colis in the main data and update its status
+        order_id = self.colis_data['Order_ID']
+        # Access the parent's parent's parent (ZoneEmballage -> QWidget -> QScrollArea -> ZoneEmballage)
+        # This is a bit fragile, consider passing data object directly or using signals
+        zone_emballage_widget = self.parent().parent().parent() 
+        if isinstance(zone_emballage_widget, ZoneEmballage):
+            order_index = zone_emballage_widget.data.reception_df.index[
+                zone_emballage_widget.data.reception_df['Order_ID'] == order_id
+            ].tolist()
+
+            if order_index:
+                order_idx = order_index[0]
+                zone_emballage_widget.data.reception_df.at[order_idx, 'packer_assignment_status'] = 'wrapped'
+                QMessageBox.information(self, "Success", f"Colis {order_id} marked as wrapped.")
+                zone_emballage_widget.refresh_emballage_colis() # Refresh the list of colis to be wrapped
+            else:
+                QMessageBox.warning(self, "Error", f"Colis {order_id} not found in data for update.")
+        else:
+            QMessageBox.warning(self, "Error", "Could not find parent ZoneEmballage widget.")
+
+class LotDesemballageCard(QFrame):
+    """Aesthetic card for a lot to be unwrapped."""
+    def __init__(self, lot_data, parent=None):
+        super().__init__(parent)
+        self.lot_data = lot_data
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #E0E0E0;
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+            QLabel {
+                color: #333;
+                font-size: 14px;
+            }
+            QLabel.title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #6C63FF;
+                margin-bottom: 5px;
+            }
+            QPushButton {
+                background-color: #F44336;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #D32F2F;
+            }
+        """)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        
+        title_label = QLabel(f"Lot ID: {self.lot_data['idlot']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+        
+        layout.addWidget(QLabel(f"Product: <b>{self.lot_data.get('product_name', 'N/A')}</b>"))
+        layout.addWidget(QLabel(f"Quantity: <b>{self.lot_data['quantity']}</b>"))
+        layout.addWidget(QLabel(f"Assigned Worker: <b>{self.lot_data.get('assigned_worker_name', 'N/A')}</b>"))
+        layout.addWidget(QLabel(f"Assignment Date: <b>{self.lot_data.get('assignment_date', 'N/A')}</b>"))
+
+        unwrap_button = QPushButton("Mark as Unwrapped")
+        unwrap_button.clicked.connect(self.mark_as_unwrapped)
+        layout.addWidget(unwrap_button)
+        layout.addStretch()
+
+    def mark_as_unwrapped(self):
+        # Simulate updating database
+        order_id = self.lot_data['Order_ID']
+        idlot = self.lot_data['idlot']
+
+        zone_emballage_widget = self.parent().parent().parent()
+        if isinstance(zone_emballage_widget, ZoneEmballage):
+            order_index = zone_emballage_widget.data.reception_df.index[
+                zone_emballage_widget.data.reception_df['Order_ID'] == order_id
+            ].tolist()
+
+            if order_index:
+                order_idx = order_index[0]
+                products_list = zone_emballage_widget.data.reception_df.at[order_idx, 'Products']
+                for p_item in products_list:
+                    if p_item.get('idlot') == idlot:
+                        p_item['assignment_status'] = 'unwrapped' # Update status
+                        QMessageBox.information(self, "Success", f"Lot {idlot} marked as unwrapped.")
+                        zone_emballage_widget.refresh_desemballage_lots() # Refresh the list
+                        return
+            QMessageBox.warning(self, "Error", f"Lot {idlot} not found for update.")
+        else:
+            QMessageBox.warning(self, "Error", "Could not find parent ZoneEmballage widget.")
+
+
 class ZoneEmballage(QWidget):
     def __init__(self, data):
         super().__init__()
@@ -615,7 +762,7 @@ class ZoneEmballage(QWidget):
             self._main_layout.setContentsMargins(15, 15, 15, 15)
             self._main_layout.setSpacing(20)
 
-        # Main container with scroll area (just in case, but designed to avoid scrolling)
+        # Main container with scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -629,79 +776,47 @@ class ZoneEmballage(QWidget):
         container_layout.setVerticalSpacing(20)
         container_layout.setHorizontalSpacing(20)
 
-        # Emballage Section
-        emballage_frame = self.create_section_frame("Emballage")
-        emballage_layout = QGridLayout(emballage_frame)
-        emballage_layout.setContentsMargins(15, 15, 15, 15)
-        emballage_layout.setVerticalSpacing(15)
-        emballage_layout.setHorizontalSpacing(15)
+        # Emballage Section (Colis à emballer)
+        emballage_group_box = self.create_section_group_box("Colis à Emballer (Packaging)")
+        self.emballage_colis_layout = QVBoxLayout(emballage_group_box)
+        self.emballage_colis_layout.setContentsMargins(15, 15, 15, 15)
+        self.emballage_colis_layout.setSpacing(10)
+        
+        # Add a scroll area for the colis cards
+        self.emballage_scroll_area = QScrollArea()
+        self.emballage_scroll_area.setWidgetResizable(True)
+        self.emballage_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.emballage_colis_container = QWidget()
+        self.emballage_colis_container_layout = QVBoxLayout(self.emballage_colis_container)
+        self.emballage_colis_container_layout.setContentsMargins(0,0,0,0)
+        self.emballage_colis_container_layout.setSpacing(10)
+        self.emballage_scroll_area.setWidget(self.emballage_colis_container)
+        self.emballage_colis_layout.addWidget(self.emballage_scroll_area)
 
-        # Emballage Cards - Top Row
-        emballage_layout.addWidget(self.create_metric_card(
-            title="Colis à emballer",
-            value="42",
-            subtitle="Statut: En attente",
-            info="Dernière mise à jour: 05/03/2025",
-            color="#2196F3",
-            icon="package"
-        ), 0, 0)
+        self.refresh_emballage_colis() # Populate with cards
 
-        emballage_layout.addWidget(self.create_metric_card(
-            title="Colis emballés",
-            value="128",
-            subtitle="Période: Aujourd'hui",
-            info="Objectif: 150 colis/jour",
-            color="#4CAF50",
-            icon="check-circle"
-        ), 0, 1)
+        # Désemballage Section (Lots à désemballer)
+        desemballage_group_box = self.create_section_group_box("Lots à Désemballer (Unpackaging)")
+        self.desemballage_lots_layout = QVBoxLayout(desemballage_group_box)
+        self.desemballage_lots_layout.setContentsMargins(15, 15, 15, 15)
+        self.desemballage_lots_layout.setSpacing(10)
 
-        # Emballage Progress - Bottom Row
-        progress_widget = self.create_progress_widget(
-            title="Progression globale",
-            progress=70,
-            subtitle="Avancement des opérations",
-            color="#FF9800"
-        )
-        emballage_layout.addWidget(progress_widget, 1, 0, 1, 2)
+        # Add a scroll area for the lots cards
+        self.desemballage_scroll_area = QScrollArea()
+        self.desemballage_scroll_area.setWidgetResizable(True)
+        self.desemballage_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.desemballage_lots_container = QWidget()
+        self.desemballage_lots_container_layout = QVBoxLayout(self.desemballage_lots_container)
+        self.desemballage_lots_container_layout.setContentsMargins(0,0,0,0)
+        self.desemballage_lots_container_layout.setSpacing(10)
+        self.desemballage_scroll_area.setWidget(self.desemballage_lots_container)
+        self.desemballage_lots_layout.addWidget(self.desemballage_scroll_area)
 
-        # Désemballage Section
-        desemballage_frame = self.create_section_frame("Désemballage")
-        desemballage_layout = QGridLayout(desemballage_frame)
-        desemballage_layout.setContentsMargins(15, 15, 15, 15)
-        desemballage_layout.setVerticalSpacing(15)
-        desemballage_layout.setHorizontalSpacing(15)
-
-        # Désemballage Cards - Top Row
-        desemballage_layout.addWidget(self.create_metric_card(
-            title="Colis à désemballer",
-            value="24",
-            subtitle="Statut: En attente",
-            info="Priorité: Moyenne",
-            color="#2196F3",
-            icon="package"
-        ), 0, 0)
-
-        desemballage_layout.addWidget(self.create_metric_card(
-            title="Colis désemballés",
-            value="76",
-            subtitle="Période: Aujourd'hui",
-            info="Efficacité: 85%",
-            color="#4CAF50",
-            icon="check-circle"
-        ), 0, 1)
-
-        # Désemballage Progress - Bottom Row
-        progress_widget = self.create_progress_widget(
-            title="Progression désemballage",
-            progress=65,
-            subtitle="Taux de complétion",
-            color="#FF9800"
-        )
-        desemballage_layout.addWidget(progress_widget, 1, 0, 1, 2)
+        self.refresh_desemballage_lots() # Populate with cards
 
         # Add sections to main layout
-        container_layout.addWidget(emballage_frame, 0, 0)
-        container_layout.addWidget(desemballage_frame, 1, 0)
+        container_layout.addWidget(emballage_group_box, 0, 0)
+        container_layout.addWidget(desemballage_group_box, 1, 0)
         container_layout.setRowStretch(0, 1)
         container_layout.setRowStretch(1, 1)
         container_layout.setRowStretch(2, 1)
@@ -710,181 +825,95 @@ class ZoneEmballage(QWidget):
         actions_frame = self.create_quick_actions()
         container_layout.addWidget(actions_frame, 2, 0, 1, 1)
 
-    def create_section_frame(self, title):
-        frame = QFrame()
-        frame.setFrameShape(QFrame.Shape.StyledPanel)
-        frame.setStyleSheet("""
-            QFrame {
+    def refresh_emballage_colis(self):
+        # Clear existing cards
+        while self.emballage_colis_container_layout.count():
+            item = self.emballage_colis_container_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        # Filter for orders that are 'Accepte' and 'unassigned' for packer (meaning not yet wrapped)
+        colis_to_wrap = [
+            order for order in self.data.reception_df.to_dict('records')
+            if order['Status'] == 'Accepte' and order['packer_assignment_status'] == 'unassigned'
+        ]
+
+        if not colis_to_wrap:
+            no_colis_label = QLabel("No accepted colis awaiting wrapping.")
+            no_colis_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
+            self.emballage_colis_container_layout.addWidget(no_colis_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
+
+        for colis_data in colis_to_wrap:
+            colis_card = ColisEmballageCard(colis_data, self)
+            self.emballage_colis_container_layout.addWidget(colis_card)
+        self.emballage_colis_container_layout.addStretch() # Push cards to top
+
+    def refresh_desemballage_lots(self):
+        # Clear existing cards
+        while self.desemballage_lots_container_layout.count():
+            item = self.desemballage_lots_container_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        lots_to_unwrap = []
+        today = datetime.date.today()
+
+        for order_data in self.data.reception_df.to_dict('records'):
+            if 'Products' in order_data and isinstance(order_data['Products'], list):
+                for product_item in order_data['Products']:
+                    # Check if assigned, not unwrapped, and assigned today
+                    if product_item.get('assignment_status') == 'assigned':
+                        assignment_date_str = product_item.get('assignment_date')
+                        if assignment_date_str:
+                            assignment_date = datetime.datetime.strptime(assignment_date_str, '%Y-%m-%d %H:%M:%S').date()
+                            if assignment_date == today:
+                                # Get product name and assigned worker name for display
+                                product_id_or_lot = product_item.get('idlot')
+                                product_name = next((p[2] for p in produits_db if p[0] == product_id_or_lot), "Unknown Product")
+                                assigned_worker_id = product_item.get('assigned_worker_id')
+                                assigned_worker_name = next((w['name'] for w in workers_list if w['id'] == assigned_worker_id), "N/A")
+
+                                lot_info = product_item.copy()
+                                lot_info['Order_ID'] = order_data['Order_ID'] # Add Order_ID for context
+                                lot_info['product_name'] = product_name
+                                lot_info['assigned_worker_name'] = assigned_worker_name
+                                lots_to_unwrap.append(lot_info)
+
+        if not lots_to_unwrap:
+            no_lots_label = QLabel("No lots received today awaiting unwrap.")
+            no_lots_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
+            self.desemballage_lots_container_layout.addWidget(no_lots_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
+
+        for lot_data in lots_to_unwrap:
+            lot_card = LotDesemballageCard(lot_data, self)
+            self.desemballage_lots_container_layout.addWidget(lot_card)
+        self.desemballage_lots_container_layout.addStretch() # Push cards to top
+
+
+    def create_section_group_box(self, title):
+        group_box = QGroupBox(title)
+        group_box.setStyleSheet("""
+            QGroupBox {
                 background-color: white;
                 border-radius: 10px;
                 border: 1px solid #e0e0e0;
-            }
-        """)
-        
-        # Section title
-        title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
+                margin-top: 10px; /* Space for title */
                 font-size: 18px;
                 font-weight: bold;
                 color: #2c3e50;
-                padding: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left; /* Position at top left */
+                padding: 0 10px;
+                background-color: transparent;
             }
         """)
-        
-        layout = QVBoxLayout(frame)
-        layout.addWidget(title_label)
-        return frame
-
-    def create_metric_card(self, title, value, subtitle, info, color, icon=None):
-        card = QFrame()
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: white;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-            }}
-        """)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(10)
-
-        # Header with optional icon
-        header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        
-        title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                font-weight: 600;
-                color: #555;
-            }
-        """)
-        header_layout.addWidget(title_label)
-        
-        if icon:
-            icon_label = QLabel()
-            icon_label.setPixmap(QIcon.fromTheme(icon).pixmap(24, 24))
-            header_layout.addWidget(icon_label)
-            header_layout.setAlignment(icon_label, Qt.AlignmentFlag.AlignRight)
-        
-        layout.addLayout(header_layout)
-
-        # Main value
-        value_label = QLabel(value)
-        value_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: 28px;
-                font-weight: bold;
-                color: {color};
-            }}
-        """)
-        layout.addWidget(value_label)
-
-        # Subtitle
-        subtitle_label = QLabel(subtitle)
-        subtitle_label.setStyleSheet("""
-            QLabel {
-                font-size: 14px;
-                color: #777;
-            }
-        """)
-        layout.addWidget(subtitle_label)
-
-        # Info (separator + additional info)
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet("""
-            QFrame {
-                border: 1px solid #eee;
-            }
-        """)
-        layout.addWidget(separator)
-
-        info_label = QLabel(info)
-        info_label.setStyleSheet("""
-            QLabel {
-                font-size: 12px;
-                color: #999;
-                font-style: italic;
-            }
-        """)
-        layout.addWidget(info_label)
-
-        layout.addStretch()
-        return card
-
-    def create_progress_widget(self, title, progress, subtitle, color):
-        widget = QWidget()
-        widget.setStyleSheet(f"""
-            QWidget {{
-                background-color: white;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-            }}
-        """)
-        
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(10)
-
-        # Title
-        title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                font-weight: 600;
-                color: #555;
-            }
-        """)
-        layout.addWidget(title_label)
-
-        # Progress bar with percentage
-        progress_layout = QHBoxLayout()
-        
-        progress_bar = QProgressBar()
-        progress_bar.setRange(0, 100)
-        progress_bar.setValue(progress)
-        progress_bar.setTextVisible(False)
-        progress_bar.setStyleSheet(f"""
-            QProgressBar {{
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                height: 20px;
-            }}
-            QProgressBar::chunk {{
-                background-color: {color};
-                border-radius: 3px;
-            }}
-        """)
-        progress_layout.addWidget(progress_bar, 4)
-        
-        percent_label = QLabel(f"{progress}%")
-        percent_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: 16px;
-                font-weight: bold;
-                color: {color};
-                margin-left: 10px;
-            }}
-        """)
-        progress_layout.addWidget(percent_label, 1)
-        
-        layout.addLayout(progress_layout)
-
-        # Subtitle
-        subtitle_label = QLabel(subtitle)
-        subtitle_label.setStyleSheet("""
-            QLabel {
-                font-size: 13px;
-                color: #777;
-            }
-        """)
-        layout.addWidget(subtitle_label)
-
-        return widget
+        return group_box
 
     def create_quick_actions(self):
         frame = QFrame()
@@ -953,19 +982,32 @@ class MenuExpedition(QWidget):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QGridLayout(self)
+            self._main_layout = QVBoxLayout(self) # Changed to QVBoxLayout for scrollability
 
         layout = self._main_layout
+        
+        title = QLabel("Expedition Orders Overview")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        layout.addWidget(title)
+
         expedition_summary_table = self.create_expedition_summary_table()
-        bouton = QPushButton("chatte")
+        
+        # Wrap the table in a scroll area
+        table_scroll_area = QScrollArea()
+        table_scroll_area.setWidgetResizable(True)
+        table_scroll_area.setWidget(expedition_summary_table)
+        table_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        layout.addWidget(table_scroll_area)
+
+        bouton = QPushButton("Generate Expedition Report")
         bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
+                    QPushButton { background-color: #2196F3; color: white; border: none;border-radius: 15px; margin-top:20px;font-weight: bold; padding: 10px 20px;}
                     QPushButton:hover { background-color: #1976D2; }
                 """)
-        layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(bouton,1,0,Qt.AlignmentFlag.AlignBottom)
+        bouton.clicked.connect(self.generate_expedition_report_csv) # Connect to new function
+        layout.addWidget(bouton, alignment=Qt.AlignmentFlag.AlignCenter) # Center the button
+        layout.addStretch() # Push content to top
 
-        
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
@@ -996,7 +1038,6 @@ class MenuExpedition(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
-                width:90%;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1019,6 +1060,25 @@ class MenuExpedition(QWidget):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
         return table
+
+    def generate_expedition_report_csv(self):
+        if not self.data.expedition_df.empty:
+            options = QFileDialog.Option.DontUseNativeDialog
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Expedition Report",
+                "expedition_report.csv",
+                "CSV Files (*.csv);;All Files (*)",
+                options=options
+            )
+            if file_name:
+                try:
+                    self.data.expedition_df.to_csv(file_name, index=False)
+                    QMessageBox.information(self, "Success", f"Expedition report saved to:\n{file_name}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to save expedition report: {e}")
+        else:
+            QMessageBox.warning(self, "No Data", "No expedition data to save.")
 
 # New ProductDetailDialog
 class ProductDetailDialog(QDialog):
@@ -1154,6 +1214,111 @@ class ProductDetailDialog(QDialog):
             conn.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to refuse order: {e}")
 
+class ReceptionOrderCard(QFrame):
+    """Aesthetic card for displaying a reception order."""
+    def __init__(self, order_data, parent=None):
+        super().__init__(parent)
+        self.order_data = order_data
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #E0E0E0;
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+            QLabel {
+                color: #333;
+                font-size: 14px;
+            }
+            QLabel.title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #6C63FF;
+                margin-bottom: 5px;
+            }
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton.validate {
+                background-color: #4CAF50;
+            }
+            QPushButton.validate:hover {
+                background-color: #388E3C;
+            }
+            QPushButton.refuse {
+                background-color: #F44336;
+            }
+            QPushButton.refuse:hover {
+                background-color: #D32F2F;
+            }
+        """)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        
+        title_label = QLabel(f"Order ID: {self.order_data['Order_ID']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+        
+        layout.addWidget(QLabel(f"Supplier: <b>{self.order_data['Supplier']}</b>"))
+        layout.addWidget(QLabel(f"Expected Date: <b>{self.order_data['Expected_Date']}</b>"))
+        layout.addWidget(QLabel(f"Items Count: <b>{self.order_data['Items_Count']}</b>"))
+        
+        status_label = QLabel(f"Status: <b>{self.order_data['Status']}</b>")
+        status_label.setStyleSheet(f"color: {'#FF9800' if self.order_data['Status'] == 'en attente' else '#2196F3'}; font-weight: bold;")
+        layout.addWidget(status_label)
+
+        button_layout = QHBoxLayout()
+
+        details_btn = QPushButton("View Details")
+        details_btn.clicked.connect(self.show_details)
+        button_layout.addWidget(details_btn)
+
+        validate_btn = QPushButton("Validate")
+        validate_btn.setProperty("class", "validate")
+        validate_btn.clicked.connect(self.validate_order)
+        button_layout.addWidget(validate_btn)
+
+        refuse_btn = QPushButton("Refuse")
+        refuse_btn.setProperty("class", "refuse")
+        refuse_btn.clicked.connect(self.refuse_order)
+        button_layout.addWidget(refuse_btn)
+        
+        layout.addLayout(button_layout)
+        layout.addStretch()
+
+    def show_details(self):
+        dialog = ProductDetailDialog(self.order_data, self)
+        dialog.product_validated.connect(self.parent().parent().parent().handle_order_validated) # Connect to MenuReception's handler
+        dialog.product_refused.connect(self.parent().parent().parent().handle_order_refused)   # Connect to MenuReception's handler
+        dialog.exec()
+
+    def validate_order(self):
+        menu_reception_widget = self.parent().parent().parent()
+        if isinstance(menu_reception_widget, MenuReception):
+            menu_reception_widget.validate_order(self.order_data['Order_ID'])
+            self.deleteLater() # Remove card after action
+        else:
+            QMessageBox.warning(self, "Error", "Could not find parent MenuReception widget.")
+
+    def refuse_order(self):
+        menu_reception_widget = self.parent().parent().parent()
+        if isinstance(menu_reception_widget, MenuReception):
+            menu_reception_widget.refuse_order(self.order_data['Order_ID'])
+            self.deleteLater() # Remove card after action
+        else:
+            QMessageBox.warning(self, "Error", "Could not find parent MenuReception widget.")
+
 # Modified MenuReception
 class MenuReception(QWidget):
     def __init__(self,data):
@@ -1167,7 +1332,9 @@ class MenuReception(QWidget):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QVBoxLayout(self) # Changed to QVBoxLayout for better flow
+            self._main_layout = QVBoxLayout(self)
+            self._main_layout.setContentsMargins(15, 15, 15, 15)
+            self._main_layout.setSpacing(20)
 
         layout = self._main_layout
         
@@ -1175,9 +1342,21 @@ class MenuReception(QWidget):
         title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
         layout.addWidget(title)
 
-        self.reception_table = self.create_reception_table()
-        layout.addWidget(self.reception_table)
+        # Container for cards
+        self.cards_container = QWidget()
+        self.cards_layout = QVBoxLayout(self.cards_container)
+        self.cards_layout.setContentsMargins(0, 0, 0, 0)
+        self.cards_layout.setSpacing(10) # Spacing between cards
+
+        # Scroll area for cards
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setWidget(self.cards_container)
+        layout.addWidget(self.scroll_area)
         layout.addStretch()
+
+        self.refresh_reception_cards() # Populate cards
 
     def clear_layout(self, layout):
         if layout is not None:
@@ -1189,165 +1368,48 @@ class MenuReception(QWidget):
                 else:
                     self.clear_layout(item.layout())
 
-    def create_reception_table(self):
-        table = QTableWidget()
-        
-        # Filter reception_df to only show 'Pending' or 'In Transit' orders
-        # Assuming 'en attente' means pending and 'Accepte' means accepted for reception
-        # We want to show pending orders for validation
+    def refresh_reception_cards(self):
+        # Clear existing cards
+        while self.cards_layout.count():
+            item = self.cards_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        # Filter reception_df to only show 'Pending' or 'Processing' orders
         pending_orders_df = self.data.reception_df[
             (self.data.reception_df['Status'] == 'en attente') | 
-            (self.data.reception_df['Status'] == 'Processing') # Include processing if they still need validation
-        ].copy() # Use .copy() to avoid SettingWithCopyWarning
+            (self.data.reception_df['Status'] == 'Processing')
+        ].copy()
 
-        table.setRowCount(len(pending_orders_df))
-        table.setColumnCount(7) # Added columns for Details, Validate, Refuse
-        table.setHorizontalHeaderLabels(['Order ID', 'Supplier', 'Expected Date', 'Items', 'Status', 'Details', 'Action'])
+        if pending_orders_df.empty:
+            no_orders_label = QLabel("No reception orders awaiting validation.")
+            no_orders_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
+            self.cards_layout.addWidget(no_orders_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
 
-        # Store original DataFrame index to map back
-        self.order_id_to_row_map = {order_id: i for i, order_id in enumerate(pending_orders_df['Order_ID'])}
-
-        for i, (_, row) in enumerate(pending_orders_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['Order_ID']))
-            table.setItem(i, 1, QTableWidgetItem(row['Supplier']))
-            table.setItem(i, 2, QTableWidgetItem(str(row['Expected_Date'])))
-            table.setItem(i, 3, QTableWidgetItem(str(row['Items_Count'])))
-            
-            status_item = QTableWidgetItem(row['Status'])
-            status_item.setBackground(QColor('#FFF3E0')) # Pending color
-            table.setItem(i, 4, status_item)
-
-            # Details Button
-            details_btn = QPushButton("View Details")
-            details_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #2196F3;
-                    color: white;
-                    border: none;
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #1976D2;
-                }
-            """)
-            details_btn.clicked.connect(lambda _, order=row.to_dict(): self.show_product_details(order))
-            table.setCellWidget(i, 5, details_btn)
-
-            # Action Buttons (Validate/Refuse) container
-            action_widget = QWidget()
-            action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(0, 0, 0, 0)
-            action_layout.setSpacing(5)
-
-            validate_btn = QPushButton("Validate")
-            validate_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #4CAF50;
-                    color: white;
-                    border: none;
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #388E3C;
-                }
-            """)
-            validate_btn.clicked.connect(lambda _, order_id=row['Order_ID']: self.validate_order(order_id))
-            action_layout.addWidget(validate_btn)
-
-            refuse_btn = QPushButton("Refuse")
-            refuse_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #F44336;
-                    color: white;
-                    border: none;
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #D32F2F;
-                }
-            """)
-            refuse_btn.clicked.connect(lambda _, order_id=row['Order_ID']: self.refuse_order(order_id))
-            action_layout.addWidget(refuse_btn)
-            
-            table.setCellWidget(i, 6, action_widget)
-
-
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
-            }
-            QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 10px 8px;
-                border: 1px solid #dcdcdc;
-                font-weight: bold;
-                font-size: 13px;
-                color: #555;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cce7ff;
-                color: #333;
-            }
-        """)
-
-        table.setAlternatingRowColors(True)
-        # Set resize mode for columns
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents) # Order ID
-        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch) # Supplier
-        table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents) # Expected Date
-        table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents) # Items
-        table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents) # Status
-        table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents) # Details Button
-        table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents) # Action Buttons
-        
-        table.verticalHeader().setVisible(False) # Hide vertical header (row numbers)
-        return table
-
-    def show_product_details(self, order_data):
-        dialog = ProductDetailDialog(order_data, self)
-        dialog.product_validated.connect(self.handle_order_validated)
-        dialog.product_refused.connect(self.handle_order_refused)
-        dialog.exec()
+        for _, row in pending_orders_df.iterrows():
+            order_card = ReceptionOrderCard(row.to_dict(), self)
+            self.cards_layout.addWidget(order_card)
+        self.cards_layout.addStretch() # Push cards to top
 
     def validate_order(self, order_id):
-        # Find the row in the table and remove it
-        row_to_remove = -1
-        for i in range(self.reception_table.rowCount()):
-            item = self.reception_table.item(i, 0)
-            if item and item.text() == order_id:
-                row_to_remove = i
-                break
-        
-        if row_to_remove != -1:
-            # Update status in the underlying DataFrame
-            # Find the original row in self.data.reception_df and update its status
-            self.data.reception_df.loc[self.data.reception_df['Order_ID'] == order_id, 'Status'] = 'Accepte'
+        # Update status in the underlying DataFrame
+        order_index = self.data.reception_df.index[self.data.reception_df['Order_ID'] == order_id].tolist()
+        if order_index:
+            order_idx = order_index[0]
+            self.data.reception_df.at[order_idx, 'Status'] = 'Accepte'
             
             # Add the accepted order's products to the list for worker assignment
             accepted_order_data = self.data.reception_df[self.data.reception_df['Order_ID'] == order_id].iloc[0].to_dict()
-            # Ensure 'Products' key exists and is a list
             if 'Products' not in accepted_order_data or not isinstance(accepted_order_data['Products'], list):
-                accepted_order_data['Products'] = [] # Initialize if missing or not a list
+                accepted_order_data['Products'] = []
             self.accepted_products.append(accepted_order_data)
             
-            self.reception_table.removeRow(row_to_remove)
             QMessageBox.information(self, "Order Validated", f"Order {order_id} has been validated and moved for assignment.")
+            self.refresh_reception_cards() # Refresh cards to remove the validated one
             
-            # Notify the AssignLotToMagasinierWidget and AssignedTasksViewWidget to refresh
+            # Notify other widgets to refresh their data
             main_window = self.window()
             if isinstance(main_window, MainWindow):
                 if hasattr(main_window.central_widget, 'current_widget') and isinstance(main_window.central_widget.current_widget, WarehouseMenuInteractionWidget):
@@ -1360,37 +1422,35 @@ class MenuReception(QWidget):
                     assign_colis_widget = main_window.central_widget.current_widget.findChild(AssignColisToEmballeurWidget)
                     if assign_colis_widget:
                         assign_colis_widget.refresh_pending_colis()
+                    packaging_zone_widget = main_window.central_widget.current_widget.findChild(ZoneEmballage)
+                    if packaging_zone_widget:
+                        packaging_zone_widget.refresh_emballage_colis()
         else:
-            QMessageBox.warning(self, "Error", f"Order {order_id} not found in the table.")
+            QMessageBox.warning(self, "Error", f"Order {order_id} not found in data.")
 
     def refuse_order(self, order_id):
-        # Find the row in the table and remove it
-        row_to_remove = -1
-        for i in range(self.reception_table.rowCount()):
-            item = self.reception_table.item(i, 0)
-            if item and item.text() == order_id:
-                row_to_remove = i
-                break
-        
-        if row_to_remove != -1:
-            # Update status in the underlying DataFrame
-            self.data.reception_df.loc[self.data.reception_df['Order_ID'] == order_id, 'Status'] = 'Refuse'
+        # Update status in the underlying DataFrame
+        order_index = self.data.reception_df.index[self.data.reception_df['Order_ID'] == order_id].tolist()
+        if order_index:
+            order_idx = order_index[0]
+            self.data.reception_df.at[order_idx, 'Status'] = 'Refuse'
             
-            self.reception_table.removeRow(row_to_remove)
             QMessageBox.information(self, "Order Refused", f"Order {order_id} has been refused.")
+            self.refresh_reception_cards() # Refresh cards to remove the refused one
         else:
-            QMessageBox.warning(self, "Error", f"Order {order_id} not found in the table.")
+            QMessageBox.warning(self, "Error", f"Order {order_id} not found in data.")
 
     def handle_order_validated(self, order_id):
         # This signal is emitted from ProductDetailDialog
         # We already handle the removal in validate_order, so this might be redundant
         # unless there's specific UI update needed here.
-        pass
+        self.refresh_reception_cards() # Ensure UI is updated if dialog was used
 
     def handle_order_refused(self, order_id):
         # This signal is emitted from ProductDetailDialog
         # We already handle the removal in refuse_order, so this might be redundant
-        pass
+        # unless there's specific UI update needed here.
+        self.refresh_reception_cards() # Ensure UI is updated if dialog was used
 
 # New AssignColisToEmballeurWidget
 class AssignColisToEmballeurWidget(QWidget):
@@ -1450,6 +1510,7 @@ class AssignColisToEmballeurWidget(QWidget):
                 self.workers_list # Assuming all workers can be emballeurs for now
             )
             self.colis_layout.addWidget(colis_card)
+        self.colis_layout.addStretch() # Push cards to top
 
     def create_colis_assignment_card(self, order_id, supplier, items_count, workers):
         card = QFrame()
@@ -1545,6 +1606,9 @@ class AssignColisToEmballeurWidget(QWidget):
                 assigned_tasks_widget = main_window.central_widget.current_widget.findChild(AssignedTasksViewWidget)
                 if assigned_tasks_widget:
                     assigned_tasks_widget.refresh_assigned_tasks()
+                packaging_zone_widget = main_window.central_widget.current_widget.findChild(ZoneEmballage)
+                if packaging_zone_widget:
+                    packaging_zone_widget.refresh_emballage_colis() # Refresh packaging zone for new colis
 
 # Renamed AssignToWorkerWidget to AssignLotToMagasinierWidget
 class AssignLotToMagasinierWidget(QWidget):
@@ -1606,6 +1670,33 @@ class AssignLotToMagasinierWidget(QWidget):
                                     'product_item': product_item # Keep the full product item dictionary
                                 })
 
+        # Sample data for assign lots if no actual accepted products
+        if not self.accepted_products_for_assignment:
+            # Add some dummy data for demonstration if no real data is available
+            # Ensure these dummy products have a corresponding entry in produits_db or handle "Unknown Product"
+            dummy_product_id = 'P001' # Assuming P001 exists in produits_db
+            dummy_product_name = next((p[2] for p in produits_db if p[0] == dummy_product_id), "Sample Product A")
+            dummy_product_category = next((p[7] for p in produits_db if p[0] == dummy_product_id), "Electronics")
+
+            self.accepted_products_for_assignment.extend([
+                {
+                    'Order_ID': 'DUMMY001',
+                    'product_item': {
+                        'idcol': 'DUMMYCOL001', 'idlot': dummy_product_id, 'quantity': 5, 'date_maj': '2024-07-07',
+                        'assignment_status': 'pending_assignment', 'assigned_worker_id': None, 'assignment_date': None
+                    }
+                },
+                {
+                    'Order_ID': 'DUMMY002',
+                    'product_item': {
+                        'idcol': 'DUMMYCOL002', 'idlot': 'P002', 'quantity': 12, 'date_maj': '2024-07-07',
+                        'assignment_status': 'pending_assignment', 'assigned_worker_id': None, 'assignment_date': None
+                    }
+                }
+            ])
+            QMessageBox.information(self, "Sample Data", "Loaded sample data for 'Assign Lots' for demonstration.")
+
+
         if not self.accepted_products_for_assignment:
             no_products_label = QLabel("No accepted products awaiting assignment.")
             no_products_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
@@ -1634,6 +1725,7 @@ class AssignLotToMagasinierWidget(QWidget):
                 product_id_or_lot # Pass product_id_or_lot to identify the specific product
             )
             self.products_layout.addWidget(product_card)
+        self.products_layout.addStretch() # Push cards to top
 
     def create_product_assignment_card(self, order_id, product_name, quantity, category, workers, product_id_or_lot):
         card = QFrame()
@@ -1737,6 +1829,54 @@ class AssignLotToMagasinierWidget(QWidget):
                 assigned_tasks_widget = main_window.central_widget.current_widget.findChild(AssignedTasksViewWidget)
                 if assigned_tasks_widget:
                     assigned_tasks_widget.refresh_assigned_tasks()
+                packaging_zone_widget = main_window.central_widget.current_widget.findChild(ZoneEmballage)
+                if packaging_zone_widget:
+                    packaging_zone_widget.refresh_desemballage_lots() # Refresh desemballage zone for new lots
+
+class TaskCard(QFrame):
+    """Aesthetic card for displaying an assigned task."""
+    def __init__(self, task_data, parent=None):
+        super().__init__(parent)
+        self.task_data = task_data
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #F0F8FF; /* Light blue background */
+                border-radius: 12px;
+                border: 1px solid #ADD8E6; /* Lighter blue border */
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            }
+            QLabel {
+                color: #2F4F4F; /* Dark slate gray */
+                font-size: 14px;
+            }
+            QLabel.title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #1E90FF; /* Dodger Blue */
+                margin-bottom: 5px;
+            }
+            QLabel.detail {
+                font-size: 13px;
+                color: #555;
+            }
+        """)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        
+        title_label = QLabel(f"Task Type: {self.task_data['Task_Type']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+        
+        layout.addWidget(QLabel(f"Order ID: <b>{self.task_data['Order_ID']}</b>"))
+        layout.addWidget(QLabel(f"Item/Product: <b>{self.task_data['Item_Product_Name']}</b>"))
+        layout.addWidget(QLabel(f"Quantity: <b>{self.task_data['Quantity']}</b>"))
+        layout.addWidget(QLabel(f"Category: <b>{self.task_data['Category']}</b>"))
+        layout.addWidget(QLabel(f"Assigned To: <b>{self.task_data['Assigned_Worker']}</b>"))
+        layout.addWidget(QLabel(f"Assignment Date: <b>{self.task_data['Assignment_Date']}</b>"))
+        layout.addStretch()
 
 # New AssignedTasksViewWidget
 class AssignedTasksViewWidget(QWidget):
@@ -1756,51 +1896,27 @@ class AssignedTasksViewWidget(QWidget):
         title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
         self._main_layout.addWidget(title)
 
-        self.assigned_tasks_table = self.create_assigned_tasks_table()
-        self._main_layout.addWidget(self.assigned_tasks_table)
+        # Use a scroll area to contain the task cards
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        
+        self.tasks_container = QWidget()
+        self.tasks_layout = QVBoxLayout(self.tasks_container)
+        self.tasks_layout.setContentsMargins(0, 0, 0, 0)
+        self.tasks_layout.setSpacing(10) # Spacing between cards
+        
+        self.scroll_area.setWidget(self.tasks_container)
+        self._main_layout.addWidget(self.scroll_area)
         self._main_layout.addStretch()
 
-    def create_assigned_tasks_table(self):
-        table = QTableWidget()
-        table.setColumnCount(7) # Added column for Task Type
-        table.setHorizontalHeaderLabels([
-            'Task Type', 'Order ID', 'Item/Product Name', 'Quantity', 'Category', 'Assigned Worker', 'Assignment Date'
-        ])
-        
-        table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
-            }
-            QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 10px 8px;
-                border: 1px solid #dcdcdc;
-                font-weight: bold;
-                font-size: 13px;
-                color: #555;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cce7ff;
-                color: #333;
-            }
-        """)
-        table.setAlternatingRowColors(True)
-        table.resizeColumnsToContents()
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        table.verticalHeader().setVisible(False)
-        return table
-
     def refresh_assigned_tasks(self):
-        # Clear existing rows
-        self.assigned_tasks_table.setRowCount(0)
+        # Clear existing cards
+        while self.tasks_layout.count():
+            item = self.tasks_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
         
         assigned_tasks_data = []
 
@@ -1812,7 +1928,7 @@ class AssignedTasksViewWidget(QWidget):
                 assignment_date = order_data.get('colis_assignment_date', 'N/A')
                 
                 assigned_tasks_data.append({
-                    'Task_Type': 'Colis (Package)',
+                    'Task_Type': 'Colis (Package) Assignment',
                     'Order_ID': order_data['Order_ID'],
                     'Item_Product_Name': f"{order_data['Items_Count']} items", # Display item count for colis
                     'Quantity': order_data['Items_Count'],
@@ -1838,7 +1954,7 @@ class AssignedTasksViewWidget(QWidget):
                         assignment_date = product_item.get('assignment_date', 'N/A')
 
                         assigned_tasks_data.append({
-                            'Task_Type': 'Lot (Product Item)',
+                            'Task_Type': 'Lot (Product Item) Assignment',
                             'Order_ID': order_data['Order_ID'],
                             'Item_Product_Name': product_name,
                             'Quantity': product_item.get('quantity', 'N/A'),
@@ -1847,18 +1963,16 @@ class AssignedTasksViewWidget(QWidget):
                             'Assignment_Date': assignment_date
                         })
         
-        self.assigned_tasks_table.setRowCount(len(assigned_tasks_data))
-        for row_idx, task in enumerate(assigned_tasks_data):
-            self.assigned_tasks_table.setItem(row_idx, 0, QTableWidgetItem(task['Task_Type']))
-            self.assigned_tasks_table.setItem(row_idx, 1, QTableWidgetItem(task['Order_ID']))
-            self.assigned_tasks_table.setItem(row_idx, 2, QTableWidgetItem(task['Item_Product_Name']))
-            self.assigned_tasks_table.setItem(row_idx, 3, QTableWidgetItem(str(task['Quantity'])))
-            self.assigned_tasks_table.setItem(row_idx, 4, QTableWidgetItem(task['Category']))
-            self.assigned_tasks_table.setItem(row_idx, 5, QTableWidgetItem(task['Assigned_Worker']))
-            self.assigned_tasks_table.setItem(row_idx, 6, QTableWidgetItem(task['Assignment_Date']))
+        if not assigned_tasks_data:
+            no_tasks_label = QLabel("No tasks currently assigned.")
+            no_tasks_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
+            self.tasks_layout.addWidget(no_tasks_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
 
-        self.assigned_tasks_table.resizeColumnsToContents()
-        self.assigned_tasks_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        for task_data in assigned_tasks_data:
+            task_card = TaskCard(task_data)
+            self.tasks_layout.addWidget(task_card)
+        self.tasks_layout.addStretch() # Push cards to top
 
 
 class WarehouseMenuInteractionWidget(QWidget):
@@ -1920,9 +2034,18 @@ class StorageSpaceManagementWidget(QWidget):
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Wrap content in a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(15)
+
         title = QLabel("Storage Space Management")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
-        layout.addWidget(title)
+        content_layout.addWidget(title)
 
         # Metric Card for Utilization
         try:
@@ -1932,16 +2055,18 @@ class StorageSpaceManagementWidget(QWidget):
             print(f"Error fetching cell utilization: {e}. Using dummy value.")
             utilization = 0.0
 
-        layout.addWidget(MetricCard("Overall Utilization", f"{utilization:.1f}%", "Average Warehouse Utilization"))
+        content_layout.addWidget(MetricCard("Overall Utilization", f"{utilization:.1f}%", "Average Warehouse Utilization"))
 
         # Placeholder for sub-features
         sub_features_layout = QGridLayout()
         sub_features_layout.addWidget(QLabel("<h3>Cell Optimization</h3><p>Simulate optimal cell assignment.</p>"), 0, 0)
         sub_features_layout.addWidget(QLabel("<h3>Space Allocation</h3><p>Manage space assignments for product categories.</p>"), 0, 1)
         sub_features_layout.addWidget(QLabel("<h3>Layout Management</h3><p>Visualize and modify warehouse layout.</p>"), 1, 0, 1, 2)
-        layout.addLayout(sub_features_layout)
+        content_layout.addLayout(sub_features_layout)
 
-        layout.addStretch()
+        content_layout.addStretch()
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area)
         
     def clear_layout(self, layout):
         if layout is not None:
@@ -1970,9 +2095,18 @@ class ReportsWidget(QWidget):
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Wrap content in a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(15)
+
         title = QLabel("Generate Reports")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
-        layout.addWidget(title)
+        content_layout.addWidget(title)
 
         tabs = QTabWidget()
 
@@ -2017,15 +2151,37 @@ class ReportsWidget(QWidget):
         exception_reports_layout = QVBoxLayout()
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
-        # Example: Low Stock Exception # Make it an instance variable
+        
+        # Add a button to generate exceptions
+        generate_exceptions_btn = QPushButton("Generate Exception Report")
+        generate_exceptions_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF5722;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #E64A19;
+            }
+        """)
+        generate_exceptions_btn.clicked.connect(self.generate_exception_report)
+        exception_reports_layout.addWidget(generate_exceptions_btn)
 
-        exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
+        self.exception_output_label = QLabel("Click 'Generate Exception Report' to see exceptions.")
+        self.exception_output_label.setStyleSheet("font-style: italic; color: #777; padding: 10px;")
+        exception_reports_layout.addWidget(self.exception_output_label)
 
         exception_reports_widget.setLayout(exception_reports_layout)
         tabs.addTab(exception_reports_widget, "Exception Reports")
 
-        layout.addWidget(tabs)
-        layout.addStretch()
+        content_layout.addWidget(tabs)
+        content_layout.addStretch()
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area)
         
     def clear_layout(self, layout):
         if layout is not None:
@@ -2109,20 +2265,42 @@ class ReportsWidget(QWidget):
         else:
             QMessageBox.warning(self, "No Data", "No stock data to save.")
 
-    def save_low_stock_report_to_csv(self):
-        if not hasattr(self, 'low_stock_exceptions') or self.low_stock_exceptions.empty:
-            QMessageBox.warning(self, "No Data", "No low stock exceptions to save.")
-            return
+    def generate_exception_report(self):
+        exceptions = []
 
-        options = QFileDialog.options()
-        file_name, _ = QFileDialog.getSaveFileName(self, "Save Low Stock Report", "low_stock_report.csv", "CSV Files (*.csv);;All Files (*)", options=options)
-        if file_name:
-            try:
-                report_df = self.low_stock_exceptions[['Product_Name', 'Quantity']]
-                report_df.to_csv(file_name, index=False)
-                QMessageBox.information(self, "Success", f"Low stock report saved to:\n{file_name}")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to save low stock report: {e}")
+        # Exception 1: Overdue Reception Orders (Status 'en attente' and Expected_Date in past)
+        overdue_receptions = self.data.reception_df[
+            (self.data.reception_df['Status'] == 'en attente') & 
+            (self.data.reception_df['Expected_Date'] < datetime.date.today())
+        ]
+        if not overdue_receptions.empty:
+            for _, row in overdue_receptions.iterrows():
+                exceptions.append(f"Overdue Reception Order: ID {row['Order_ID']} from {row['Supplier']} (Expected: {row['Expected_Date']})")
+
+        # Exception 2: Low Stock Items (Quantity below a threshold, e.g., 20)
+        low_stock_threshold = 20
+        low_stock_items = self.data.inventory_df[self.data.inventory_df['Quantity'] < low_stock_threshold]
+        if not low_stock_items.empty:
+            for _, row in low_stock_items.iterrows():
+                exceptions.append(f"Low Stock Alert: Product '{row['Product_Name']}' (ID: {row['Product_ID']}) has only {row['Quantity']} units left.")
+
+        # Exception 3: Unassigned Colis (Accepted but not assigned to packer)
+        unassigned_colis = self.data.reception_df[
+            (self.data.reception_df['Status'] == 'Accepte') &
+            (self.data.reception_df['packer_assignment_status'] == 'unassigned')
+        ]
+        if not unassigned_colis.empty:
+            for _, row in unassigned_colis.iterrows():
+                exceptions.append(f"Unassigned Colis: Order ID {row['Order_ID']} is accepted but not assigned for packaging.")
+
+        # Display exceptions
+        if exceptions:
+            report_text = "<h3>Generated Exception Report:</h3>" + "<br>".join(exceptions)
+            self.exception_output_label.setText(report_text)
+            self.exception_output_label.setStyleSheet("color: #D32F2F; font-weight: bold; padding: 10px;")
+        else:
+            self.exception_output_label.setText("No exceptions found at this time. All operations are running smoothly!")
+            self.exception_output_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 10px;")
 
 
 class DailyOperationsPlanningWidget(QWidget):
@@ -2142,16 +2320,25 @@ class DailyOperationsPlanningWidget(QWidget):
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Wrap content in a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(15)
+
         title = QLabel("Daily Operations Planning")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
-        layout.addWidget(title)
+        content_layout.addWidget(title)
 
         # Incorporate OrdersWidget as a central part of daily planning
         orders_section_label = QLabel("<h4>Order Management (Reception & Expedition)</h4>")
-        layout.addWidget(orders_section_label)
+        content_layout.addWidget(orders_section_label)
         self.orders_widget = OrdersWidget(self.data)
-        layout.addWidget(self.orders_widget)
-        layout.setStretchFactor(self.orders_widget, 1) # Give orders widget stretch
+        content_layout.addWidget(self.orders_widget)
+        content_layout.setStretchFactor(self.orders_widget, 1) # Give orders widget stretch
 
         # Placeholder for other planning aspects
         planning_info_label = QLabel("<h3>Planning Tools:</h3>"
@@ -2160,9 +2347,11 @@ class DailyOperationsPlanningWidget(QWidget):
                                      "<li>Allocate Workforce for Picking/Packing</li>"
                                      "<li>Forecast Demand (using historical data)</li>"
                                      "</ul>")
-        layout.addWidget(planning_info_label)
+        content_layout.addWidget(planning_info_label)
 
-        layout.addStretch()
+        content_layout.addStretch()
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area)
 
     def clear_layout(self, layout):
         if layout is not None:
@@ -2439,6 +2628,15 @@ class PerformanceWidget(QWidget):
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Wrap content in a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(15, 15, 15, 15)
+        content_layout.setSpacing(15)
+
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Performance Analytics")
@@ -2485,12 +2683,14 @@ class PerformanceWidget(QWidget):
         self.create_trend_chart(trend_chart)
         trend_chart.setMinimumHeight(300)
         charts_layout.addWidget(trend_chart, 0, 0)
+        charts_layout.setColumnStretch(0, 1) # Ensure this chart stretches
 
         # Storage utilization
         utilization_chart = ChartWidget(title='Storage Utilization by Zone', y_label='Utilization %', x_label='Zone')
         self.create_utilization_chart(utilization_chart)
         utilization_chart.setMinimumHeight(300)
         charts_layout.addWidget(utilization_chart, 0, 1)
+        charts_layout.setColumnStretch(1, 1) # Ensure this chart stretches
 
         # Fulfillment rate trend
         fulfillment_chart = ChartWidget(parent=self, title='Weekly Fulfillment Rate Trend', y_label='Fulfillment Rate %', x_label='Week',
@@ -2498,11 +2698,15 @@ class PerformanceWidget(QWidget):
         self.create_fulfillment_chart(fulfillment_chart)
         fulfillment_chart.setMinimumHeight(300)
         charts_layout.addWidget(fulfillment_chart, 1, 0, 1, 2)
+        charts_layout.setRowStretch(0, 1) # Stretch the row containing charts
+        charts_layout.setRowStretch(1, 1) # Stretch the row containing charts
 
-        layout.addLayout(header_layout)
-        layout.addLayout(kpi_layout)
-        layout.addLayout(charts_layout)
-        layout.addStretch() # Ensure content expands vertically
+        content_layout.addLayout(header_layout)
+        content_layout.addLayout(kpi_layout)
+        content_layout.addLayout(charts_layout)
+        content_layout.addStretch() # Ensure content expands vertically
+        scroll_area.setWidget(content_widget)
+        layout.addWidget(scroll_area)
 
     def clear_layout(self, layout):
         if layout is not None:
@@ -2579,25 +2783,6 @@ class PerformanceWidget(QWidget):
         chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
 
         
-class ChartWidget(pg.PlotWidget):
-    def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
-        super().__init__(parent=parent, axisItems=axisItems)
-        self.plotItem.setTitle(title)
-        self.plotItem.setLabel('left', y_label)
-        self.plotItem.setLabel('bottom', x_label)
-        self.plotItem.showGrid(x=True, y=True, alpha=0.3)
-        self.setBackground('w')
-        self.setAntialiasing(True)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMinimumSize(200, 200)
-
-    def plot_data(self, *args, **kwargs):
-        self.clear()
-        self.plot(*args, **kwargs)
-
-    def add_item(self, item):
-        self.addItem(item)
-
 class MainDashboardWidget(QWidget):
     """Dashboard with sidebar menu and top bar"""
 
@@ -2906,3 +3091,4 @@ if __name__ == '__main__':
     main_window = MainWindow()
     main_window.showMaximized()
     sys.exit(app.exec())
+
