@@ -146,7 +146,7 @@ class TaskCard(QFrame):
                 background-color: {colors.get(priority, '#3498db')};
                 color: white;
                 border: none;
-                border-radius: 12px;
+                border-radius: 13px;
                 font-size: 8px;
                 font-weight: bold;
             }}
@@ -240,7 +240,7 @@ class DashboardWidget(QWidget):
                     color: white;
                     border: none;
                     border-radius: 8px;
-                    font-size: 12px;
+                    font-size: 13px;
                     font-weight: bold;
                 }}
                 QPushButton:hover {{
@@ -376,7 +376,7 @@ class ReceptionWidget(QWidget):
                 step_frame.setStyleSheet("""
                     QFrame {
                         background-color: #e3f2fd;
-                        border: 2px solid #2196f3;
+                        border: 2px solid #006775;
                         border-radius: 8px;
                         padding: 10px;
                     }
@@ -399,7 +399,7 @@ class ReceptionWidget(QWidget):
             step_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             step_label.setStyleSheet(f"""
                 QLabel {{
-                    background-color: {'#2196f3' if active else '#bbb'};
+                    background-color: {'#006775' if active else '#bbb'};
                     color: white;
                     border-radius: 15px;
                     font-weight: bold;
@@ -589,7 +589,7 @@ class InventoryWidget(QWidget):
                     background-color: #3498db;
                     color: white;
                     border: none;
-                    border-radius: 12px;
+                    border-radius: 13px;
                 }
                 QPushButton:hover {
                     background-color: #2980b9;

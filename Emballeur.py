@@ -296,8 +296,8 @@ class EmballeurTaskCard(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border-radius: 12px;
-                border: 1px solid #E0E0E0;
+                border-radius: 13px;
+                border: 1px solid #D3DCE0;
                 margin: 5px 0;
                 padding: 0;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -312,7 +312,7 @@ class EmballeurTaskCard(QFrame):
 
         accent_bar = QFrame(self)
         accent_bar.setFixedWidth(6)
-        accent_bar.setStyleSheet(f"background-color: {color}; border-top-left-radius: 12px; border-bottom-left-radius: 12px;")
+        accent_bar.setStyleSheet(f"background-color: {color}; border-top-left-radius: 13px; border-bottom-left-radius: 13px;")
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -333,7 +333,7 @@ class EmballeurTaskCard(QFrame):
         header_row.addStretch()
 
         status_label = QLabel(self.order_data['Status'])
-        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 12px; font-weight: bold; padding: 3px 8px;")
+        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 13px; font-weight: bold; padding: 3px 8px;")
         header_row.addWidget(status_label)
         info_layout.addLayout(header_row)
 
@@ -379,7 +379,7 @@ class EmballeurTaskCard(QFrame):
 
     def get_status_color(self, status):
         colors = {
-            'Pending': "#FFC107",           # Amber
+            'Pending': "#F6AD55",           # Amber
             'Ready for Picking': "#007BFF", # Blue
             'In Progress': "#17A2B8",       # Cyan
             'Ready for Dispatch': "#28A745",# Green
@@ -410,7 +410,7 @@ class PrepareOrderDialog(QDialog):
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             QLabel {
                 font-size: 15px;
@@ -423,13 +423,13 @@ class PrepareOrderDialog(QDialog):
                 color: #343A40;
                 margin-bottom: 20px;
                 padding-bottom: 10px;
-                border-bottom: 1px solid #E0E0E0;
+                border-bottom: 1px solid #D3DCE0;
             }
             QPushButton {
                 background-color: #28A745;
                 color: white;
                 border: none;
-                padding: 12px 25px;
+                padding: 13px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
@@ -439,7 +439,7 @@ class PrepareOrderDialog(QDialog):
                 background-color: #218838;
             }
             QTableWidget {
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 10px;
                 background-color: white;
@@ -698,7 +698,7 @@ class PackagingMaterialCard(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding: 15px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -759,7 +759,7 @@ class UpdateMaterialDialog(QDialog):
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             QLabel {
                 font-size: 15px;
@@ -943,9 +943,9 @@ class EmballeurDashboardWidget(QWidget):
             QFrame {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #28A745, stop:1 #007BFF);
                 border-radius: 15px;
-                padding: 30px;
+                padding: 25px;
                 color: #FFFFFF;
-                box-shadow: 0 8px 30px rgba(40, 167, 69, 0.3);
+                box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
             }
             QLabel {
                 color: #FFFFFF;
@@ -964,7 +964,7 @@ class EmballeurDashboardWidget(QWidget):
             print(f"Error fetching emballeur name: {e}")
 
         welcome_label = QLabel(f"Welcome, {emballeur_name} Team!")
-        welcome_label.setStyleSheet("font-size: 32px; font-weight: bold;")
+        welcome_label.setStyleSheet("font-size: 36px; font-weight: bold;")
 
         time_label = QLabel(f"Today: {datetime.datetime.now().strftime('%A, %B %d, %Y')}")
         time_label.setStyleSheet("font-size: 16px; margin-top: 5px;")
@@ -981,7 +981,7 @@ class EmballeurDashboardWidget(QWidget):
         ready_for_dispatch = len([o for o in self.data.shipping_orders if o['Status'] == 'Ready for Dispatch'])
         low_stock_materials = len([m for m in self.data.packaging_materials if m['Quantity'] < 50])
 
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("Orders to Prepare", pending_orders, "#FFC107", "New & ready for picking"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Orders to Prepare", pending_orders, "#F6AD55", "New & ready for picking"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("In Progress", in_progress_orders, "#17A2B8", "Currently being picked/packed"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("Ready for Dispatch", ready_for_dispatch, "#28A745", "Packed & awaiting pickup"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("Low Stock Materials", low_stock_materials, "#DC3545", "Packaging materials needing attention"))
@@ -996,7 +996,7 @@ class EmballeurDashboardWidget(QWidget):
                 font-weight: bold;
                 color: #343A40;
                 margin-top: 20px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding-top: 15px;
                 background-color: #FFFFFF;
@@ -1015,7 +1015,7 @@ class EmballeurDashboardWidget(QWidget):
 
         button_style = """
             QPushButton {
-                background-color: #F0F2F5;
+                background-color: #EDF2F7;
                 border: none;
                 border-radius: 10px;
                 padding: 15px 25px;
@@ -1052,7 +1052,7 @@ class EmballeurDashboardWidget(QWidget):
                 font-weight: bold;
                 color: #343A40;
                 margin-top: 20px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding-top: 15px;
                 background-color: #FFFFFF;
@@ -1094,7 +1094,7 @@ class EmballeurDashboardWidget(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding: 20px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -1111,7 +1111,7 @@ class EmballeurDashboardWidget(QWidget):
         value_label.setStyleSheet(f"font-size: 36px; font-weight: bold; color: {color};")
 
         description_label = QLabel(description)
-        description_label.setStyleSheet("font-size: 12px; color: #999999;")
+        description_label.setStyleSheet("font-size: 13px; color: #4A5568;")
 
         layout.addWidget(title_label)
         layout.addWidget(value_label)
@@ -1126,15 +1126,15 @@ class HelpWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setSpacing(30)
-        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setContentsMargins(30, 30, 30, 30)
         
         # --- Card 1: AI Assistant Placeholder --
         ai_card = QFrame()
         ai_card.setStyleSheet("""
             QFrame {
-                background-color: #F8F0FA;
+                background-color: 	#004F5C;
                 border-radius: 16px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 padding: 20px;
                 box-shadow: 0 4px 5px rgba(40, 167, 69, 0.07);
             }
@@ -1171,21 +1171,21 @@ class HelpWidget(QWidget):
             QFrame {
                 background-color: #FFF3E0;
                 border-radius: 16px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 padding: 20px;
                 box-shadow: 0 4px 5px rgba(255, 193, 7, 0.07);
             }
         """)
         bug_layout= QVBoxLayout(bug_card)
         bug_title = QLabel("🐞 Report a Bug")
-        bug_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #FFC107;")
+        bug_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #F6AD55;")
         bug_desc = QLabel("If you encounter a problem or bug, please let our IT support know so we can fix it quickly.")
         bug_desc.setWordWrap(True)
         bug_desc.setStyleSheet("font-size: 18px; color: #343A40;")
         report_btn = QPushButton("Report a Bug")
         report_btn.setStyleSheet("""
             QPushButton {
-                background-color: #FFC107;
+                background-color: #F6AD55;
                 color: #343A40;
                 font-weight: bold;
                 font-size: 16px;
@@ -1224,7 +1224,7 @@ class BugReportDialog(QDialog):
         self.setStyleSheet("""
             QDialog{
                 background-color: #F8F9FA;
-                border-radius: 12px;
+                border-radius: 13px;
             }
             QLabel {
                 font-size: 16px;
@@ -1238,7 +1238,7 @@ class BugReportDialog(QDialog):
                 padding: 8px;
             }
             QPushButton {
-                background-color: #FFC107;
+                background-color: #F6AD55;
                 color: #343A40;
                 font-weight: bold;
                 font-size: 15px;
@@ -1324,7 +1324,7 @@ class EmballeurMainWindow(QMainWindow):
     def apply_global_styles(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #F0F2F5;
+                background-color: #EDF2F7;
             }
             QLabel, QGroupBox, QTableWidget, QLineEdit, QComboBox, QPushButton, QTextEdit, QSpinBox, QListWidget, QRadioButton, QDoubleSpinBox, QCheckBox {
                 font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
@@ -1333,18 +1333,18 @@ class EmballeurMainWindow(QMainWindow):
             }
             QTableWidget {
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 font-size: 15px;
                 selection-background-color: #E6F2FF; /* Light blue for selection */
                 selection-color: #343A40;
-                gridline-color: #F0F2F5;
+                gridline-color: #EDF2F7;
                 alternate-background-color: #F8F9FA;
             }
             QHeaderView::section {
                 background-color: #007BFF; /* Blue header */
                 color: #FFFFFF;
-                padding: 12px;
+                padding: 13px;
                 border: none;
                 font-weight: bold;
                 font-size: 16px;
@@ -1369,7 +1369,7 @@ class EmballeurMainWindow(QMainWindow):
             }
             QScrollBar:vertical {
                 border: none;
-                background: #F0F2F5;
+                background: #EDF2F7;
                 width: 10px;
                 margin: 0px 0px 0px 0px;
             }
@@ -1406,7 +1406,7 @@ class EmballeurMainWindow(QMainWindow):
         self.navbar.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
-                border-bottom: 1px solid #E0E0E0;
+                border-bottom: 1px solid #D3DCE0;
                 box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
             }
             QPushButton {
@@ -1420,7 +1420,7 @@ class EmballeurMainWindow(QMainWindow):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #F0F2F5;
+                background-color: #EDF2F7;
                 color: #343A40;
             }
             QPushButton:checked {
@@ -1438,7 +1438,7 @@ class EmballeurMainWindow(QMainWindow):
             font-size: 24px;
             font-weight: bold;
             color: #28A745; /* Green logo */
-            margin-right: 30px;
+            margin-right: 25px;
         """)
         navbar_layout.addWidget(logo_label)
 
@@ -1475,7 +1475,7 @@ class EmballeurMainWindow(QMainWindow):
 
     def create_content_area(self):
         self.content_stack = QStackedWidget()
-        self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 30px;")
+        self.content_stack.setStyleSheet("background-color: #EDF2F7; padding: 25px;")
         
         def scrollable(widget, object_name=None):
             scroll = QScrollArea()
@@ -1526,7 +1526,7 @@ if __name__ == '__main__':
     palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
     palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.black)
     palette.setColor(QPalette.ColorRole.Text, QColor("#343A40"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#D3DCE0"))
     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#343A40"))
     palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
     palette.setColor(QPalette.ColorRole.Link, QColor("#007BFF"))

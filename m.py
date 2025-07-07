@@ -249,13 +249,13 @@ class ChartWidget(pg.PlotWidget):
 class MetricCard(QFrame):
     """Card widget for displaying key metrics"""
 
-    def __init__(self, title, value, subtitle="", color="#4CAF50"):
+    def __init__(self, title, value, subtitle="", color="#38A169"):
         super().__init__()
         self.setFrameStyle(QFrame.Shape.StyledPanel)
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -266,7 +266,7 @@ class MetricCard(QFrame):
 
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
 
         # Value
         value_label = QLabel(str(value))
@@ -319,7 +319,7 @@ class RealtimeInventoryViewWidget(QWidget):
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -372,7 +372,7 @@ class RealtimeInventoryViewWidget(QWidget):
 
         metrics_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "In Stock"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Inventory Worth"))
-        metrics_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "Cells Not In Use", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "Cells Not In Use", "#E77E23"))
         metrics_layout.addWidget(MetricCard("Storage Zones", str(zones_used), "Active Zones"))
         content_layout.addLayout(metrics_layout)
 
@@ -466,8 +466,8 @@ class RealtimeInventoryViewWidget(QWidget):
         y_vals = np.nan_to_num(y_vals, nan=0.0)
     
         colors = [
-            QColor('#FF9800'), QColor('#4CAF50'), QColor('#2196F3'),
-            QColor('#9C27B0'), QColor('#FFC107'), QColor('#00BCD4')
+            QColor('#E77E23'), QColor('#38A169'), QColor('#006775'),
+            QColor('#9C27B0'), QColor('#F6AD55'), QColor('#00BCD4')
         ]
         brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
     
@@ -532,8 +532,8 @@ class RealtimeInventoryViewWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc; /* Lighter grid lines */
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0; /* Lighter header background */
@@ -639,7 +639,7 @@ class ZoneEmballage(QWidget):
             value="42",
             subtitle="Statut: En attente",
             info="Dernière mise à jour: 05/03/2025",
-            color="#2196F3",
+            color="#006775",
             icon="package"
         ), 0, 0)
 
@@ -648,7 +648,7 @@ class ZoneEmballage(QWidget):
             value="128",
             subtitle="Période: Aujourd'hui",
             info="Objectif: 150 colis/jour",
-            color="#4CAF50",
+            color="#38A169",
             icon="check-circle"
         ), 0, 1)
 
@@ -657,7 +657,7 @@ class ZoneEmballage(QWidget):
             title="Progression globale",
             progress=70,
             subtitle="Avancement des opérations",
-            color="#FF9800"
+            color="#E77E23"
         )
         emballage_layout.addWidget(progress_widget, 1, 0, 1, 2)
 
@@ -674,7 +674,7 @@ class ZoneEmballage(QWidget):
             value="24",
             subtitle="Statut: En attente",
             info="Priorité: Moyenne",
-            color="#2196F3",
+            color="#006775",
             icon="package"
         ), 0, 0)
 
@@ -683,7 +683,7 @@ class ZoneEmballage(QWidget):
             value="76",
             subtitle="Période: Aujourd'hui",
             info="Efficacité: 85%",
-            color="#4CAF50",
+            color="#38A169",
             icon="check-circle"
         ), 0, 1)
 
@@ -692,7 +692,7 @@ class ZoneEmballage(QWidget):
             title="Progression désemballage",
             progress=65,
             subtitle="Taux de complétion",
-            color="#FF9800"
+            color="#E77E23"
         )
         desemballage_layout.addWidget(progress_widget, 1, 0, 1, 2)
 
@@ -714,7 +714,7 @@ class ZoneEmballage(QWidget):
             QFrame {
                 background-color: white;
                 border-radius: 10px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }
         """)
         
@@ -739,7 +739,7 @@ class ZoneEmballage(QWidget):
             QFrame {{
                 background-color: white;
                 border-radius: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }}
         """)
         
@@ -803,7 +803,7 @@ class ZoneEmballage(QWidget):
         info_label = QLabel(info)
         info_label.setStyleSheet("""
             QLabel {
-                font-size: 12px;
+                font-size: 13px;
                 color: #999;
                 font-style: italic;
             }
@@ -819,7 +819,7 @@ class ZoneEmballage(QWidget):
             QWidget {{
                 background-color: white;
                 border-radius: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }}
         """)
         
@@ -890,7 +890,7 @@ class ZoneEmballage(QWidget):
             QFrame {
                 background-color: white;
                 border-radius: 10px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }
         """)
         
@@ -900,9 +900,9 @@ class ZoneEmballage(QWidget):
 
         # Action buttons
         actions = [
-            ("Marquer comme terminé", "dialog-ok", "#4CAF50"),
-            ("Signaler problème", "dialog-warning", "#FF9800"),
-            ("Demande d'assistance", "help", "#2196F3")
+            ("Marquer comme terminé", "dialog-ok", "#38A169"),
+            ("Signaler problème", "dialog-warning", "#E77E23"),
+            ("Demande d'assistance", "help", "#006775")
         ]
 
         for text, icon, color in actions:
@@ -956,7 +956,7 @@ class MenuExpedition(QWidget):
         expedition_summary_table = self.create_expedition_summary_table()
         bouton = QPushButton("chatte")
         bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
+                    QPushButton { background-color: #006775; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
                     QPushButton:hover { background-color: #1976D2; }
                 """)
         layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
@@ -991,8 +991,8 @@ class MenuExpedition(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
                 width:90%;
             }
             QHeaderView::section {
@@ -1036,36 +1036,36 @@ class ProductDetailDialog(QDialog):
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             QLabel {
                 font-size: 15px;
-                color: #333333;
+                color: #2D3748;
                 margin-bottom: 7px;
             }
             QLabel.title {
                 font-size: 24px;
                 font-weight: bold;
-                color: #333333;
+                color: #2D3748;
                 margin-bottom: 20px;
                 padding-bottom: 10px;
-                border-bottom: 1px solid #E0E0E0;
+                border-bottom: 1px solid #D3DCE0;
             }
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #006775;
                 color: white;
                 border: none;
-                padding: 12px 25px;
+                padding: 13px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #5247D6;
+                background-color: #004F5C;
             }
             QListWidget {
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 10px;
                 background-color: white;
@@ -1110,17 +1110,17 @@ class ProductDetailDialog(QDialog):
 
         button_layout = QHBoxLayout()
         validate_button = QPushButton("Validate Order")
-        validate_button.setStyleSheet("background-color: #4CAF50;")
+        validate_button.setStyleSheet("background-color: #38A169;")
         validate_button.clicked.connect(self.validate_product)
         button_layout.addWidget(validate_button)
 
         refuse_button = QPushButton("Refuse Order")
-        refuse_button.setStyleSheet("background-color: #F44336;")
+        refuse_button.setStyleSheet("background-color: #E53E3E;")
         refuse_button.clicked.connect(self.refuse_product)
         button_layout.addWidget(refuse_button)
 
         close_button = QPushButton("Close")
-        close_button.setStyleSheet("background-color: #999999;")
+        close_button.setStyleSheet("background-color: #4A5568;")
         close_button.clicked.connect(self.reject)
         button_layout.addWidget(close_button)
 
@@ -1218,7 +1218,7 @@ class MenuReception(QWidget):
             details_btn = QPushButton("View Details")
             details_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #2196F3;
+                    background-color: #006775;
                     color: white;
                     border: none;
                     padding: 5px 10px;
@@ -1241,7 +1241,7 @@ class MenuReception(QWidget):
             validate_btn = QPushButton("Validate")
             validate_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #4CAF50;
+                    background-color: #38A169;
                     color: white;
                     border: none;
                     padding: 5px 10px;
@@ -1258,7 +1258,7 @@ class MenuReception(QWidget):
             refuse_btn = QPushButton("Refuse")
             refuse_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #F44336;
+                    background-color: #E53E3E;
                     color: white;
                     border: none;
                     padding: 5px 10px;
@@ -1281,8 +1281,8 @@ class MenuReception(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1480,8 +1480,8 @@ class AssignToWorkerWidget(QWidget):
         card.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
-                border-radius: 12px;
-                border: 1px solid #E0E0E0;
+                border-radius: 13px;
+                border: 1px solid #D3DCE0;
                 padding: 15px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             }
@@ -1492,7 +1492,7 @@ class AssignToWorkerWidget(QWidget):
             QLabel.title {
                 font-size: 18px;
                 font-weight: bold;
-                color: #6C63FF;
+                color: #006775;
                 margin-bottom: 5px;
             }
             QComboBox {
@@ -1502,7 +1502,7 @@ class AssignToWorkerWidget(QWidget):
                 min-width: 100px;
             }
             QPushButton {
-                background-color: #00BFA5;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 15px;
@@ -1613,8 +1613,8 @@ class AssignedTasksViewWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1808,7 +1808,7 @@ class ReportsWidget(QWidget):
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -1884,8 +1884,8 @@ class ReportsWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -2155,7 +2155,7 @@ class OrdersWidget(QWidget):
         x_vals = np.arange(len(status_counts))
         y_vals = status_counts.values
         
-        colors = [QColor('#4CAF50'), QColor('#FF9800'), QColor('#2196F3'), QColor('#9C27B0')]
+        colors = [QColor('#38A169'), QColor('#E77E23'), QColor('#006775'), QColor('#9C27B0')]
         brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
 
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
@@ -2213,8 +2213,8 @@ class OrdersWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -2338,8 +2338,8 @@ class PerformanceWidget(QWidget):
         
         # Convert pandas Timestamps to Unix timestamps for pyqtgraph DateAxisItem
         x_vals = recent_data['Date'].apply(lambda x: x.timestamp()).values
-        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#4CAF50', width=2), name='Received')
-        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#2196F3', width=2), name='Shipped')
+        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#38A169', width=2), name='Received')
+        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#006775', width=2), name='Shipped')
         
         chart_widget.plotItem.addLegend()
         chart_widget.plotItem.setLabel('bottom', 'Date', axisClass=pg.DateAxisItem)
@@ -2354,7 +2354,7 @@ class PerformanceWidget(QWidget):
         x_vals = np.arange(len(zones))
         y_vals = np.array(utilization)
 
-        colors = [QColor('#FF5722') if u > 85 else QColor('#FF9800') if u > 75 else QColor('#4CAF50') for u in utilization]
+        colors = [QColor('#FF5722') if u > 85 else QColor('#E77E23') if u > 75 else QColor('#38A169') for u in utilization]
         brushes = [color for color in colors]
 
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
@@ -2516,7 +2516,7 @@ class MainDashboardWidget(QWidget):
                 btn.setStyleSheet("""
                     QPushButton {
                         text-align: left;
-                        padding: 12px 15px;
+                        padding: 13px 15px;
                         color: white;
                         border: none;
                         border-left: 4px solid transparent;
@@ -2531,7 +2531,7 @@ class MainDashboardWidget(QWidget):
                 btn.setStyleSheet("""
                     QPushButton {
                         text-align: left;
-                        padding: 12px 15px;
+                        padding: 13px 15px;
                         color: white;
                         border: none;
                         border-left: 4px solid transparent;
@@ -2707,17 +2707,17 @@ if __name__ == '__main__':
     app.setStyle("Fusion")
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#2D3748"))
     palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
     palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))
     palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
     palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.Text, QColor("#333333"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Text, QColor("#2D3748"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#D3DCE0"))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#2D3748"))
     palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
-    palette.setColor(QPalette.ColorRole.Link, QColor("#2196F3"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.Link, QColor("#006775"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#006775"))
     palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
 
     app.setPalette(palette)

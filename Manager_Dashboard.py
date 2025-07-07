@@ -2,38 +2,29 @@ import sys
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-from PyQt6.QtGui import QIcon, QPixmap, QPen
-from PyQt6.QtCore import QRectF, Qt
-from PyQt6.QtWidgets import QProgressBar
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
-from PyQt6.QtWidgets import QScrollArea
-from PyQt6.QtWidgets import QWidget, QTableWidget, QTableWidgetItem, QFormLayout
-from PyQt6.QtWidgets import QLineEdit, QComboBox, QDialog
-from PyQt6.QtWidgets import QSpinBox, QListWidget, QSizePolicy, QSplitter
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QStackedWidget, QFrame, QButtonGroup,
-    QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
-    QLineEdit, QComboBox, QDialog, QTextEdit, QSpinBox, QListWidget,QSizePolicy,
-    QFormLayout, QSplitter, QMessageBox, QGridLayout, QFileDialog, QTabWidget, QDateEdit,
-    QHeaderView # Import QHeaderView for table stretching
-)
-
-from PyQt6.QtCore import (
-    QPropertyAnimation, 
-    QEasingCurve, 
-    QParallelAnimationGroup,
-    QSequentialAnimationGroup
-)
-from PyQt6.QtWidgets import QGraphicsOpacityEffect, QGraphicsBlurEffect
-from PyQt6.QtGui import QPainter
-from PyQt6.QtWidgets import QGraphicsOpacityEffect
-from PyQt6.QtCore import QParallelAnimationGroup
-from PyQt6.QtCore import Qt, QDate, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette,QIcon,QPixmap
 import datetime
 import random
 import psycopg2
+
+from PyQt6.QtCore import (
+    Qt, QDate, QTimer,
+    QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QSequentialAnimationGroup
+)
+from PyQt6.QtGui import (
+    QIcon, QPixmap, QPen, QFont, QColor, QPalette, QPainter
+)
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout,
+    QLabel, QPushButton, QFrame, QScrollArea, QProgressBar,
+    QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit, QComboBox, QDialog,
+    QSpinBox, QListWidget, QSizePolicy, QSplitter, QStackedWidget,
+    QButtonGroup, QGroupBox, QMessageBox, QFileDialog, QTabWidget, QDateEdit,
+    QTextEdit, QGraphicsOpacityEffect, QGraphicsBlurEffect, # Confirm QGraphicsBlurEffect is here, often QtGui
+    QLayout # Crucial for your fix
+)
+
+# If QGraphicsBlurEffect truly belongs to QtGui, then it should be in the QtGui import block.
+# If your current setup works, keep it where it is, but it's less common.
 
 idorg = 'OABCDE'
 
@@ -55,9 +46,9 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="projet",
         user="postgres",
-        password="1234",
+        password="postgres",
         port=5432
     )
 cur=conn.cursor()
@@ -223,13 +214,13 @@ class ChartWidget(pg.PlotWidget):
 class MetricCard(QFrame):
     """Card widget for displaying key metrics"""
 
-    def __init__(self, title, value, subtitle="", color="#4CAF50"):
+    def __init__(self, title, value, subtitle="", color="#38A169"):
         super().__init__()
         self.setFrameStyle(QFrame.Shape.StyledPanel)
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -240,7 +231,7 @@ class MetricCard(QFrame):
 
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
 
         # Value
         value_label = QLabel(str(value))
@@ -293,7 +284,7 @@ class RealtimeInventoryViewWidget(QWidget):
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -346,7 +337,7 @@ class RealtimeInventoryViewWidget(QWidget):
 
         metrics_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "In Stock"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Inventory Worth"))
-        metrics_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "Cells Not In Use", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Available Cells", f"{available_cells:,}", "Cells Not In Use", "#E77E23"))
         metrics_layout.addWidget(MetricCard("Storage Zones", str(zones_used), "Active Zones"))
         content_layout.addLayout(metrics_layout)
 
@@ -440,8 +431,8 @@ class RealtimeInventoryViewWidget(QWidget):
         y_vals = np.nan_to_num(y_vals, nan=0.0)
     
         colors = [
-            QColor('#FF9800'), QColor('#4CAF50'), QColor('#2196F3'),
-            QColor('#9C27B0'), QColor('#FFC107'), QColor('#00BCD4')
+            QColor('#E77E23'), QColor('#38A169'), QColor('#006775'),
+            QColor('#9C27B0'), QColor('#F6AD55'), QColor('#00BCD4')
         ]
         brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
     
@@ -506,8 +497,8 @@ class RealtimeInventoryViewWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc; /* Lighter grid lines */
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0; /* Lighter header background */
@@ -532,49 +523,189 @@ class RealtimeInventoryViewWidget(QWidget):
         table.verticalHeader().setVisible(False) # Hide vertical header (row numbers)
 
         return table
-class CircularProgress(QWidget):
+
+class InputDialog(QDialog):
+    """A generic input dialog for single text input."""
+    def __init__(self, title: str, label_text: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setFixedSize(350, 150)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(15)
+
+        self.label = QLabel(label_text)
+        self.label.setStyleSheet("font-size: 14px; color: #333;")
+        self.layout.addWidget(self.label)
+
+        self.line_edit = QLineEdit()
+        self.line_edit.setPlaceholderText("Entrez l'identifiant ici...")
+        self.line_edit.setStyleSheet("""
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #006775;
+            }
+        """)
+        self.layout.addWidget(self.line_edit)
+
+        self.buttons_layout = QHBoxLayout()
+        self.ok_button = QPushButton("Confirmer")
+        self.ok_button.setStyleSheet(_get_button_style("#38A169"))
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button.setStyleSheet(_get_button_style("#E77E23"))
+        self.cancel_button.clicked.connect(self.reject)
+
+        self.buttons_layout.addStretch()
+        self.buttons_layout.addWidget(self.ok_button)
+        self.buttons_layout.addWidget(self.cancel_button)
+        self.layout.addLayout(self.buttons_layout)
+
+    def get_text(self) -> str:
+        return self.line_edit.text()
+
+class ProblemReportDialog(QDialog):
+    """Custom dialog for reporting a problem."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.progress = 0  # en pourcentage
-        self.setMinimumSize(200, 200)
+        self.setWindowTitle("Signaler un Problème")
+        self.setMinimumSize(450, 350)
+        self.layout = QFormLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(15)
 
-    def setProgress(self, value: float):
-        self.progress = value
-        self.update()
+        self.id_input = QLineEdit()
+        self.id_input.setPlaceholderText("ID Colis/Lot (optionnel)")
+        self.id_input.setStyleSheet("padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px;")
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.problem_type_combo = QComboBox()
+        self.problem_type_combo.addItems(["Colis endommagé", "Article manquant", "Erreur d'étiquetage", "Problème d'équipement", "Autre"])
+        self.problem_type_combo.setStyleSheet("""
+            QComboBox {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QComboBox::drop-down {
+                border: 0px; /* No border for the arrow */
+            }
+            QComboBox::down-arrow {
+                /* No specific icon, rely on system default or provide a dummy image */
+            }
+        """)
 
-        rect = QRectF(10, 10, self.width() - 20, self.height() - 20)
+        self.description_input = QTextEdit()
+        self.description_input.setPlaceholderText("Décrivez le problème en détail...")
+        self.description_input.setStyleSheet("""
+            QTextEdit {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+        """)
+        self.description_input.setMinimumHeight(100)
 
-        # Fond gris clair
-        pen_bg = QPen(QColor("#dfe3e6"), 20)
-        pen_bg.setCapStyle(Qt.PenCapStyle.RoundCap)
-        painter.setPen(pen_bg)
-        painter.drawArc(rect, 0, 360 * 16)
+        self.layout.addRow("ID Colis/Lot:", self.id_input)
+        self.layout.addRow("Type de Problème:", self.problem_type_combo)
+        self.layout.addRow("Description:", self.description_input)
 
-        # Cercle de progression bleu
-        pen_fg = QPen(QColor("#3498db"), 20)
-        pen_fg.setCapStyle(Qt.PenCapStyle.RoundCap)
-        painter.setPen(pen_fg)
-        painter.drawArc(rect, -90 * 16, -self.progress * 3.6 * 16)
+        self.buttons_layout = QHBoxLayout()
+        self.send_button = QPushButton("Envoyer")
+        self.send_button.setStyleSheet(_get_button_style("#38A169"))
+        self.send_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button.setStyleSheet(_get_button_style("#E77E23"))
+        self.cancel_button.clicked.connect(self.reject)
 
-        # Texte
-        painter.setPen(QColor("#ffffff"))
-        font = QFont("Arial", 30, QFont.Weight.Bold)
-        painter.setFont(font)
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{int(self.progress)}%")
+        self.buttons_layout.addStretch()
+        self.buttons_layout.addWidget(self.send_button)
+        self.buttons_layout.addWidget(self.cancel_button)
+        self.layout.addRow(self.buttons_layout)
 
-        # Cercle intérieur
-        painter.setBrush(QColor("#205081"))
-        painter.setPen(Qt.PenStyle.NoPen)
-        inner_rect = QRectF(30, 30, self.width() - 60, self.height() - 60)
-        painter.drawEllipse(inner_rect)
+    def get_problem_data(self) -> dict:
+        return {
+            "item_id": self.id_input.text(),
+            "problem_type": self.problem_type_combo.currentText(),
+            "description": self.description_input.toPlainText()
+        }
+
+class AssistanceRequestDialog(QDialog):
+    """Custom dialog for requesting assistance."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Demander de l'Assistance")
+        self.setMinimumSize(400, 250)
+        self.layout = QFormLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(15)
+
+        self.request_type_combo = QComboBox()
+        self.request_type_combo.addItems(["Support Technique", "Assistance Superviseur", "Problème Logistique", "Question Générale"])
+        self.request_type_combo.setStyleSheet("""
+            QComboBox {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+        """)
+
+        self.message_input = QTextEdit()
+        self.message_input.setPlaceholderText("Décrivez votre besoin d'assistance...")
+        self.message_input.setStyleSheet("""
+            QTextEdit {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+        """)
+        self.message_input.setMinimumHeight(80)
+
+        self.layout.addRow("Type de demande:", self.request_type_combo)
+        self.layout.addRow("Message:", self.message_input)
+
+        self.buttons_layout = QHBoxLayout()
+        self.send_button = QPushButton("Envoyer")
+        self.send_button.setStyleSheet(_get_button_style("#38A169"))
+        self.send_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button.setStyleSheet(_get_button_style("#E77E23"))
+        self.cancel_button.clicked.connect(self.reject)
+
+        self.buttons_layout.addStretch()
+        self.buttons_layout.addWidget(self.send_button)
+        self.buttons_layout.addWidget(self.cancel_button)
+        self.layout.addRow(self.buttons_layout)
+
+    def get_assistance_data(self) -> dict:
+        return {
+            "request_type": self.request_type_combo.currentText(),
+            "message": self.message_input.toPlainText()
+        }
+
+import datetime
+from PyQt6.QtGui import QIcon, QColor
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
+    QFrame, QScrollArea, QProgressBar, QMessageBox, QLayout,
+    QTableWidget, QTableWidgetItem, QHeaderView # Added for potential future use or consistency
+)
+
+
 class ZoneEmballage(QWidget):
     def __init__(self, data):
         super().__init__()
-        self.data = data                                                                                  
+        self.data = data
+        self._main_layout = None  # Initialize to None for the first call to init_ui
         self.init_ui()
 
     def init_ui(self):
@@ -613,7 +744,7 @@ class ZoneEmballage(QWidget):
             value="42",
             subtitle="Statut: En attente",
             info="Dernière mise à jour: 05/03/2025",
-            color="#2196F3",
+            color="#006775",
             icon="package"
         ), 0, 0)
 
@@ -622,7 +753,7 @@ class ZoneEmballage(QWidget):
             value="128",
             subtitle="Période: Aujourd'hui",
             info="Objectif: 150 colis/jour",
-            color="#4CAF50",
+            color="#38A169",
             icon="check-circle"
         ), 0, 1)
 
@@ -631,7 +762,7 @@ class ZoneEmballage(QWidget):
             title="Progression globale",
             progress=70,
             subtitle="Avancement des opérations",
-            color="#FF9800"
+            color="#E77E23"
         )
         emballage_layout.addWidget(progress_widget, 1, 0, 1, 2)
 
@@ -648,7 +779,7 @@ class ZoneEmballage(QWidget):
             value="24",
             subtitle="Statut: En attente",
             info="Priorité: Moyenne",
-            color="#2196F3",
+            color="#006775",
             icon="package"
         ), 0, 0)
 
@@ -657,7 +788,7 @@ class ZoneEmballage(QWidget):
             value="76",
             subtitle="Période: Aujourd'hui",
             info="Efficacité: 85%",
-            color="#4CAF50",
+            color="#38A169",
             icon="check-circle"
         ), 0, 1)
 
@@ -666,7 +797,7 @@ class ZoneEmballage(QWidget):
             title="Progression désemballage",
             progress=65,
             subtitle="Taux de complétion",
-            color="#FF9800"
+            color="#E77E23"
         )
         desemballage_layout.addWidget(progress_widget, 1, 0, 1, 2)
 
@@ -688,10 +819,10 @@ class ZoneEmballage(QWidget):
             QFrame {
                 background-color: white;
                 border-radius: 10px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }
         """)
-        
+
         # Section title
         title_label = QLabel(title)
         title_label.setStyleSheet("""
@@ -702,7 +833,7 @@ class ZoneEmballage(QWidget):
                 padding: 10px;
             }
         """)
-        
+
         layout = QVBoxLayout(frame)
         layout.addWidget(title_label)
         return frame
@@ -713,10 +844,10 @@ class ZoneEmballage(QWidget):
             QFrame {{
                 background-color: white;
                 border-radius: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }}
         """)
-        
+
         layout = QVBoxLayout(card)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
@@ -724,7 +855,7 @@ class ZoneEmballage(QWidget):
         # Header with optional icon
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         title_label = QLabel(title)
         title_label.setStyleSheet("""
             QLabel {
@@ -734,13 +865,20 @@ class ZoneEmballage(QWidget):
             }
         """)
         header_layout.addWidget(title_label)
-        
+
         if icon:
             icon_label = QLabel()
-            icon_label.setPixmap(QIcon.fromTheme(icon).pixmap(24, 24))
+            # QIcon.fromTheme might require a theme to be set or present on the system.
+            # For robustness, you might want to provide fallback images or ensure themes are available.
+            try:
+                icon_label.setPixmap(QIcon.fromTheme(icon).pixmap(24, 24))
+            except Exception as e:
+                print(f"Warning: Could not load icon '{icon}'. Error: {e}")
+                # Fallback or just skip the icon
+                pass
             header_layout.addWidget(icon_label)
             header_layout.setAlignment(icon_label, Qt.AlignmentFlag.AlignRight)
-        
+
         layout.addLayout(header_layout)
 
         # Main value
@@ -777,7 +915,7 @@ class ZoneEmballage(QWidget):
         info_label = QLabel(info)
         info_label.setStyleSheet("""
             QLabel {
-                font-size: 12px;
+                font-size: 13px;
                 color: #999;
                 font-style: italic;
             }
@@ -793,10 +931,10 @@ class ZoneEmballage(QWidget):
             QWidget {{
                 background-color: white;
                 border-radius: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }}
         """)
-        
+
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
@@ -814,7 +952,7 @@ class ZoneEmballage(QWidget):
 
         # Progress bar with percentage
         progress_layout = QHBoxLayout()
-        
+
         progress_bar = QProgressBar()
         progress_bar.setRange(0, 100)
         progress_bar.setValue(progress)
@@ -831,7 +969,7 @@ class ZoneEmballage(QWidget):
             }}
         """)
         progress_layout.addWidget(progress_bar, 4)
-        
+
         percent_label = QLabel(f"{progress}%")
         percent_label.setStyleSheet(f"""
             QLabel {{
@@ -842,7 +980,7 @@ class ZoneEmballage(QWidget):
             }}
         """)
         progress_layout.addWidget(percent_label, 1)
-        
+
         layout.addLayout(progress_layout)
 
         # Subtitle
@@ -864,24 +1002,28 @@ class ZoneEmballage(QWidget):
             QFrame {
                 background-color: white;
                 border-radius: 10px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
             }
         """)
-        
+
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
         # Action buttons
         actions = [
-            ("Marquer comme terminé", "dialog-ok", "#4CAF50"),
-            ("Signaler problème", "dialog-warning", "#FF9800"),
-            ("Demande d'assistance", "help", "#2196F3")
+            ("Marquer comme terminé", "dialog-ok", "#38A169"),
+            ("Signaler problème", "dialog-warning", "#E77E23"),
+            ("Demande d'assistance", "help", "#006775")
         ]
 
         for text, icon, color in actions:
             btn = QPushButton(text)
-            btn.setIcon(QIcon.fromTheme(icon))
+            # QIcon.fromTheme might require a theme to be set or present on the system.
+            try:
+                btn.setIcon(QIcon.fromTheme(icon))
+            except Exception as e:
+                print(f"Warning: Could not load icon '{icon}' for button '{text}'. Error: {e}")
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {color};
@@ -914,11 +1056,14 @@ class ZoneEmballage(QWidget):
                 else:
                     self.clear_layout(item.layout())
 
+# --- MenuExpedition Class ---
 class MenuExpedition(QWidget):
-    def __init__(self,data):
+    def __init__(self, data):
         super().__init__()
-        self.data=data
+        self.data = data
+        self._main_layout = None # Initialize to None
         self.init_ui()
+
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
@@ -930,13 +1075,12 @@ class MenuExpedition(QWidget):
         expedition_summary_table = self.create_expedition_summary_table()
         bouton = QPushButton("chatte")
         bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
-                    QPushButton:hover { background-color: #1976D2; }
-                """)
-        layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(bouton,1,0,Qt.AlignmentFlag.AlignBottom)
+            QPushButton { background-color: #006775; color: white; border: none;border-radius: 15px; margin-top:50px;font-weight: bold; }
+            QPushButton:hover { background-color: #1976D2; }
+        """)
+        layout.addWidget(expedition_summary_table, 0, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(bouton, 1, 0, Qt.AlignmentFlag.AlignBottom)
 
-        
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
@@ -949,25 +1093,34 @@ class MenuExpedition(QWidget):
 
     def create_expedition_summary_table(self):
         table = QTableWidget()
-        
-        table.setRowCount(len(self.data.expedition2_df))
-        table.setColumnCount(4)
-        table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
 
-        for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
-            table.setItem(i, 1, QTableWidgetItem(row['identifiant du lot']))
-            table.setItem(i, 2, QTableWidgetItem(row['idbonexpedition']))
-            table.setItem(i, 3, QTableWidgetItem(str(row['dateexpedition'])))
+        # Ensure expedition2_df exists and is not empty before accessing
+        if hasattr(self.data, 'expedition2_df') and not self.data.expedition2_df.empty:
+            table.setRowCount(len(self.data.expedition2_df))
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception', "date d'expedition"])
+
+            for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
+                table.setItem(i, 0, QTableWidgetItem(str(row.get('identifiant du colis', ''))))
+                table.setItem(i, 1, QTableWidgetItem(str(row.get('identifiant du lot', ''))))
+                table.setItem(i, 2, QTableWidgetItem(str(row.get('idbonexpedition', ''))))
+                table.setItem(i, 3, QTableWidgetItem(str(row.get('dateexpedition', ''))))
+        else:
+            table.setRowCount(0)
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception', "date d'expedition"])
+            print("Warning: self.data.expedition2_df is not available or empty in MenuExpedition.")
+
+
         table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
-                width:90%;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
+                width:90%; /* This width might not behave as expected in a layout */
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -991,11 +1144,14 @@ class MenuExpedition(QWidget):
         table.verticalHeader().setVisible(False)
         return table
 
+# --- MenuReception Class ---
 class MenuReception(QWidget):
-    def __init__(self,data):
+    def __init__(self, data):
         super().__init__()
-        self.data=data
+        self.data = data
+        self._main_layout = None # Initialize to None
         self.init_ui()
+
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
@@ -1008,13 +1164,12 @@ class MenuReception(QWidget):
         bouton = QPushButton("chatte")
         bouton.setFixedWidth(500) # This fixed width might constrain layout
         bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
-                    QPushButton:hover { background-color: #1976D2; }
-                """)
-        layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(bouton,1,0)
+            QPushButton { background-color: #006775; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
+            QPushButton:hover { background-color: #1976D2; }
+        """)
+        layout.addWidget(expedition_summary_table, 0, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(bouton, 1, 0)
 
-        
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
@@ -1027,25 +1182,33 @@ class MenuReception(QWidget):
 
     def create_expedition_summary_table(self):
         table = QTableWidget()
-        
-        table.setRowCount(len(self.data.expedition2_df))
-        table.setColumnCount(4)
-        table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
 
-        for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
-            table.setItem(i, 1, QTableWidgetItem(row['identifiant du lot']))
-            table.setItem(i, 2, QTableWidgetItem(row['idbonexpedition']))
-            table.setItem(i, 3, QTableWidgetItem(str(row['dateexpedition'])))
+        # Ensure expedition2_df exists and is not empty before accessing
+        if hasattr(self.data, 'expedition2_df') and not self.data.expedition2_df.empty:
+            table.setRowCount(len(self.data.expedition2_df))
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception', "date d'expedition"])
+
+            for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
+                table.setItem(i, 0, QTableWidgetItem(str(row.get('identifiant du colis', ''))))
+                table.setItem(i, 1, QTableWidgetItem(str(row.get('identifiant du lot', ''))))
+                table.setItem(i, 2, QTableWidgetItem(str(row.get('idbonexpedition', ''))))
+                table.setItem(i, 3, QTableWidgetItem(str(row.get('dateexpedition', ''))))
+        else:
+            table.setRowCount(0)
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception', "date d'expedition"])
+            print("Warning: self.data.expedition2_df is not available or empty in MenuReception.")
+
         table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
-                width:200px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
+                width:200px; /* This fixed width might constrain layout */
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1069,6 +1232,178 @@ class MenuReception(QWidget):
         table.verticalHeader().setVisible(False)
         return table
 
+# --- Main application setup (for testing) ---
+class DummyData:
+    """A dummy class to simulate the 'data' object passed to the widgets."""
+    def __init__(self):
+        # Create a sample DataFrame for demonstration
+        self.expedition2_df = pd.DataFrame({
+            'identifiant du colis': ['PCK001', 'PCK002', 'PCK003'],
+            'identifiant du lot': ['LOT001', 'LOT001', 'LOT002'],
+            'idbonexpedition': ['BONEX001', 'BONEX001', 'BONEX002'],
+            'dateexpedition': ['2025-07-01', '2025-07-01', '2025-07-02']
+        })
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+
+    # Create dummy data instance
+    dummy_data = DummyData()
+
+    # Demonstrate ZoneEmballage
+    print("Displaying ZoneEmballage...")
+    emballage_window = ZoneEmballage(dummy_data)
+    emballage_window.setWindowTitle("Zone Emballage Dashboard")
+    emballage_window.setGeometry(100, 100, 800, 600)
+    emballage_window.show()
+
+    # Demonstrate MenuExpedition
+    print("Displaying MenuExpedition...")
+    expedition_window = MenuExpedition(dummy_data)
+    expedition_window.setWindowTitle("Menu Expedition")
+    expedition_window.setGeometry(950, 100, 700, 500)
+    expedition_window.show()
+
+    # Demonstrate MenuReception
+    print("Displaying MenuReception...")
+    reception_window = MenuReception(dummy_data)
+    reception_window.setWindowTitle("Menu Reception")
+    reception_window.setGeometry(100, 700, 700, 500)
+    reception_window.show()
+
+
+ 
+class MenuReception(QWidget):
+    """
+    A QWidget class for displaying reception-related information,
+    specifically a summary table of reception data.
+    """
+
+    def __init__(self, data: object):
+        """
+        Initializes the MenuReception widget.
+
+        Args:
+            data: An object expected to have a 'expedition2_df' attribute (DataFrame-like).
+                  Note: The original code uses 'expedition2_df' for reception,
+                  which might be a logical inconsistency depending on the data source.
+        """
+        super().__init__()
+        self.data = data
+        self._main_layout: QGridLayout | None = None
+        self.init_ui()
+
+    def init_ui(self) -> None:
+        """
+        Initializes or re-initializes the user interface for the reception menu.
+        It clears any existing layout before setting up new components.
+        """
+        if hasattr(self, '_main_layout') and self._main_layout is not None:
+            self._clear_layout(self._main_layout)
+        else:
+            self._main_layout = QGridLayout(self)
+
+        layout = self._main_layout
+        reception_summary_table = self._create_summary_table()
+        
+        # Example button - consider making text and functionality dynamic
+        action_button = QPushButton("Effectuer une action de réception")
+        action_button.setStyleSheet("""
+            QPushButton {
+                background-color: #006775;
+                color: white;
+                border: none;
+                padding: 15px 30px; /* Adjusted padding for better fit with fixed width */
+                border-radius: 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        # Consider removing fixed width unless absolutely necessary, as it can hinder responsiveness
+        action_button.setFixedWidth(500) 
+        
+        layout.addWidget(reception_summary_table, 0, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(action_button, 1, 0, Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter) # Centered the button
+
+    def _clear_layout(self, layout: QLayout) -> None:
+        """
+        Recursively clears all widgets and layouts from a given layout.
+
+        Args:
+            layout (QLayout): The layout to clear.
+        """
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self._clear_layout(item.layout())
+
+    def _create_summary_table(self) -> QTableWidget:
+        """
+        Creates a QTableWidget to display reception summary data.
+
+        Returns:
+            QTableWidget: A styled table widget populated with reception data.
+        """
+        table = QTableWidget()
+
+        # Ensure data.expedition2_df exists and is iterable
+        # NOTE: The original code uses 'expedition2_df' for reception.
+        # If reception data comes from a different source, update 'self.data.expedition2_df'
+        if hasattr(self.data, 'expedition2_df') and not self.data.expedition2_df.empty:
+            table.setRowCount(len(self.data.expedition2_df))
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception', "date d'expedition"])
+
+            for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
+                table.setItem(i, 0, QTableWidgetItem(str(row.get('identifiant du colis', ''))))
+                table.setItem(i, 1, QTableWidgetItem(str(row.get('identifiant du lot', ''))))
+                table.setItem(i, 2, QTableWidgetItem(str(row.get('idbonexpedition', ''))))
+                table.setItem(i, 3, QTableWidgetItem(str(row.get('dateexpedition', ''))))
+        else:
+            table.setRowCount(1)
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception', "date d'expedition"])
+            table.setItem(0, 0, QTableWidgetItem("No Data"))
+            table.setSpan(0, 0, 1, 4) # Span across all columns for "No Data" message
+
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
+                width: 90%; /* This is a stylistic preference, actual size depends on layout */
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 10px 8px;
+                border: 1px solid #dcdcdc;
+                font-weight: bold;
+                font-size: 13px;
+                color: #555;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #cce7ff;
+                color: #333;
+            }
+        """)
+
+        table.setAlternatingRowColors(True)
+        table.resizeColumnsToContents()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+        return table
 class WarehouseMenuInteractionWidget(QWidget):
     """Widget principal de 'Menu interaction' qui regroupe les vues du module warehouse."""
 
@@ -1208,7 +1543,7 @@ class ReportsWidget(QWidget):
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -1284,8 +1619,17 @@ class ReportsWidget(QWidget):
         # Style et configuration
         table.setStyleSheet("""
             QTableWidget {
+<<<<<<< Updated upstream
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+=======
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
+>>>>>>> Stashed changes
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1351,36 +1695,104 @@ class DailyOperationsPlanningWidget(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # Clear existing layout if init_ui is called multiple times
-        if hasattr(self, '_main_layout') and self._main_layout is not None:
-            self.clear_layout(self._main_layout)
-        else:
+        # Initialisation du layout principal du widget
+        if not hasattr(self, '_main_layout') or self._main_layout is None:
             self._main_layout = QVBoxLayout(self)
+        else:
+            self.clear_layout(self._main_layout)
 
-        layout = self._main_layout
-        layout.setContentsMargins(0, 0, 0, 0)
+        # 1. Créer le QScrollArea
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True) # Permet au contenu de se redimensionner
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame) # Supprime la bordure par défaut du QScrollArea
 
+        # 2. Créer un QWidget "conteneur" pour tout le contenu défilable
+        self.scroll_content_widget = QWidget()
+        # 3. Créer un layout pour ce conteneur
+        self.scroll_content_layout = QVBoxLayout(self.scroll_content_widget)
+        self.scroll_content_layout.setContentsMargins(20, 20, 20, 20) # Marge intérieure pour le contenu défilant
+        self.scroll_content_layout.setSpacing(25) # Espacement entre les sections principales
+
+        # 4. Assigner le widget conteneur au QScrollArea
+        self.scroll_area.setWidget(self.scroll_content_widget)
+
+        # 5. Ajouter le QScrollArea au layout principal de DailyOperationsPlanningWidget
+        self._main_layout.addWidget(self.scroll_area)
+
+        # --- Déplacer tout le contenu existant vers self.scroll_content_layout ---
         title = QLabel("Daily Operations Planning")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
-        layout.addWidget(title)
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #2C3E50; margin-bottom: 15px;")
+        self.scroll_content_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Incorporate OrdersWidget as a central part of daily planning
         orders_section_label = QLabel("<h4>Order Management (Reception & Expedition)</h4>")
-        layout.addWidget(orders_section_label)
+        orders_section_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #333;")
+        self.scroll_content_layout.addWidget(orders_section_label)
+        
         self.orders_widget = OrdersWidget(self.data)
-        layout.addWidget(self.orders_widget)
-        layout.setStretchFactor(self.orders_widget, 1) # Give orders widget stretch
+        self.scroll_content_layout.addWidget(self.orders_widget)
+        self.scroll_content_layout.setStretchFactor(self.orders_widget, 1) # Give orders widget stretch
 
-        # Placeholder for other planning aspects
+        # Placeholder for other planning aspects (j'ai ajouté plus de texte ici pour rendre le défilement visible)
         planning_info_label = QLabel("<h3>Planning Tools:</h3>"
                                      "<ul>"
                                      "<li>Schedule Shipments & Receptions</li>"
                                      "<li>Allocate Workforce for Picking/Packing</li>"
                                      "<li>Forecast Demand (using historical data)</li>"
+                                     "<li>Optimize Routes for Deliveries</li>"
+                                     "<li>Manage Warehouse Inventory Levels</li>"
+                                     "<li>Track Employee Performance</li>"
+                                     "<li>Generate Daily Operation Reports</li>"
+                                     "<li>Integrate with External Systems (ERP, CRM)</li>"
+                                     "<li>Handle Exceptions and Delays</li>"
+                                     "<li>Automate Repetitive Tasks</li>"
+                                     "<li>Visualize Supply Chain Flow</li>"
+                                     "<li>Manage Returns and Reverse Logistics</li>"
+                                     "<li>Ensure Compliance with Regulations</li>"
+                                     "<li>Implement Quality Control Checks</li>"
+                                     "<li>Conduct Risk Assessments</li>"
                                      "</ul>")
-        layout.addWidget(planning_info_label)
+        planning_info_label.setWordWrap(True) # Pour que le texte long s'enroule
+        planning_info_label.setStyleSheet("font-size: 16px; color: #444; line-height: 1.5;")
+        self.scroll_content_layout.addWidget(planning_info_label)
 
-        layout.addStretch()
+        self.scroll_content_layout.addStretch() # Pousse le contenu vers le haut
+
+        # Styles pour le QScrollArea et son contenu interne
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent; /* Rendre l'arrière-plan du QScrollArea transparent */
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #E8EBF0;
+                width: 10px;
+                margin: 0px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #B0B0B0;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            /* Style pour le widget de contenu interne pour lui donner un aspect de carte */
+            QWidget#daily_ops_scroll_content_widget { /* Utiliser un nom d'objet spécifique pour le styliser */
+                background-color: #FFFFFF;
+                border-radius: 10px;
+                border: 1px solid #D3DCE0;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Ombre douce */
+            }
+        """)
+        # Assigner un nom d'objet au widget de contenu pour le styliser spécifiquement
+        self.scroll_content_widget.setObjectName("daily_ops_scroll_content_widget")
+
 
     def clear_layout(self, layout):
         if layout is not None:
@@ -1401,17 +1813,42 @@ class OrdersWidget(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # Clear existing layout if init_ui is called multiple times
-        if hasattr(self, '_main_layout') and self._main_layout is not None:
-            self.clear_layout(self._main_layout)
-        else:
+        if not hasattr(self, '_main_layout') or self._main_layout is None:
             self._main_layout = QVBoxLayout(self)
+        else:
+            self.clear_layout(self._main_layout)
 
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0) # Adjust margins for nested widget
 
         # Tab widget for different order types
         tabs = QTabWidget()
+        tabs.setStyleSheet("""
+            QTabWidget::pane { /* The tab widget frame */
+                border: 1px solid #D3DCE0;
+                border-radius: 8px;
+                background-color: #FFFFFF;
+            }
+            QTabBar::tab {
+                background: #EBF2F7;
+                border: 1px solid #D3DCE0;
+                border-bottom-color: #D3DCE0; /* same as pane color */
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                min-width: 100px;
+                padding: 10px;
+                font-weight: bold;
+                color: #555;
+            }
+            QTabBar::tab:selected {
+                background: #FFFFFF;
+                border-bottom-color: #FFFFFF; /* selected tab has no border on the bottom */
+                color: #006775;
+            }
+            QTabBar::tab:hover {
+                background: #E0E5EB;
+            }
+        """)
 
         # Reception orders tab
         reception_widget = self.create_reception_tab()
@@ -1437,7 +1874,7 @@ class OrdersWidget(QWidget):
     def create_reception_tab(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(15,15,15,15) # Add padding inside tab content
 
         # Header with metrics
         header_layout = QHBoxLayout()
@@ -1448,18 +1885,22 @@ class OrdersWidget(QWidget):
 
         # Metrics
         metrics_layout = QHBoxLayout()
-        cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
-        today_rec = cur.fetchone()[0]
-        if today_rec is None:
+        try:
+            cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
+            today_rec = cur.fetchone()[0]
+            if today_rec is None: today_rec = 0
+            cur.execute("SELECT \"EMIR\".valuereception();")
+            total_value = cur.fetchone()[0]
+            if total_value is None: total_value = 0.0
+            cur.execute("SELECT \"EMIR\".avgitemsreception();")
+            avg_items = cur.fetchone()[0]
+            if avg_items is None: avg_items = 0.0
+        except Exception as e:
+            print(f"Error fetching reception metrics: {e}")
             today_rec = 0
-        cur.execute("SELECT \"EMIR\".valuereception();")
-        total_value = cur.fetchone()[0]
-        if total_value is None:
             total_value = 0.0
-        cur.execute("SELECT \"EMIR\".avgitemsreception();")
-        avg_items = cur.fetchone()[0]
-        if avg_items is None:
             avg_items = 0.0
+
 
         metrics_layout.addWidget(MetricCard("Today Receptions", f"{today_rec:,}", "Awaiting Receipt"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
@@ -1470,7 +1911,8 @@ class OrdersWidget(QWidget):
 
         # Status chart
         status_chart = ChartWidget(title="Reception Orders by Status", y_label="Number of Orders", x_label="Status")
-        self.create_status_chart(status_chart, self.data.reception_df)
+        if hasattr(self.data, 'reception_df') and not self.data.reception_df.empty:
+            self.create_status_chart(status_chart, self.data.reception_df)
         status_chart.setMinimumHeight(250)
         status_chart.setMinimumWidth(300)
 
@@ -1494,7 +1936,7 @@ class OrdersWidget(QWidget):
     def create_expedition_tab(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(15,15,15,15) # Add padding inside tab content
 
         # Header with metrics
         header_layout = QHBoxLayout()
@@ -1506,17 +1948,20 @@ class OrdersWidget(QWidget):
         # Metrics
         metrics_layout = QHBoxLayout()
 
-        cur.execute("SELECT \"EMIR\".colis_sortants_jour_count();")
-        today_exp = cur.fetchone()[0]
-        if today_exp is None:
+        try:
+            cur.execute("SELECT \"EMIR\".colis_sortants_jour_count();")
+            today_exp = cur.fetchone()[0]
+            if today_exp is None: today_exp = 0
+            cur.execute("SELECT \"EMIR\".valueexpedition();")
+            total_value = cur.fetchone()[0]
+            if total_value is None: total_value = 0.0
+            cur.execute("SELECT \"EMIR\".avgitemsexpedition();")
+            avg_items = cur.fetchone()[0]
+            if avg_items is None: avg_items = 0.0
+        except Exception as e:
+            print(f"Error fetching expedition metrics: {e}")
             today_exp = 0
-        cur.execute("SELECT \"EMIR\".valueexpedition();")
-        total_value = cur.fetchone()[0]
-        if total_value is None:
             total_value = 0.0
-        cur.execute("SELECT \"EMIR\".avgitemsexpedition();")
-        avg_items = cur.fetchone()[0]
-        if avg_items is None:
             avg_items = 0.0
 
         metrics_layout.addWidget(MetricCard("Today Expeditions", f"{today_exp:,}", "Ready to Ship"))
@@ -1528,7 +1973,8 @@ class OrdersWidget(QWidget):
 
         # Status chart
         status_chart = ChartWidget(title="Expedition Orders by Status", y_label="Number of Orders", x_label="Status")
-        self.create_status_chart(status_chart, self.data.expedition_df)
+        if hasattr(self.data, 'expedition_df') and not self.data.expedition_df.empty:
+            self.create_status_chart(status_chart, self.data.expedition_df)
         status_chart.setMinimumHeight(250)
         status_chart.setMinimumWidth(300)
 
@@ -1550,28 +1996,39 @@ class OrdersWidget(QWidget):
         return widget
 
     def create_status_chart(self, chart_widget, df):
-        status_counts = df['Status'].value_counts()
-        x_vals = np.arange(len(status_counts))
-        y_vals = status_counts.values
-        
-        colors = [QColor('#4CAF50'), QColor('#FF9800'), QColor('#2196F3'), QColor('#9C27B0')]
-        brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
+        # Cette méthode dépend de `numpy` et `pyqtgraph`.
+        # Assurez-vous qu'ils sont installés et importés en haut de votre fichier.
+        # Si vous n'avez pas pyqtgraph/numpy, ce code peut nécessiter une adaptation.
+        if isinstance(np, type) and np.__name__ == 'MockNp': # Check if it's our mock
+            chart_widget.layout().addWidget(QLabel("Charting library (pyqtgraph/numpy) not found.", alignment=Qt.AlignmentFlag.AlignCenter))
+            return
 
-        bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
-        chart_widget.addItem(bargraph)
+        try:
+            status_counts = df['Status'].value_counts()
+            x_vals = np.arange(len(status_counts))
+            y_vals = status_counts.values
+            
+            colors = [QColor('#38A169'), QColor('#E77E23'), QColor('#006775'), QColor('#9C27B0')]
+            brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
 
-        # Set custom x-axis ticks
-        ticks = [(i, label) for i, label in enumerate(status_counts.index)]
-        chart_widget.getAxis('bottom').setTicks([ticks])
-        
-        # Add value labels on bars (more involved in pyqtgraph, simplified here)
-        for i, value in enumerate(y_vals):
-            text_item = pg.TextItem(text=f'{int(value)}', anchor=(0.5, 0), color='k')
-            text_item.setPos(x_vals[i], value + 0.1) # Position above the bar
-            chart_widget.addItem(text_item)
-        
-        chart_widget.plotItem.setTitle(chart_widget.plotItem.titleLabel.text)
-        chart_widget.plotItem.setLabel('left', 'Number of Orders')
+            bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
+            chart_widget.addItem(bargraph)
+
+            ticks = [(i, label) for i, label in enumerate(status_counts.index)]
+            chart_widget.getAxis('bottom').setTicks([ticks])
+            
+            for i, value in enumerate(y_vals):
+                text_item = pg.TextItem(text=f'{int(value)}', anchor=(0.5, 0), color='k')
+                text_item.setPos(x_vals[i], value + 0.1)
+                chart_widget.addItem(text_item)
+            
+            # Assurez-vous que chart_widget.plotItem et ses sous-attributs existent et sont configurés correctement dans votre ChartWidget
+            chart_widget.plotItem.setTitle(chart_widget.plotItem.titleLabel.text)
+            chart_widget.plotItem.setLabel('left', 'Number of Orders')
+        except Exception as e:
+            print(f"Error creating chart: {e}")
+            chart_widget.layout().addWidget(QLabel(f"Error rendering chart: {e}", alignment=Qt.AlignmentFlag.AlignCenter))
+
 
     def create_orders_table(self, df, is_expedition=False):
         table = QTableWidget()
@@ -1589,18 +2046,17 @@ class OrdersWidget(QWidget):
             location_col = 'Supplier'
 
         for i, (_, row) in enumerate(df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['Order_ID']))
-            table.setItem(i, 1, QTableWidgetItem(row[location_col]))
+            table.setItem(i, 0, QTableWidgetItem(str(row['Order_ID'])))
+            table.setItem(i, 1, QTableWidgetItem(str(row[location_col])))
             table.setItem(i, 2, QTableWidgetItem(str(row[date_col])))
             table.setItem(i, 3, QTableWidgetItem(str(row['Items_Count'])))
 
-            # Status with color coding
-            status_item = QTableWidgetItem(row['Status'])
+            status_item = QTableWidgetItem(str(row['Status']))
             if row['Status'] == 'Pending':
                 status_item.setBackground(QColor('#FFF3E0'))
             elif row['Status'] == 'Processing':
                 status_item.setBackground(QColor('#E3F2FD'))
-            elif row['Status'] == 'Received' or row['Status'] == 'In Transit':
+            elif row['Status'] == 'Received' or row['Status'] == 'In Transit' or row['Status'] == 'Completed':
                 status_item.setBackground(QColor('#E8F5E8'))
 
             table.setItem(i, 4, status_item)
@@ -1612,8 +2068,8 @@ class OrdersWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1639,8 +2095,8 @@ class OrdersWidget(QWidget):
 
         return table
 
-class PerformanceWidget(QWidget):
-    """Widget for performance metrics and analytics"""
+class OrdersWidget(QWidget):
+    """Widget for order management (reception and expedition)"""
 
     def __init__(self, data):
         super().__init__()
@@ -1649,78 +2105,535 @@ class PerformanceWidget(QWidget):
 
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
-        if hasattr(self, '_main_layout') and self._main_layout is not None:
-            self.clear_layout(self._main_layout)
-        else:
+        if not hasattr(self, '_main_layout') or self._main_layout is None:
             self._main_layout = QVBoxLayout(self)
+        else:
+            self.clear_layout(self._main_layout)
 
-        layout = self._main_layout
-        layout.setContentsMargins(0, 0, 0, 0)
+        # Create a QScrollArea for the OrdersWidget content
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame) # No border for the scroll area
+
+        # Create a container widget for all the content that needs to be scrollable
+        self.scroll_content_widget = QWidget()
+        self.scroll_content_layout = QVBoxLayout(self.scroll_content_widget)
+        self.scroll_content_layout.setContentsMargins(10, 10, 10, 10) # Add some padding inside
+        self.scroll_content_layout.setSpacing(20) # Spacing between sections
+
+        self.scroll_area.setWidget(self.scroll_content_widget)
+
+        # Add the scroll area to the main layout of OrdersWidget
+        self._main_layout.addWidget(self.scroll_area)
+
+
+        # Tab widget for different order types (moved inside scroll_content_layout)
+        tabs = QTabWidget()
+        tabs.setStyleSheet("""
+            QTabWidget::pane { /* The tab widget frame */
+                border: 1px solid #D3DCE0;
+                border-radius: 8px;
+                background-color: #FFFFFF;
+                margin-top: -1px; /* Overlap with tab bar border */
+            }
+            QTabBar::tab {
+                background: #EBF2F7;
+                border: 1px solid #D3DCE0;
+                border-bottom-color: #D3DCE0;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                min-width: 120px; /* Slightly wider tabs */
+                padding: 10px 15px; /* More padding */
+                font-weight: bold;
+                color: #555;
+            }
+            QTabBar::tab:selected {
+                background: #FFFFFF;
+                border-bottom-color: #FFFFFF;
+                color: #006775;
+                margin-bottom: -1px; /* Visually connect selected tab to content */
+            }
+            QTabBar::tab:hover {
+                background: #E0E5EB;
+            }
+        """)
+
+        reception_widget = self.create_reception_tab()
+        tabs.addTab(reception_widget, "Reception Orders")
+
+        expedition_widget = self.create_expedition_tab()
+        tabs.addTab(expedition_widget, "Expedition Orders")
+
+        self.scroll_content_layout.addWidget(tabs)
+        self.scroll_content_layout.addStretch() # Ensure tabs expand
+
+        # Styling for the scroll area within OrdersWidget
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F5F5F5;
+                width: 8px; /* Thinner scrollbar */
+                margin: 0px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #C0C0C0; /* Lighter handle */
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QWidget#orders_scroll_content_widget { /* Specific style for this content widget */
+                background-color: #F8F9FA; /* Slightly off-white background */
+                border-radius: 10px;
+                border: 1px solid #E0E0E0;
+                padding: 5px; /* Less padding, as tabs have their own */
+            }
+        """)
+        self.scroll_content_widget.setObjectName("orders_scroll_content_widget") # Set object name for styling
+
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
+
+    def create_reception_tab(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(15,15,15,15) # Add padding inside tab content
+        layout.setSpacing(15) # Spacing within tab
+
+        header_layout = QHBoxLayout()
+        title = QLabel("Reception Orders")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #2C3E50;")
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+
+        metrics_layout = QHBoxLayout()
+        metrics_layout.setSpacing(15) # Spacing between metric cards
+        try:
+            cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
+            today_rec = cur.fetchone()[0]
+            if today_rec is None: today_rec = 0
+            cur.execute("SELECT \"EMIR\".valuereception();")
+            total_value = cur.fetchone()[0]
+            if total_value is None: total_value = 0.0
+            cur.execute("SELECT \"EMIR\".avgitemsreception();")
+            avg_items = cur.fetchone()[0]
+            if avg_items is None: avg_items = 0.0
+        except Exception as e:
+            print(f"Error fetching reception metrics: {e}")
+            today_rec = 0
+            total_value = 0.0
+            avg_items = 0.0
+
+        metrics_layout.addWidget(MetricCard("Today Receptions", f"{today_rec:,}", "Awaiting Receipt"))
+        metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
+        metrics_layout.addWidget(MetricCard("Avg Items", f"{avg_items:.1f}", "Per Order"))
+
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(20) # Spacing between chart and table
+
+        status_chart = ChartWidget(title="Reception Orders by Status", y_label="Number of Orders", x_label="Status")
+        if hasattr(self.data, 'reception_df') and not self.data.reception_df.empty:
+            self.create_status_chart(status_chart, self.data.reception_df)
+        status_chart.setMinimumHeight(280) # Slightly taller chart
+        status_chart.setMinimumWidth(350) # Wider chart
+        status_chart.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 8px;") # Border for chart
+
+        table = self.create_orders_table(self.data.reception_df)
+        # Table is already wrapped in a scroll area, no need for an outer one here
+        # The table's own scroll area handles its content.
+        table_scroll_area = QScrollArea()
+        table_scroll_area.setWidgetResizable(True)
+        table_scroll_area.setWidget(table)
+        table_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        table_scroll_area.setMinimumHeight(250) # Slightly taller table area
+        table_scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: 1px solid #E0E0E0; /* Border for the table scroll area */
+                border-radius: 8px;
+                background-color: #FFFFFF;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F0F0F0;
+                width: 8px;
+                margin: 0px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #C8C8C8;
+                border-radius: 4px;
+            }
+        """)
+
+
+        content_layout.addWidget(status_chart, 1)
+        content_layout.addWidget(table_scroll_area, 2)
+
+        layout.addLayout(header_layout)
+        layout.addLayout(metrics_layout)
+        layout.addLayout(content_layout)
+        layout.addStretch()
+        return widget
+
+    def create_expedition_tab(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(15,15,15,15)
+        layout.setSpacing(15)
+
+        header_layout = QHBoxLayout()
+        title = QLabel("Expedition Orders")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #2C3E50;")
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+
+        metrics_layout = QHBoxLayout()
+        metrics_layout.setSpacing(15)
+
+        try:
+            cur.execute("SELECT \"EMIR\".colis_sortants_jour_count();")
+            today_exp = cur.fetchone()[0]
+            if today_exp is None: today_exp = 0
+            cur.execute("SELECT \"EMIR\".valueexpedition();")
+            total_value = cur.fetchone()[0]
+            if total_value is None: total_value = 0.0
+            cur.execute("SELECT \"EMIR\".avgitemsexpedition();")
+            avg_items = cur.fetchone()[0]
+            if avg_items is None: avg_items = 0.0
+        except Exception as e:
+            print(f"Error fetching expedition metrics: {e}")
+            today_exp = 0
+            total_value = 0.0
+            avg_items = 0.0
+
+        metrics_layout.addWidget(MetricCard("Today Expeditions", f"{today_exp:,}", "Ready to Ship"))
+        metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "All Orders"))
+        metrics_layout.addWidget(MetricCard("Avg Items", f"{avg_items:.1f}", "Per Order"))
+
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(20)
+
+        status_chart = ChartWidget(title="Expedition Orders by Status", y_label="Number of Orders", x_label="Status")
+        if hasattr(self.data, 'expedition_df') and not self.data.expedition_df.empty:
+            self.create_status_chart(status_chart, self.data.expedition_df)
+        status_chart.setMinimumHeight(280)
+        status_chart.setMinimumWidth(350)
+        status_chart.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 8px;")
+
+        table = self.create_orders_table(self.data.expedition_df, is_expedition=True)
+        table_scroll_area = QScrollArea()
+        table_scroll_area.setWidgetResizable(True)
+        table_scroll_area.setWidget(table)
+        table_scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        table_scroll_area.setMinimumHeight(250)
+        table_scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                background-color: #FFFFFF;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F0F0F0;
+                width: 8px;
+                margin: 0px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #C8C8C8;
+                border-radius: 4px;
+            }
+        """)
+
+        content_layout.addWidget(status_chart, 1)
+        content_layout.addWidget(table_scroll_area, 2)
+
+        layout.addLayout(header_layout)
+        layout.addLayout(metrics_layout)
+        layout.addLayout(content_layout)
+        layout.addStretch()
+        return widget
+
+    def create_status_chart(self, chart_widget, df):
+        if isinstance(np, type) and np.__name__ == 'MockNp':
+            chart_widget.layout().addWidget(QLabel("Charting library (pyqtgraph/numpy) not found.", alignment=Qt.AlignmentFlag.AlignCenter))
+            return
+
+        try:
+            status_counts = df['Status'].value_counts()
+            if status_counts.empty: # Handle empty DataFrame case
+                chart_widget.layout().addWidget(QLabel("No data to display.", alignment=Qt.AlignmentFlag.AlignCenter))
+                return
+
+            x_vals = np.arange(len(status_counts))
+            y_vals = status_counts.values
+            
+            colors = [QColor('#38A169'), QColor('#E77E23'), QColor('#006775'), QColor('#9C27B0'), QColor('#DC3545')] # Added a color for 'Cancelled'/'Failed'
+            brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
+
+            bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
+            chart_widget.addItem(bargraph)
+
+            ticks = [(i, label) for i, label in enumerate(status_counts.index)]
+            chart_widget.getAxis('bottom').setTicks([ticks])
+            chart_widget.plotItem.setYRange(0, max(y_vals) * 1.2 if y_vals.size > 0 else 1) # Adjust Y range safely
+            
+            for i, value in enumerate(y_vals):
+                text_item = pg.TextItem(text=f'{int(value)}', anchor=(0.5, 0), color='k')
+                text_item.setPos(x_vals[i], value + 0.1)
+                chart_widget.addItem(text_item)
+            
+            chart_widget.plotItem.setTitle(chart_widget.plotItem.titleLabel.text)
+            chart_widget.plotItem.setLabel('left', 'Number of Orders')
+        except Exception as e:
+            print(f"Error creating chart: {e}")
+            chart_widget.layout().addWidget(QLabel(f"Error rendering chart: {e}", alignment=Qt.AlignmentFlag.AlignCenter))
+
+    def create_orders_table(self, df, is_expedition=False):
+        table = QTableWidget()
+        table.setRowCount(len(df))
+
+        if is_expedition:
+            table.setColumnCount(6)
+            table.setHorizontalHeaderLabels(['Order ID', 'Destination', 'Request Date', 'Items', 'Status', 'Value'])
+            date_col = 'Request_Date'
+            location_col = 'Destination'
+        else:
+            table.setColumnCount(6)
+            table.setHorizontalHeaderLabels(['Order ID', 'Supplier', 'Expected Date', 'Items', 'Status', 'Value'])
+            date_col = 'Expected_Date'
+            location_col = 'Supplier'
+
+        for i, (_, row) in enumerate(df.iterrows()):
+            table.setItem(i, 0, QTableWidgetItem(str(row['Order_ID'])))
+            table.setItem(i, 1, QTableWidgetItem(str(row[location_col])))
+            table.setItem(i, 2, QTableWidgetItem(str(row[date_col])))
+            table.setItem(i, 3, QTableWidgetItem(str(row['Items_Count'])))
+
+            status_item = QTableWidgetItem(str(row['Status']))
+            # Enhanced color coding for various statuses
+            if row['Status'] == 'Pending':
+                status_item.setBackground(QColor('#FFECB3')) # Light Orange
+            elif row['Status'] == 'Processing':
+                status_item.setBackground(QColor('#BBDEFB')) # Light Blue
+            elif row['Status'] == 'Received' or row['Status'] == 'Completed':
+                status_item.setBackground(QColor('#C8E6C9')) # Light Green
+            elif row['Status'] == 'In Transit':
+                status_item.setBackground(QColor('#DCEDC8')) # Light Green-Yellow
+            elif row['Status'] == 'Cancelled' or row['Status'] == 'Failed': # New status colors
+                status_item.setBackground(QColor('#FFCDD2')) # Light Red
+
+            table.setItem(i, 4, status_item)
+            table.setItem(i, 5, QTableWidgetItem(f"${row['Total_Value']:,.0f}"))
+
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f8f8f8; /* Slightly different alternate row */
+                selection-background-color: #e3f2fd;
+                gridline-color: #e0e0e0; /* Lighter grid lines */
+                border: none; /* No border directly on the table, it's on the scroll area */
+                font-size: 13px;
+                border-radius: 8px; /* Match scroll area border-radius */
+            }
+            QHeaderView::section {
+                background-color: #EFEFF3; /* Lighter header background */
+                padding: 10px 8px;
+                border: 1px solid #dcdcdc;
+                border-left: none; /* Remove left border for clean look */
+                border-right: none; /* Remove right border */
+                font-weight: bold;
+                font-size: 13px;
+                color: #555;
+            }
+            QHeaderView::section:first { border-left: 1px solid #dcdcdc; border-top-left-radius: 8px; }
+            QHeaderView::section:last { border-right: 1px solid #dcdcdc; border-top-right-radius: 8px; }
+
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #cce7ff;
+                color: #333;
+            }
+        """)
+
+        table.setAlternatingRowColors(True)
+        table.resizeColumnsToContents()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+
+        return table
+class PerformanceWidget(QWidget):
+    """Widget for Performance Metrics and Analytics"""
+
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+        self.init_ui()
+
+    def init_ui(self):
+        if not hasattr(self, '_main_layout') or self._main_layout is None:
+            self._main_layout = QVBoxLayout(self)
+        else:
+            self.clear_layout(self._main_layout)
+
+        # Create a QScrollArea for the PerformanceWidget content
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+
+        # Create a container widget for all scrollable content
+        self.scroll_content_widget = QWidget()
+        self.scroll_content_layout = QVBoxLayout(self.scroll_content_widget)
+        self.scroll_content_layout.setContentsMargins(20, 20, 20, 20)
+        self.scroll_content_layout.setSpacing(25) # More spacing between sections
+
+        self.scroll_area.setWidget(self.scroll_content_widget)
+        self._main_layout.addWidget(self.scroll_area)
 
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Performance Analytics")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #2C3E50;")
 
-        # Date range selector
         date_layout = QHBoxLayout()
-        date_layout.addWidget(QLabel("From:"))
+        date_layout.addWidget(QLabel("<b>From:</b>")) # Bold label
         from_date = QDateEdit(QDate.currentDate().addDays(-30))
         from_date.setCalendarPopup(True)
+        from_date.setStyleSheet("""
+            QDateEdit {
+                border: 1px solid #D3DCE0;
+                border-radius: 5px;
+                padding: 5px 10px;
+                font-size: 14px;
+                background-color: #FFFFFF;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid #D3DCE0;
+                image: url(path/to/calendar_icon.png); /* Replace with your icon */
+            }
+            QDateEdit::down-arrow {
+                image: url(path/to/arrow_down_icon.png); /* Replace with your icon */
+            }
+        """)
         date_layout.addWidget(from_date)
 
-        date_layout.addWidget(QLabel("To:"))
+        date_layout.addWidget(QLabel("<b>To:</b>")) # Bold label
         to_date = QDateEdit(QDate.currentDate())
         to_date.setCalendarPopup(True)
+        to_date.setStyleSheet(from_date.styleSheet()) # Apply same style
         date_layout.addWidget(to_date)
 
         header_layout.addWidget(title)
         header_layout.addStretch()
         header_layout.addLayout(date_layout)
+        self.scroll_content_layout.addLayout(header_layout) # Add header to scroll content
 
         # KPI Cards
         kpi_layout = QHBoxLayout()
+        kpi_layout.setSpacing(20) # Spacing between KPI cards
+        kpi_layout.setContentsMargins(0, 10, 0, 10) # Vertical margins around KPI section
 
         # Calculate KPIs from recent data
-        recent_data = self.data.daily_metrics.tail(30)
-        avg_received = recent_data['Items_Received'].mean()
-        avg_shipped = recent_data['Items_Shipped'].mean()
-        avg_utilization = recent_data['Storage_Utilization'].mean()
-        avg_fulfillment = recent_data['Order_Fulfillment_Rate'].mean()
+        if hasattr(self.data, 'daily_metrics') and not self.data.daily_metrics.empty:
+            recent_data = self.data.daily_metrics.tail(30)
+            avg_received = recent_data['Items_Received'].mean() if not recent_data.empty else 0
+            avg_shipped = recent_data['Items_Shipped'].mean() if not recent_data.empty else 0
+            avg_utilization = recent_data['Storage_Utilization'].mean() if not recent_data.empty else 0
+            avg_fulfillment = recent_data['Order_Fulfillment_Rate'].mean() if not recent_data.empty else 0
+        else:
+            avg_received = avg_shipped = avg_utilization = avg_fulfillment = 0 # Default if no data
 
         kpi_layout.addWidget(MetricCard("Daily Received", f"{avg_received:.0f}", "Avg Last 30 days"))
         kpi_layout.addWidget(MetricCard("Daily Shipped", f"{avg_shipped:.0f}", "Avg Last 30 days"))
         kpi_layout.addWidget(MetricCard("Storage Utilization", f"{avg_utilization:.1f}%", "Current Average"))
         kpi_layout.addWidget(MetricCard("Fulfillment Rate", f"{avg_fulfillment:.1f}%", "Order Success"))
+        self.scroll_content_layout.addLayout(kpi_layout) # Add KPI cards to scroll content
 
         # Charts
         charts_layout = QGridLayout()
-        charts_layout.setContentsMargins(0, 0, 0, 0) # Ensure charts don't have excessive margins
+        charts_layout.setContentsMargins(0, 15, 0, 0) # Top margin for charts section
+        charts_layout.setSpacing(20) # Spacing between charts
 
-        # Daily operations trend
-        trend_chart = ChartWidget(parent=self, title='Daily Operations Trend (Last 30 Days)', y_label='Items Count', x_label='Date',
+        trend_chart = ChartWidget(parent=self.scroll_content_widget, title='Daily Operations Trend (Last 30 Days)', y_label='Items Count', x_label='Date',
                                   axisItems={'bottom': pg.DateAxisItem()})
-        self.create_trend_chart(trend_chart)
-        trend_chart.setMinimumHeight(300)
+        if hasattr(self.data, 'daily_metrics') and not self.data.daily_metrics.empty:
+            self.create_trend_chart(trend_chart)
+        trend_chart.setMinimumHeight(350) # Taller charts
+        trend_chart.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 8px;")
         charts_layout.addWidget(trend_chart, 0, 0)
 
-        # Storage utilization
-        utilization_chart = ChartWidget(title='Storage Utilization by Zone', y_label='Utilization %', x_label='Zone')
-        self.create_utilization_chart(utilization_chart)
-        utilization_chart.setMinimumHeight(300)
+        utilization_chart = ChartWidget(parent=self.scroll_content_widget, title='Storage Utilization by Zone', y_label='Utilization %', x_label='Zone')
+        if hasattr(self.data, 'daily_metrics') and not self.data.daily_metrics.empty:
+            self.create_utilization_chart(utilization_chart)
+        utilization_chart.setMinimumHeight(350)
+        utilization_chart.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 8px;")
         charts_layout.addWidget(utilization_chart, 0, 1)
 
-        # Fulfillment rate trend
-        fulfillment_chart = ChartWidget(parent=self, title='Weekly Fulfillment Rate Trend', y_label='Fulfillment Rate %', x_label='Week',
+        fulfillment_chart = ChartWidget(parent=self.scroll_content_widget, title='Weekly Fulfillment Rate Trend', y_label='Fulfillment Rate %', x_label='Week',
                                         axisItems={'bottom': pg.DateAxisItem()})
-        self.create_fulfillment_chart(fulfillment_chart)
-        fulfillment_chart.setMinimumHeight(300)
-        charts_layout.addWidget(fulfillment_chart, 1, 0, 1, 2)
+        if hasattr(self.data, 'daily_metrics') and not self.data.daily_metrics.empty:
+            self.create_fulfillment_chart(fulfillment_chart)
+        fulfillment_chart.setMinimumHeight(350)
+        fulfillment_chart.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 8px;")
+        charts_layout.addWidget(fulfillment_chart, 1, 0, 1, 2) # Span across two columns
 
-        layout.addLayout(header_layout)
-        layout.addLayout(kpi_layout)
-        layout.addLayout(charts_layout)
-        layout.addStretch() # Ensure content expands vertically
+        self.scroll_content_layout.addLayout(charts_layout) # Add charts to scroll content
+        self.scroll_content_layout.addStretch() # Ensure content expands vertically
+
+        # Styling for the scroll area within PerformanceWidget
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F5F5F5;
+                width: 8px;
+                margin: 0px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #C0C0C0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QWidget#performance_scroll_content_widget {
+                background-color: #F8F9FA;
+                border-radius: 10px;
+                border: 1px solid #E0E0E0;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); /* Lighter shadow */
+            }
+        """)
+        self.scroll_content_widget.setObjectName("performance_scroll_content_widget") # Set object name for styling
+
 
     def clear_layout(self, layout):
         if layout is not None:
@@ -1733,69 +2646,107 @@ class PerformanceWidget(QWidget):
                     self.clear_layout(item.layout())
 
     def create_trend_chart(self, chart_widget):
+        if isinstance(np, type) and np.__name__ == 'MockNp': return
+
         recent_data = self.data.daily_metrics.tail(30)
-        
-        # Convert pandas Timestamps to Unix timestamps for pyqtgraph DateAxisItem
+        if recent_data.empty: return
+
         x_vals = recent_data['Date'].apply(lambda x: x.timestamp()).values
-        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#4CAF50', width=2), name='Received')
-        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#2196F3', width=2), name='Shipped')
+        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#38A169', width=2), name='Received')
+        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#006775', width=2), name='Shipped')
         
         chart_widget.plotItem.addLegend()
-        chart_widget.plotItem.setLabel('bottom', 'Date', axisClass=pg.DateAxisItem)
-        chart_widget.plotItem.setYRange(0, recent_data[['Items_Received', 'Items_Shipped']].max().max() * 1.1)
+        # The axisItems {'bottom': pg.DateAxisItem()} already handles setting the DateAxisItem
+        # chart_widget.plotItem.setLabel('bottom', 'Date', axisClass=pg.DateAxisItem) # Redundant due to axisItems init
+        
+        # Ensure correct y-range handling for empty data
+        y_max = recent_data[['Items_Received', 'Items_Shipped']].max().max()
+        chart_widget.plotItem.setYRange(0, y_max * 1.1 if y_max > 0 else 1)
 
 
     def create_utilization_chart(self, chart_widget):
-        # Storage utilization by zone (simulated)
-        zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D']
-        utilization = [85, 72, 91, 68]
+        if isinstance(np, type) and np.__name__ == 'MockNp': return
+        # Storage utilization by zone (simulated or from data if available)
+        if hasattr(self.data, 'storage_utilization_data'): # Assuming you might have this in self.data
+            zones = self.data.storage_utilization_data['Zone'].tolist()
+            utilization = self.data.storage_utilization_data['Utilization'].tolist()
+        else: # Fallback to simulated if not in data
+            zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D', 'Zone E', 'Zone F'] # More zones
+            utilization = [85, 72, 91, 68, 78, 88]
         
+        if not zones: return # No data to plot
+
         x_vals = np.arange(len(zones))
         y_vals = np.array(utilization)
 
-        colors = [QColor('#FF5722') if u > 85 else QColor('#FF9800') if u > 75 else QColor('#4CAF50') for u in utilization]
+        colors = [QColor('#FF5722') if u > 85 else QColor('#E77E23') if u > 75 else QColor('#38A169') for u in utilization]
         brushes = [color for color in colors]
 
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
         chart_widget.addItem(bargraph)
 
-        # Set custom x-axis ticks
         ticks = [(i, label) for i, label in enumerate(zones)]
         chart_widget.getAxis('bottom').setTicks([ticks])
         chart_widget.plotItem.setYRange(0, 100)
         
-        # Add a horizontal line for target utilization
         target_line = pg.InfiniteLine(80, angle=0, pen=pg.mkPen('r', width=2, style=Qt.PenStyle.DashLine), movable=False)
         chart_widget.addItem(target_line)
-        # Add text label for the target line
         target_label = pg.TextItem("Target (80%)", color='r', anchor=(0.5, 0))
         target_label.setPos(x_vals[-1], 80)
         chart_widget.addItem(target_label)
 
-        # Add percentage labels on bars (pyqtgraph TextItem)
         for i, value in enumerate(y_vals):
             text_item = pg.TextItem(text=f'{int(value)}%', anchor=(0.5, 0), color='k')
             text_item.setPos(x_vals[i], value + 1)
             chart_widget.addItem(text_item)
             
     def create_fulfillment_chart(self, chart_widget):
-        # Weekly fulfillment rate
-        weekly_data = self.data.daily_metrics.tail(42).copy()
-        weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
-        
-        weekly_summary = weekly_data.groupby('Week').agg({
-            'Order_Fulfillment_Rate': 'mean'
-        }).reset_index()
-        
-        x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
-        y_vals = weekly_summary['Order_Fulfillment_Rate'].values
+        if isinstance(np, type) and np.__name__ == 'MockNp': return
 
-        chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
-        chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
-        chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
-        chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem)
-        chart_widget.plotItem.setYRange(min(y_vals) * 0.9, max(y_vals) * 1.1)
+        if hasattr(self.data, 'daily_metrics') and not self.data.daily_metrics.empty:
+            weekly_data = self.data.daily_metrics.copy()
+            weekly_data['Week'] = weekly_data['Date'].dt.to_period('W').dt.start_time
+            
+            weekly_summary = weekly_data.groupby('Week').agg({
+                'Order_Fulfillment_Rate': 'mean'
+            }).reset_index()
+            
+            if weekly_summary.empty: return
 
+            x_vals = weekly_summary['Week'].apply(lambda x: x.timestamp()).values
+            y_vals = weekly_summary['Order_Fulfillment_Rate'].values
+
+            chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#9C27B0', width=2), symbol='o', symbolSize=8, symbolBrush='#9C27B0')
+            chart_widget.plotItem.setTitle('Weekly Fulfillment Rate Trend')
+            chart_widget.plotItem.setLabel('left', 'Fulfillment Rate %')
+            # chart_widget.plotItem.setLabel('bottom', 'Week', axisClass=pg.DateAxisItem) # Redundant
+            
+            y_min = min(y_vals) if y_vals.size > 0 else 0
+            y_max = max(y_vals) if y_vals.size > 0 else 1
+            chart_widget.plotItem.setYRange(y_min * 0.9, y_max * 1.1)
+        else:
+            print("No daily_metrics data for fulfillment chart.")
+
+
+# Your ChartWidget class (unmodified, but included for completeness)
+class ChartWidget(pg.PlotWidget):
+    def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
+        super().__init__(parent=parent, axisItems=axisItems)
+        self.plotItem.setTitle(title)
+        self.plotItem.setLabel('left', y_label)
+        self.plotItem.setLabel('bottom', x_label)
+        self.plotItem.showGrid(x=True, y=True, alpha=0.3)
+        self.setBackground('w')
+        self.setAntialiasing(True)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(200, 200)
+
+    def plot_data(self, *args, **kwargs):
+        self.clear()
+        self.plot(*args, **kwargs)
+
+    def add_item(self, item):
+        self.addItem(item)
         
 class ChartWidget(pg.PlotWidget):
     def __init__(self, parent=None, title="", y_label="", x_label="", axisItems=None):
@@ -1915,7 +2866,7 @@ class MainDashboardWidget(QWidget):
                 btn.setStyleSheet("""
                     QPushButton {
                         text-align: left;
-                        padding: 12px 15px;
+                        padding: 13px 15px;
                         color: white;
                         border: none;
                         border-left: 4px solid transparent;
@@ -1930,7 +2881,7 @@ class MainDashboardWidget(QWidget):
                 btn.setStyleSheet("""
                     QPushButton {
                         text-align: left;
-                        padding: 12px 15px;
+                        padding: 13px 15px;
                         color: white;
                         border: none;
                         border-left: 4px solid transparent;
@@ -2106,17 +3057,17 @@ if __name__ == '__main__':
     app.setStyle("Fusion")
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#2D3748"))
     palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
     palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))
     palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
     palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.Text, QColor("#333333"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Text, QColor("#2D3748"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#D3DCE0"))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#2D3748"))
     palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
-    palette.setColor(QPalette.ColorRole.Link, QColor("#2196F3"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.Link, QColor("#006775"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#006775"))
     palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
 
     app.setPalette(palette)

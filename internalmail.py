@@ -16,7 +16,7 @@ def send_email(subject, to_email,orgid,orgname,idcolis,receivingorg):
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
           <h1 style="color: #2c3e50;">📧 Message automatique - SCA Robot</h2>
-          <p style="font-size: 15px; color: #333333;">
+          <p style="font-size: 15px; color: #2D3748;">
             Bonjour,
           </p>
           <h2>Organisation ID : </h2> <p><b>{orgid}</b></p>
@@ -64,7 +64,7 @@ def send_conducteur(subject, to_email,date,idcolis,receivingorg):
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
           <h1 style="color: #2c3e50;">📧 Message automatique - SCA Robot</h1>
-          <p style="font-size: 15px; color: #333333;">
+          <p style="font-size: 15px; color: #2D3748;">
             Bonjour,
           </p>
           <h2>Delivery Date : </h2> <p><b>{date}</b></p>

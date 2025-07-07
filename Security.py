@@ -34,7 +34,7 @@ class SecurityDashboard(QMainWindow):
                     stop:0 #667eea, stop:1 #764ba2);
                 border: none;
                 border-radius: 8px;
-                padding: 12px 24px;
+                padding: 13px 24px;
                 color: white;
                 font-weight: bold;
                 font-size: 14px;
@@ -70,7 +70,7 @@ class SecurityDashboard(QMainWindow):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #667eea, stop:1 #764ba2);
                 border: none;
-                padding: 12px;
+                padding: 13px;
                 font-weight: bold;
                 color: white;
             }
@@ -89,7 +89,7 @@ class SecurityDashboard(QMainWindow):
             QTabBar::tab {
                 background: rgba(255,255,255,0.1);
                 border: 1px solid rgba(255,255,255,0.2);
-                padding: 12px 24px;
+                padding: 13px 24px;
                 margin-right: 2px;
                 border-radius: 8px 8px 0 0;
             }
@@ -353,7 +353,7 @@ class SecurityDashboard(QMainWindow):
             
             # Status indicator
             status_label = QLabel("🟢 Opérationnel")
-            status_label.setStyleSheet("color: #38ef7d; font-size: 12px;")
+            status_label.setStyleSheet("color: #38ef7d; font-size: 13px;")
             status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             camera_layout.addWidget(status_label)
             
@@ -419,7 +419,7 @@ class SecurityDashboard(QMainWindow):
         layout.addWidget(value_label)
         
         desc_label = QLabel(description)
-        desc_label.setStyleSheet("font-size: 12px; color: rgba(255,255,255,0.8);")
+        desc_label.setStyleSheet("font-size: 13px; color: rgba(255,255,255,0.8);")
         layout.addWidget(desc_label)
         
         return card

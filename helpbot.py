@@ -46,7 +46,7 @@ class ChatBot(QWidget):
             QFrame {
                 background-color: #4683B7;
                 border-radius: 18px;
-                border: 1.5px solid #E0E0E0;
+                border: 1.5px solid #D3DCE0;
                 padding: 18px;
                 box-shadow: 0 6px 24px rgba(108,99,255,0.10);
             }
@@ -68,7 +68,7 @@ class ChatBot(QWidget):
         self.send_button = QPushButton("Send")
         self.send_button.setStyleSheet("""
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #006775;
                 color: white;
                 font-weight: bold;
                 font-size: 15px;
@@ -76,7 +76,7 @@ class ChatBot(QWidget):
                 padding: 8px 20px;
             }
             QPushButton:hover {
-                background-color: #5247D6;
+                background-color: #004F5C;
             }
         """)
         card_layout.addWidget(self.send_button)

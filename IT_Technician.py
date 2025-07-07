@@ -78,7 +78,7 @@ class AccountSettingsPage(QWidget):
         self.individual_select_frame = self._create_individual_frame()
         employee_list_container_layout.addWidget(self.individual_select_frame)
         self.load_employees_button = QPushButton("Load Employee List")
-        self.load_employees_button.setStyleSheet("margin-top: 30px;")
+        self.load_employees_button.setStyleSheet("margin-top: 25px;")
         self.load_employees_button.setObjectName("primaryButton")
         self.load_employees_button.clicked.connect(self._load_employee_data_from_db)
         employee_list_container_layout.addWidget(self.load_employees_button)
@@ -1298,7 +1298,7 @@ class MainWindow(QMainWindow):
     def _apply_styles(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f0f2f5;
+                background-color: #EDF2F7;
             }
             #sidebarFrame {
                 background-color: #2c3e50;
@@ -1363,7 +1363,7 @@ class MainWindow(QMainWindow):
                 background-color: #007bb5;
             }
             QPushButton#clearOutputButton {
-                background-color: #f44336;
+                background-color: #E53E3E;
             }
             QPushButton#clearOutputButton:hover {
                 background-color: #da190b;
@@ -1441,7 +1441,7 @@ class MainWindow(QMainWindow):
             }
             #primaryButton:disabled {
                 background-color: #cccccc;
-                color: #666666;
+                color: #4A5568;
             }
             
             #deleteButton {
@@ -1631,9 +1631,9 @@ if __name__ == "__main__":
     palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
     palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
     palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
+    palette.setColor(QPalette.ColorRole.Button, QColor("#006775"))  # Accent for buttons
     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#006775"))  # Selection color
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
     palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#EB7A16FF"))
     app.setPalette(palette)

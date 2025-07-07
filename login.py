@@ -42,9 +42,9 @@ class BackgroundWidget(QWidget):
 
 host = "localhost"
 port = "5432"
-database = "cred"
+database = "projet"
 user = "postgres"
-_password = "steevy"
+_password = "postgres"
 
 
 class MainApp(QStackedWidget):
@@ -142,7 +142,7 @@ class FlipCard(QWidget):
         subtitle = QLabel("Sign in to your account")
         subtitle.setFont(QFont("Arial", 12))
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("color: #7f8c8d; margin-bottom: 30px;")
+        subtitle.setStyleSheet("color: #7f8c8d; margin-bottom: 25px;")
         self.login_email = QLineEdit()
         self.login_email.setPlaceholderText("Email Address")
         self.login_password = QLineEdit()
@@ -232,7 +232,7 @@ class FlipCard(QWidget):
         return """
         QLineEdit {
             background-color: #ffffff;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #D3DCE0;
             border-radius: 10px;
             padding-left: 15px;
             padding-right: 15px;

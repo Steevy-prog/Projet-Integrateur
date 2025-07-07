@@ -37,9 +37,9 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="projet",
         user="postgres",
-        password="steevy",
+        password="postgres",
         port=5432
     )
     
@@ -286,8 +286,8 @@ class TaskCard(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border-radius: 12px;
-                border: 1px solid #E0E0E0;
+                border-radius: 13px;
+                border: 1px solid #D3DCE0;
                 margin: 5px 0; /* Reduced vertical margin */
                 padding: 0;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Subtle shadow */
@@ -302,7 +302,7 @@ class TaskCard(QFrame):
         # Accent bar on the left
         accent_bar = QFrame(self)
         accent_bar.setFixedWidth(6)
-        accent_bar.setStyleSheet(f"background-color: {color}; border-top-left-radius: 12px; border-bottom-left-radius: 12px;")
+        accent_bar.setStyleSheet(f"background-color: {color}; border-top-left-radius: 13px; border-bottom-left-radius: 13px;")
         # No need to set position, layout will handle it
 
         # Main layout
@@ -323,7 +323,7 @@ class TaskCard(QFrame):
         # Header row
         header_row = QHBoxLayout()
         order_label = QLabel(self.task_data['Task_id'])
-        order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;")
+        order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #2D3748;")
         header_row.addWidget(order_label)
         header_row.addStretch()
 
@@ -345,7 +345,7 @@ class TaskCard(QFrame):
             due_text = f"Status: <b>{self.task_data.get('status', 'Pending')}</b>"
 
         details_label = QLabel(details_text)
-        details_label.setStyleSheet("font-size: 13px; color: #666666;")
+        details_label.setStyleSheet("font-size: 13px; color: #4A5568;")
         details_label.setTextFormat(Qt.TextFormat.RichText)
         due_label = QLabel(due_text)
         due_label.setStyleSheet("font-size: 13px; color: #888888;")
@@ -360,7 +360,7 @@ class TaskCard(QFrame):
         action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         action_btn.setStyleSheet("""
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #006775;
                 border: none;
                 border-radius: 8px;
                 padding: 10px 18px;
@@ -371,7 +371,7 @@ class TaskCard(QFrame):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #5247D6;
+                background-color: #004F5C;
             }
         """)
         action_btn.clicked.connect(self.on_action_clicked)
@@ -384,11 +384,11 @@ class TaskCard(QFrame):
 
     def get_priority_color(self, priority):
         colors = {
-            'High': '#F44336', # Red
-            'Medium': '#FF9800', # Orange
-            'Low': '#4CAF50' # Green
+            'High': '#E53E3E', # Red
+            'Medium': '#E77E23', # Orange
+            'Low': '#38A169' # Green
         }
-        return colors.get(priority, '#666666') # Default color
+        return colors.get(priority, '#4A5568') # Default color
 
     def on_action_clicked(self):
         self.task_selected.emit(self.task_data)
@@ -425,27 +425,27 @@ class TaskDetailDialog(QDialog):
                 color: #212121;
                 margin-bottom: 20px;
                 padding-bottom: 10px;
-                border-bottom: 1px solid #E0E0E0;
+                border-bottom: 1px solid #D3DCE0;
             }
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #006775;
                 color: white;
                 border: none;
-                padding: 12px 25px;
+                padding: 13px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
             }
             QPushButton:hover {
-                background-color: #5247D6;
+                background-color: #004F5C;
             }
             QListWidget {
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 10px;
                 background-color: white;
                 min-height: 150px;
-                color: #333333;
+                color: #2D3748;
             }
             QListWidget::item {
                 padding: 5px;
@@ -489,15 +489,15 @@ class TaskDetailDialog(QDialog):
         button_layout = QHBoxLayout()
 
         complete_button = QPushButton("Mark as Completed")
-        complete_button.setStyleSheet("background-color: #4CAF50; color: white;")
+        complete_button.setStyleSheet("background-color: #38A169; color: white;")
         button_layout.addWidget(complete_button)
 
         cancel_button = QPushButton("Cancel Task")
-        cancel_button.setStyleSheet("background-color: #F44336; color: white;")
+        cancel_button.setStyleSheet("background-color: #E53E3E; color: white;")
         button_layout.addWidget(cancel_button)
 
         close_button = QPushButton("Close")
-        close_button.setStyleSheet("background-color: #999999; color: white;")
+        close_button.setStyleSheet("background-color: #4A5568; color: white;")
         close_button.clicked.connect(self.accept)
         button_layout.addWidget(close_button)
 
@@ -520,11 +520,11 @@ class NewMovementDialog(QDialog):
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             QLabel {
                 font-size: 15px;
-                color: #333333;
+                color: #2D3748;
             }
             QLineEdit, QComboBox, QSpinBox {
                 padding: 8px;
@@ -534,13 +534,13 @@ class NewMovementDialog(QDialog):
                 background-color: white;
             }
             QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
-                border: 1px solid #00BFA5; /* Teal focus color */
+                border: 1px solid #006775; /* Teal focus color */
             }
             QPushButton {
-                background-color: #00BFA5; /* Teal for primary action */
+                background-color: #006775; /* Teal for primary action */
                 color: white;
                 border: none;
-                padding: 12px 25px;
+                padding: 13px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
@@ -627,19 +627,19 @@ class ExceptionDetailDialog(QDialog):
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             QLabel {
                 font-size: 15px;
-                color: #333333;
+                color: #2D3748;
             }
             QLabel.title {
                 font-size: 24px;
                 font-weight: bold;
-                color: #333333;
+                color: #2D3748;
                 margin-bottom: 20px;
                 padding-bottom: 10px;
-                border-bottom: 1px solid #E0E0E0;
+                border-bottom: 1px solid #D3DCE0;
             }
             QTextEdit, QComboBox {
                 padding: 8px;
@@ -649,13 +649,13 @@ class ExceptionDetailDialog(QDialog):
                 background-color: white;
             }
             QTextEdit:focus, QComboBox:focus {
-                border: 1px solid #F44336; /* Red focus color */
+                border: 1px solid #E53E3E; /* Red focus color */
             }
             QPushButton {
-                background-color: #F44336; /* Red for primary action */
+                background-color: #E53E3E; /* Red for primary action */
                 color: white;
                 border: none;
-                padding: 12px 25px;
+                padding: 13px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
@@ -736,11 +736,11 @@ class NewExceptionDialog(QDialog):
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             QLabel {
                 font-size: 15px;
-                color: #333333;
+                color: #2D3748;
             }
             QLineEdit, QComboBox, QTextEdit {
                 padding: 8px;
@@ -750,13 +750,13 @@ class NewExceptionDialog(QDialog):
                 background-color: white;
             }
             QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
-                border: 1px solid #F44336; /* Red focus color */
+                border: 1px solid #E53E3E; /* Red focus color */
             }
             QPushButton {
-                background-color: #F44336; /* Red for primary action */
+                background-color: #E53E3E; /* Red for primary action */
                 color: white;
                 border: none;
-                padding: 12px 25px;
+                padding: 13px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
@@ -841,11 +841,11 @@ class WorkerMainDashboard(QWidget):
         hero_frame = QFrame()
         hero_frame.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6C63FF, stop:1 #00BFA5); /* Gradient background */
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #006775, stop:1 #006775); /* Gradient background */
                 border-radius: 15px;
-                padding: 30px;
+                padding: 25px;
                 color: #FFFFFF;
-                box-shadow: 0 8px 30px rgba(108, 99, 255, 0.3);
+                box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3);
             }
             QLabel {
                 color: #FFFFFF;
@@ -854,7 +854,7 @@ class WorkerMainDashboard(QWidget):
         hero_layout = QVBoxLayout(hero_frame)
 
         welcome_label = QLabel(f"Welcome Back, Current Worker!")
-        welcome_label.setStyleSheet("font-size: 32px; font-weight: bold;")
+        welcome_label.setStyleSheet("font-size: 36px; font-weight: bold;")
 
         time_label = QLabel(f"Today: {datetime.datetime.now().strftime('%A, %B %d, %Y')}")
         time_label.setStyleSheet("font-size: 16px; margin-top: 5px;")
@@ -872,10 +872,10 @@ class WorkerMainDashboard(QWidget):
         #my_movements = len([m for m in self.data.movement_history.to_dict('records') if m['Worker'] == 'Current Worker'])
         #open_exceptions = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Open'])
 
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#FFC107", "Tasks assigned to me"))
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#4CAF50", "Tasks finished today"))
-        #dashboard_stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#6C63FF", "Product movements logged"))
-        #dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#F44336", "Issues requiring attention"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#F6AD55", "Tasks assigned to me"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#38A169", "Tasks finished today"))
+        #dashboard_stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#006775", "Product movements logged"))
+        #dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#E53E3E", "Issues requiring attention"))
 
         hero_layout.addLayout(dashboard_stats_layout)
         layout.addWidget(hero_frame)
@@ -887,9 +887,9 @@ class WorkerMainDashboard(QWidget):
             QGroupBox {
                 font-size: 18px;
                 font-weight: bold;
-                color: #333333;
+                color: #2D3748;
                 margin-top: 20px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding-top: 15px;
                 background-color: #FFFFFF;
@@ -899,7 +899,7 @@ class WorkerMainDashboard(QWidget):
                 subcontrol-position: top left;
                 padding: 0 10px;
                 margin-left: 10px;
-                color: #6C63FF; /* Accent color for title */
+                color: #006775; /* Accent color for title */
             }
         """)
         quick_actions_layout = QHBoxLayout()
@@ -908,18 +908,18 @@ class WorkerMainDashboard(QWidget):
 
         button_style = """
             QPushButton {
-                background-color: #F0F2F5; /* Light background */
+                background-color: #EDF2F7; /* Light background */
                 border: none;
                 border-radius: 10px;
                 padding: 15px 25px;
                 font-size: 16px;
                 font-weight: 600;
-                color: #333333;
+                color: #2D3748;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #6C63FF; /* Primary accent on hover */
+                background-color: #006775; /* Primary accent on hover */
                 color: #FFFFFF;
                 transform: translateY(-2px); /* Slight lift effect */
             }
@@ -949,9 +949,9 @@ class WorkerMainDashboard(QWidget):
             QGroupBox {
                 font-size: 18px;
                 font-weight: bold;
-                color: #333333;
+                color: #2D3748;
                 margin-top: 20px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding-top: 15px;
                 background-color: #FFFFFF;
@@ -961,7 +961,7 @@ class WorkerMainDashboard(QWidget):
                 subcontrol-position: top left;
                 padding: 0 10px;
                 margin-left: 10px;
-                color: #6C63FF; /* Secondary accent for title */
+                color: #006775; /* Secondary accent for title */
             }
         """)
         recent_activity_layout = QVBoxLayout()
@@ -992,7 +992,7 @@ class WorkerMainDashboard(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding: 20px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -1003,13 +1003,13 @@ class WorkerMainDashboard(QWidget):
         layout.setSpacing(5)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 14px; color: #4A5568; font-weight: bold;")
 
         value_label = QLabel(str(value))
         value_label.setStyleSheet(f"font-size: 36px; font-weight: bold; color: {color};")
 
         description_label = QLabel(description)
-        description_label.setStyleSheet("font-size: 12px; color: #999999;")
+        description_label.setStyleSheet("font-size: 13px; color: #4A5568;")
 
         layout.addWidget(title_label)
         layout.addWidget(value_label)
@@ -1035,12 +1035,12 @@ class ExpeditionManagementWidget(QWidget):
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Expedition Management")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #2D3748;")
 
         refresh_btn = QPushButton("Refresh Tasks")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -1051,7 +1051,7 @@ class ExpeditionManagementWidget(QWidget):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #5247D6;
+                background-color: #004F5C;
                 transform: translateY(-2px);
             }
         """)
@@ -1070,15 +1070,15 @@ class ExpeditionManagementWidget(QWidget):
         in_progress_tasks = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'Progress'])
         completed_today = len([t for t in self.data.expedition_tasks.to_dict('records') if t['status'] == 'Completed']) # Example of checking "today"
 
-        stats_layout.addWidget(self.create_stat_card("Pending Tasks", pending_tasks, "#FFC107"))
-        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#6C63FF"))
-        stats_layout.addWidget(self.create_stat_card("Completed Today", completed_today, "#4CAF50"))
+        stats_layout.addWidget(self.create_stat_card("Pending Tasks", pending_tasks, "#F6AD55"))
+        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#006775"))
+        stats_layout.addWidget(self.create_stat_card("Completed Today", completed_today, "#38A169"))
         layout.addLayout(stats_layout)
 
         # Task sections using QSplitter for adjustable layout
         sections_splitter = QSplitter(Qt.Orientation.Horizontal)
         sections_splitter.setHandleWidth(10)
-        sections_splitter.setStyleSheet("QSplitter::handle { background-color: #E0E0E0; border-radius: 5px; }")
+        sections_splitter.setStyleSheet("QSplitter::handle { background-color: #D3DCE0; border-radius: 5px; }")
 
         # My Current Tasks
         my_tasks_section = self.create_task_section("My Current Tasks",
@@ -1102,7 +1102,7 @@ class ExpeditionManagementWidget(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding: 18px 20px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -1113,10 +1113,10 @@ class ExpeditionManagementWidget(QWidget):
         layout.setSpacing(5)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 14px; color: #4A5568; font-weight: bold;")
 
         value_label = QLabel(str(value))
-        value_label.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {color};")
+        value_label.setStyleSheet(f"font-size: 36px; font-weight: bold; color: {color};")
 
         layout.addWidget(title_label)
         layout.addWidget(value_label)
@@ -1131,7 +1131,7 @@ class ExpeditionManagementWidget(QWidget):
                 background-color: #FFFFFF;
                 border-radius: 10px;
                 padding: 15px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             }
         """)
@@ -1141,7 +1141,7 @@ class ExpeditionManagementWidget(QWidget):
 
         # Section title
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #333333; margin-bottom: 5px;")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #2D3748; margin-bottom: 5px;")
         layout.addWidget(title_label)
 
         # Scrollable task list
@@ -1191,12 +1191,12 @@ class ProductMovementTrackingWidget(QWidget):
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Product Movement Tracking")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #2D3748;")
 
         new_movement_btn = QPushButton("Record Movement")
         new_movement_btn.setStyleSheet("""
             QPushButton {
-                background-color: #6C63FF; /* Teal */
+                background-color: #006775; /* Teal */
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -1234,7 +1234,7 @@ class ProductMovementTrackingWidget(QWidget):
                 font-size: 15px;
             }
             QLineEdit:focus {
-                border: 1px solid #6C63FF;
+                border: 1px solid #006775;
             }
         """)
         self.search_input.textChanged.connect(self.filter_movements)
@@ -1257,8 +1257,8 @@ class ProductMovementTrackingWidget(QWidget):
             }
             QComboBox::down-arrow {
                 image: url(icons/arrow_down.png); /* Placeholder for an actual icon if you have one */
-                width: 12px;
-                height: 12px;
+                width: 13px;
+                height: 13px;
             }
         """)
         self.type_combo.currentTextChanged.connect(self.filter_movements)
@@ -1289,17 +1289,17 @@ class ProductMovementTrackingWidget(QWidget):
         table.setStyleSheet("""
             QTableWidget {
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 font-size: 14px;
                 selection-background-color: #E6E6FF; /* Light purple selection */
-                selection-color: #333333;
-                gridline-color: #F0F2F5; /* Lighter grid lines */
+                selection-color: #2D3748;
+                gridline-color: #EDF2F7; /* Lighter grid lines */
             }
             QHeaderView::section {
-                background-color: #6C63FF; /* Primary accent for header */
+                background-color: #006775; /* Primary accent for header */
                 color: #FFFFFF;
-                padding: 12px;
+                padding: 13px;
                 border: none;
                 font-weight: bold;
                 font-size: 15px;
@@ -1316,7 +1316,7 @@ class ProductMovementTrackingWidget(QWidget):
             }
             QTableWidget::item:selected {
                 background-color: #E6E6FF;
-                color: #333333;
+                color: #2D3748;
             }
         """)
 
@@ -1348,7 +1348,7 @@ class ProductMovementTrackingWidget(QWidget):
         self.movements_table.setRowCount(len(sorted_movements))
 
         # Use a single accent color for all movement types
-        accent_color = "#2921C5"  # Your primary accent color
+        accent_color = "#006775"  # Your primary accent color
 
         for i, movement in enumerate(sorted_movements):
             self.movements_table.setItem(i, 0, QTableWidgetItem(movement['Timestamp'].strftime('%H:%M %b %d')))
@@ -1367,7 +1367,7 @@ class ProductMovementTrackingWidget(QWidget):
             worker_item = QTableWidgetItem(movement['Worker'])
             if movement['Worker'] == 'Current Worker':
                 worker_item.setBackground(QColor('#E8F5E8'))  # Light green highlight
-                worker_item.setForeground(QColor('#333333'))
+                worker_item.setForeground(QColor('#2D3748'))
             self.movements_table.setItem(i, 6, worker_item)
     def record_new_movement(self):
         dialog = NewMovementDialog(self.data, self)
@@ -1392,12 +1392,12 @@ class ExceptionReportsWidget(QWidget):
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Exception Reports")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #2D3748;")
 
         report_exception_btn = QPushButton("Report Exception")
         report_exception_btn.setStyleSheet("""
             QPushButton {
-                background-color: #F44336; /* Red */
+                background-color: #E53E3E; /* Red */
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -1427,9 +1427,9 @@ class ExceptionReportsWidget(QWidget):
         #in_review = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'In Review'])
         #resolved_today = len([e for e in self.data.exceptions.to_dict('records') if e['Status'] == 'Resolved' and (datetime.datetime.now() - e['Reported_Time']).total_seconds() < 86400])
 
-        #stats_layout.addWidget(self.create_exception_stat_card("Open Reports", open_exceptions, "#F44336"))
-        #stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#FFC107"))
-        #stats_layout.addWidget(self.create_exception_stat_card("Resolved Today", resolved_today, "#4CAF50"))
+        #stats_layout.addWidget(self.create_exception_stat_card("Open Reports", open_exceptions, "#E53E3E"))
+        #stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#F6AD55"))
+        #stats_layout.addWidget(self.create_exception_stat_card("Resolved Today", resolved_today, "#38A169"))
         layout.addLayout(stats_layout)
 
         # Exceptions table
@@ -1445,7 +1445,7 @@ class ExceptionReportsWidget(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 padding: 18px 20px;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -1456,10 +1456,10 @@ class ExceptionReportsWidget(QWidget):
         layout.setSpacing(5)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 14px; color: #666666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 14px; color: #4A5568; font-weight: bold;")
 
         value_label = QLabel(str(value))
-        value_label.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {color};")
+        value_label.setStyleSheet(f"font-size: 36px; font-weight: bold; color: {color};")
 
         layout.addWidget(title_label)
         layout.addWidget(value_label)
@@ -1477,17 +1477,17 @@ class ExceptionReportsWidget(QWidget):
         table.setStyleSheet("""
             QTableWidget {
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 font-size: 14px;
                 selection-background-color: #FFEBEE; /* Light red selection */
-                selection-color: #333333;
-                gridline-color: #F0F2F5;
+                selection-color: #2D3748;
+                gridline-color: #EDF2F7;
             }
             QHeaderView::section {
-                background-color:#6C63FF; /* Red for header */
+                background-color:#006775; /* Red for header */
                 color: #FFFFFF;
-                padding: 12px;
+                padding: 13px;
                 border: none;
                 font-weight: bold;
                 font-size: 15px;
@@ -1503,8 +1503,8 @@ class ExceptionReportsWidget(QWidget):
                 padding: 8px;
             }
             QTableWidget::item:selected {
-                background-color: #6C63FF;
-                color: #333333;
+                background-color: #006775;
+                color: #2D3748;
             }
         """)
 
@@ -1532,14 +1532,14 @@ class ExceptionReportsWidget(QWidget):
 
             status_item = QTableWidgetItem(exception['Status'])
             status_colors = {
-                'Open': '#F44336', # Red
-                'In Review': '#FFC107', # Amber
-                'Resolved': '#4CAF50' # Green
+                'Open': '#E53E3E', # Red
+                'In Review': '#F6AD55', # Amber
+                'Resolved': '#38A169' # Green
             }
-            status_item.setBackground(QColor(status_colors.get(exception['Status'], '#E0E0E0')))
+            status_item.setBackground(QColor(status_colors.get(exception['Status'], '#D3DCE0')))
             status_item.setForeground(QColor('#FFFFFF')) # White text for better contrast
             if exception['Status'] == 'In Review':
-                status_item.setForeground(QColor('#333333')) # Darker text for Amber background
+                status_item.setForeground(QColor('#2D3748')) # Darker text for Amber background
             self.exceptions_table.setItem(i, 5, status_item)
 
     #def view_exception_details(self, row, column):
@@ -1574,7 +1574,7 @@ class StorageCellWidget(QWidget):
         # Header
         header_layout = QHBoxLayout()
         title = QLabel("Cellule d'Entreposage (2D View)")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #2D3748;")
         header_layout.addWidget(title)
         header_layout.addStretch()
         layout.addLayout(header_layout)
@@ -1649,7 +1649,7 @@ class StorageCellWidget(QWidget):
                             text_color = "#232946"
                             cell_button.setText(f"{cell_id}\nFull")
                         else:
-                            bg_color = "#E0E0E0"  # Default grey
+                            bg_color = "#D3DCE0"  # Default grey
                             text_color = "#232946"
                             cell_button.setText(f"{cell_id}\nN/A")
 
@@ -1663,7 +1663,7 @@ class StorageCellWidget(QWidget):
                                 color: {text_color};
                             }}
                             QPushButton:hover {{
-                                border: 2px solid #6C63FF;
+                                border: 2px solid #006775;
                             }}
                         """)
                         cell_button.clicked.connect(lambda checked, cid=cell_id: self.on_cell_clicked(cid))
@@ -1703,7 +1703,7 @@ class MainWindow(QMainWindow):
     def apply_global_styles(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #F0F2F5;
+                background-color: #EDF2F7;
             }
             QLabel, QGroupBox, QTableWidget, QLineEdit, QComboBox, QPushButton, QTextEdit, QSpinBox, QListWidget {
                 font-family: 'Segoe UI', 'Arial', sans-serif;
@@ -1712,18 +1712,18 @@ class MainWindow(QMainWindow):
             }
             QTableWidget {
                 background-color: #FFFFFF;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D3DCE0;
                 border-radius: 10px;
                 font-size: 15px;
-                selection-background-color: #6C63FF;
+                selection-background-color: #006775;
                 selection-color: #FFFFFF;
-                gridline-color: #F0F2F5;
+                gridline-color: #EDF2F7;
                 alternate-background-color: #F8F9FA;
             }
             QHeaderView::section {
-                background-color: #2921C5;
+                background-color: #006775;
                 color: #FFFFFF;
-                padding: 12px;
+                padding: 13px;
                 border: none;
                 font-weight: bold;
                 font-size: 16px;
@@ -1740,7 +1740,7 @@ class MainWindow(QMainWindow):
                 font-size: 15px;
             }
             QTableWidget::item:selected {
-                background-color: #6C63FF;
+                background-color: #006775;
                 color: #FFFFFF;
             }
             QScrollArea {
@@ -1748,7 +1748,7 @@ class MainWindow(QMainWindow):
             }
             QScrollBar:vertical {
                 border: none;
-                background: #F0F2F5;
+                background: #EDF2F7;
                 width: 10px;
                 margin: 0px 0px 0px 0px;
             }
@@ -1771,13 +1771,13 @@ class MainWindow(QMainWindow):
         self.navbar.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF; /* White navbar background */
-                border-bottom: 1px solid #E0E0E0;
+                border-bottom: 1px solid #D3DCE0;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             }
             QPushButton {
                 background-color: transparent;
                 border: none;
-                color: #666666; /* Medium gray text */
+                color: #4A5568; /* Medium gray text */
                 padding: 10px 20px;
                 font-size: 16px;
                 font-weight: 500;
@@ -1785,11 +1785,11 @@ class MainWindow(QMainWindow):
                 transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #F0F2F5; /* Light background on hover */
-                color: #333333; /* Darker text on hover */
+                background-color: #EDF2F7; /* Light background on hover */
+                color: #2D3748; /* Darker text on hover */
             }
             QPushButton:checked {
-                background-color: #6C63FF; /* Primary accent for selected */
+                background-color: #006775; /* Primary accent for selected */
                 color: #FFFFFF;
                 font-weight: bold;
             }
@@ -1803,8 +1803,8 @@ class MainWindow(QMainWindow):
         logo_label.setStyleSheet("""
             font-size: 24px;
             font-weight: bold;
-            color: #333333;
-            margin-right: 30px;
+            color: #2D3748;
+            margin-right: 25px;
         """)
         navbar_layout.addWidget(logo_label)
 
@@ -1852,7 +1852,7 @@ class MainWindow(QMainWindow):
 
     def create_content_area(self):
         self.content_stack = QStackedWidget()
-        self.content_stack.setStyleSheet("background-color: #F0F2F5; padding: 20px;") # Content area background
+        self.content_stack.setStyleSheet("background-color: #EDF2F7; padding: 20px;") # Content area background
 
         def scrollable(widget):
             scroll = QScrollArea()
@@ -1915,9 +1915,9 @@ if __name__ == '__main__':
     palette.setColor(QPalette.ColorRole.WindowText, QColor("#232946"))  # Dialog text
     palette.setColor(QPalette.ColorRole.Base, QColor("#F8F9FA"))  # Input fields
     palette.setColor(QPalette.ColorRole.Text, QColor("#232946"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#6C63FF"))  # Accent for buttons
+    palette.setColor(QPalette.ColorRole.Button, QColor("#006775"))  # Accent for buttons
     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#FFFFFF"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#6C63FF"))  # Selection color
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#006775"))  # Selection color
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
     app.setPalette(palette)
     # ----------------------------------------------------------

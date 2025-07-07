@@ -1,0 +1,102 @@
+/* modern_theme.qss */
+/* Base Colors */
+@teal: #4CB6B6;
+@teal-dark: #368686;
+@teal-light: #004F5C;
+@orange: #E77E23;
+@orange-dark: #E09A3E;
+@gray-bg: #F8F9FA;
+@gray-border: #D3DCE0;
+@gray-text: #2D3748;
+@white: #FFFFFF;
+
+/* General */
+QWidget {
+    background-color: @gray-bg;
+    color: @gray-text;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    font-size: 15px;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: @teal;
+    color: @white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 2px 8px rgba(76, 182, 182, 0.10);
+    transition: all 0.2s;
+}
+QPushButton:hover {
+    background-color: @teal-dark;
+}
+QPushButton:pressed {
+    background-color: @orange-dark;
+}
+
+/* Accent Buttons (e.g., Create, Confirm) */
+QPushButton[accent="true"] {
+    background-color: @orange;
+    color: @gray-text;
+}
+QPushButton[accent="true"]:hover {
+    background-color: @orange-dark;
+    color: @white;
+}
+
+/* Cards & Frames */
+QFrame, QGroupBox {
+    background-color: @white;
+    border-radius: 13px;
+    border: 1px solid @gray-border;
+}
+
+/* Headers */
+QLabel#headerTitle, QLabel.section_title {
+    color: @teal-dark;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* Status Labels */
+QLabel[status="Pending"]    { background: @orange; color: @gray-text; }
+QLabel[status="Processing"] { background: @teal; color: @white; }
+QLabel[status="Shipped"]    { background: #7DD181; color: @white; }
+QLabel[status="Delivered"]  { background: #4CB6B6; color: @white; }
+QLabel[status="Cancelled"]  { background: #E57373; color: @white; }
+
+/* Inputs */
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit {
+    background: @white;
+    border: 1px solid @gray-border;
+    border-radius: 8px;
+    padding: 8px 13px;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus, QTextEdit:focus {
+    border: 1.5px solid @teal;
+    box-shadow: 0 0 0 2px rgba(76, 182, 182, 0.15);
+}
+
+/* Radio Buttons */
+QRadioButton {
+    font-size: 15px;
+    color: @gray-text;
+}
+QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border: 2px solid @teal;
+    background: @white;
+}
+QRadioButton::indicator:checked {
+    background: @teal;
+    border: 2px solid @teal-dark;
+}
+QRadioButton::indicator:unchecked {
+    border: 2px solid @gray-border;
+    background: @gray-bg;
+}

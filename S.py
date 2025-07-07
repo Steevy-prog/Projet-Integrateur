@@ -108,7 +108,7 @@ class TaskCard(QFrame):
         if self.card_type == "expedition":
             color = self.get_priority_color(self.task_data['Priority'])
         else:
-            color = "#4CAF50"
+            color = "#38A169"
             
         self.setStyleSheet(f"""
             QFrame {{
@@ -134,7 +134,7 @@ class TaskCard(QFrame):
         
         if self.card_type == "expedition":
             priority_label = QLabel(self.task_data['Priority'])
-            priority_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 12px;")
+            priority_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 13px;")
             header_layout.addWidget(order_label)
             header_layout.addStretch()
             header_layout.addWidget(priority_label)
@@ -151,10 +151,10 @@ class TaskCard(QFrame):
             due_text = f"Status: {self.task_data.get('Status', 'Pending')}"
             
         details_label = QLabel(details_text)
-        details_label.setStyleSheet("font-size: 12px; color: #666;")
+        details_label.setStyleSheet("font-size: 13px; color: #666;")
         
         due_label = QLabel(due_text)
-        due_label.setStyleSheet("font-size: 12px; color: #666;")
+        due_label.setStyleSheet("font-size: 13px; color: #666;")
 
         # Action button
         action_btn = QPushButton("View Details" if self.card_type == "expedition" else "Start Task")
@@ -166,7 +166,7 @@ class TaskCard(QFrame):
                 padding: 5px 15px;
                 border-radius: 4px;
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
             }}
             QPushButton:hover {{
                 opacity: 0.8;
@@ -184,11 +184,11 @@ class TaskCard(QFrame):
 
     def get_priority_color(self, priority):
         colors = {
-            'High': '#F44336',
-            'Medium': '#FF9800', 
-            'Low': '#4CAF50'
+            'High': '#E53E3E',
+            'Medium': '#E77E23', 
+            'Low': '#38A169'
         }
-        return colors.get(priority, '#4CAF50')
+        return colors.get(priority, '#38A169')
 
     def on_action_clicked(self):
         self.task_selected.emit(self.task_data)
@@ -216,7 +216,7 @@ class ExpeditionManagementWidget(QWidget):
         refresh_btn = QPushButton("Refresh Tasks")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -239,9 +239,9 @@ class ExpeditionManagementWidget(QWidget):
         in_progress_tasks = len([t for t in self.data.expedition_tasks if t['Status'] == 'In Progress'])
         completed_today = len([t for t in self.data.expedition_tasks if t['Status'] == 'Completed'])
         
-        stats_layout.addWidget(self.create_stat_card("Pending", pending_tasks, "#FF9800"))
-        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#2196F3"))
-        stats_layout.addWidget(self.create_stat_card("Completed", completed_today, "#4CAF50"))
+        stats_layout.addWidget(self.create_stat_card("Pending", pending_tasks, "#E77E23"))
+        stats_layout.addWidget(self.create_stat_card("In Progress", in_progress_tasks, "#006775"))
+        stats_layout.addWidget(self.create_stat_card("Completed", completed_today, "#38A169"))
 
         # Task sections
         sections_layout = QHBoxLayout()
@@ -269,7 +269,7 @@ class ExpeditionManagementWidget(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -279,7 +279,7 @@ class ExpeditionManagementWidget(QWidget):
         layout = QVBoxLayout()
         
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
         
         value_label = QLabel(str(value))
         value_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color};")
@@ -358,7 +358,7 @@ class ProductMovementTrackingWidget(QWidget):
         new_movement_btn = QPushButton("Record Movement")
         new_movement_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -425,12 +425,12 @@ class ProductMovementTrackingWidget(QWidget):
             # Color code movement types
             type_item = QTableWidgetItem(movement['Movement_Type'])
             type_colors = {
-                'Pick': '#FF9800',
-                'Pack': '#4CAF50', 
-                'Move': '#2196F3',
+                'Pick': '#E77E23',
+                'Pack': '#38A169', 
+                'Move': '#006775',
                 'Count': '#9C27B0'
             }
-            type_item.setBackground(QColor(type_colors.get(movement['Movement_Type'], '#e0e0e0')))
+            type_item.setBackground(QColor(type_colors.get(movement['Movement_Type'], '#D3DCE0')))
             table.setItem(i, 2, type_item)
             
             table.setItem(i, 3, QTableWidgetItem(str(movement['Quantity'])))
@@ -447,12 +447,12 @@ class ProductMovementTrackingWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -492,12 +492,12 @@ class ProductMovementTrackingWidget(QWidget):
             
             type_item = QTableWidgetItem(movement['Movement_Type'])
             type_colors = {
-                'Pick': '#FF9800',
-                'Pack': '#4CAF50', 
-                'Move': '#2196F3',
+                'Pick': '#E77E23',
+                'Pack': '#38A169', 
+                'Move': '#006775',
                 'Count': '#9C27B0'
             }
-            type_item.setBackground(QColor(type_colors.get(movement['Movement_Type'], '#e0e0e0')))
+            type_item.setBackground(QColor(type_colors.get(movement['Movement_Type'], '#D3DCE0')))
             self.movements_table.setItem(i, 2, type_item)
             
             self.movements_table.setItem(i, 3, QTableWidgetItem(str(movement['Quantity'])))
@@ -535,7 +535,7 @@ class ExceptionReportsWidget(QWidget):
         report_exception_btn = QPushButton("Report Exception")
         report_exception_btn.setStyleSheet("""
             QPushButton {
-                background-color: #F44336;
+                background-color: #E53E3E;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -559,9 +559,9 @@ class ExceptionReportsWidget(QWidget):
         in_review = len([e for e in self.data.exceptions if e['Status'] == 'In Review'])
         resolved_today = len([e for e in self.data.exceptions if e['Status'] == 'Resolved'])
         
-        stats_layout.addWidget(self.create_exception_stat_card("Open", open_exceptions, "#F44336"))
-        stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#FF9800"))
-        stats_layout.addWidget(self.create_exception_stat_card("Resolved", resolved_today, "#4CAF50"))
+        stats_layout.addWidget(self.create_exception_stat_card("Open", open_exceptions, "#E53E3E"))
+        stats_layout.addWidget(self.create_exception_stat_card("In Review", in_review, "#E77E23"))
+        stats_layout.addWidget(self.create_exception_stat_card("Resolved", resolved_today, "#38A169"))
 
         # Exceptions table
         self.exceptions_table = self.create_exceptions_table()
@@ -578,7 +578,7 @@ class ExceptionReportsWidget(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -588,7 +588,7 @@ class ExceptionReportsWidget(QWidget):
         layout = QVBoxLayout()
         
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
         
         value_label = QLabel(str(value))
         value_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color};")
@@ -632,12 +632,12 @@ class ExceptionReportsWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -695,16 +695,16 @@ class WorkerMainDashboard(QWidget):
         my_movements = len([m for m in self.data.movement_history if m['Worker'] == 'Current Worker'])
         open_exceptions = len([e for e in self.data.exceptions if e['Status'] == 'Open'])
 
-        stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#FF9800", "Tasks assigned to me"))
-        stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#4CAF50", "Tasks finished today"))
-        stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#2196F3", "Product movements logged"))
-        stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#F44336", "Issues requiring attention"))
+        stats_layout.addWidget(self.create_dashboard_card("My Pending Tasks", my_pending_tasks, "#E77E23", "Tasks assigned to me"))
+        stats_layout.addWidget(self.create_dashboard_card("Completed Today", completed_today, "#38A169", "Tasks finished today"))
+        stats_layout.addWidget(self.create_dashboard_card("My Movements", my_movements, "#006775", "Product movements logged"))
+        stats_layout.addWidget(self.create_dashboard_card("Open Exceptions", open_exceptions, "#E53E3E", "Issues requiring attention"))
 
         # Quick actions
         quick_actions_group = QGroupBox("Quick Actions")
         quick_actions_group.setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; margin-top: 10px; }"
                                          "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 3px; }"
-                                         "QGroupBox { border: 1px solid #e0e0e0; border-radius: 8px; padding-top: 20px; }")
+                                         "QGroupBox { border: 1px solid #D3DCE0; border-radius: 8px; padding-top: 20px; }")
         quick_actions_layout = QHBoxLayout()
 
         pick_pack_btn = QPushButton("View Pick/Pack Tasks")
@@ -730,7 +730,7 @@ class WorkerMainDashboard(QWidget):
                 color: #555;
             }
             QPushButton:hover {
-                background-color: #e0e0e0;
+                background-color: #D3DCE0;
                 border: 1px solid #c0c0c0;
             }
         """
@@ -747,14 +747,14 @@ class WorkerMainDashboard(QWidget):
         recent_activity_group = QGroupBox("Recent Activities")
         recent_activity_group.setStyleSheet("QGroupBox { font-size: 16px; font-weight: bold; margin-top: 10px; }"
                                           "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 3px; }"
-                                          "QGroupBox { border: 1px solid #e0e0e0; border-radius: 8px; padding-top: 20px; }")
+                                          "QGroupBox { border: 1px solid #D3DCE0; border-radius: 8px; padding-top: 20px; }")
         recent_activity_layout = QVBoxLayout()
 
         latest_movements = sorted(self.data.movement_history, key=lambda x: x['Timestamp'], reverse=True)[:5]
         if latest_movements:
             for movement in latest_movements:
                 activity_label = QLabel(f"- {movement['Timestamp'].strftime('%H:%M')} | {movement['Movement_Type']} of {movement['Quantity']}x {movement['Product_Name']} by {movement['Worker']}")
-                activity_label.setStyleSheet("font-size: 12px; color: #444; padding: 2px 0;")
+                activity_label.setStyleSheet("font-size: 13px; color: #444; padding: 2px 0;")
                 recent_activity_layout.addWidget(activity_label)
         else:
             no_activity_label = QLabel("No recent activities.")
@@ -777,7 +777,7 @@ class WorkerMainDashboard(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-left: 5px solid {color};
                 border-radius: 8px;
                 padding: 15px;
@@ -791,7 +791,7 @@ class WorkerMainDashboard(QWidget):
         title_label.setStyleSheet("font-size: 14px; color: #666; font-weight: bold;")
 
         value_label = QLabel(str(value))
-        value_label.setStyleSheet(f"font-size: 32px; font-weight: bold; color: {color};")
+        value_label.setStyleSheet(f"font-size: 36px; font-weight: bold; color: {color};")
 
         description_label = QLabel(description)
         description_label.setStyleSheet("font-size: 10px; color: #999;")
@@ -831,7 +831,7 @@ class TaskDetailDialog(QDialog):
                 margin-bottom: 15px;
             }
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -842,7 +842,7 @@ class TaskDetailDialog(QDialog):
                 background-color: #1976D2;
             }
             QListWidget {
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 5px;
                 padding: 5px;
                 background-color: white;
@@ -914,7 +914,7 @@ class NewMovementDialog(QDialog):
                 font-size: 14px;
             }
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -925,7 +925,7 @@ class NewMovementDialog(QDialog):
                 background-color: #43A047;
             }
             QPushButton#cancelButton {
-                background-color: #f44336;
+                background-color: #E53E3E;
             }
             QPushButton#cancelButton:hover {
                 background-color: #d32f2f;
@@ -1034,13 +1034,13 @@ class ExceptionDetailDialog(QDialog):
                 margin-bottom: 15px;
             }
             QTextEdit {
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 5px;
                 padding: 5px;
                 background-color: white;
             }
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 10px 20px;
@@ -1051,7 +1051,7 @@ class ExceptionDetailDialog(QDialog):
                 background-color: #1976D2;
             }
             QPushButton#resolveButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
             }
             QPushButton#resolveButton:hover {
                 background-color: #43A047;
@@ -1133,7 +1133,7 @@ class NewExceptionDialog(QDialog):
                 font-size: 14px;
             }
             QPushButton {
-                background-color: #F44336;
+                background-color: #E53E3E;
                 color: white;
                 border: none;
                 padding: 10px 20px;

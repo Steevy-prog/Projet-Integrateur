@@ -117,13 +117,13 @@ class ChartWidget(QWidget):
 class MetricCard(QFrame):
     """Card widget for displaying key metrics"""
     
-    def __init__(self, title, value, subtitle="", color="#4CAF50"):
+    def __init__(self, title, value, subtitle="", color="#38A169"):
         super().__init__()
         self.setFrameStyle(QFrame.StyledPanel)
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -134,7 +134,7 @@ class MetricCard(QFrame):
         
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
         
         # Value
         value_label = QLabel(str(value))
@@ -171,7 +171,7 @@ class InventoryWidget(QWidget):
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -199,7 +199,7 @@ class InventoryWidget(QWidget):
         
         metrics_layout.addWidget(MetricCard("Total Items", f"{total_items:,}", "In Stock"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Inventory Worth"))
-        metrics_layout.addWidget(MetricCard("Low Stock", str(low_stock_items), "Items Below Min", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Low Stock", str(low_stock_items), "Items Below Min", "#E77E23"))
         metrics_layout.addWidget(MetricCard("Storage Zones", str(zones_used), "Active Zones"))
         
         # Charts section
@@ -243,7 +243,7 @@ class InventoryWidget(QWidget):
         category_df = pd.DataFrame(category_data)
         category_summary = category_df.groupby('Category')['Quantity'].sum()
         
-        colors = ['#FF9800', '#4CAF50', '#2196F3', '#9C27B0']
+        colors = ['#E77E23', '#38A169', '#006775', '#9C27B0']
         wedges, texts, autotexts = ax.pie(category_summary.values, 
                                          labels=category_summary.index,
                                          autopct='%1.1f%%',
@@ -263,11 +263,11 @@ class InventoryWidget(QWidget):
         # Color bars based on stock level
         for i, (_, row) in enumerate(top_products.iterrows()):
             if row['Quantity'] <= row['Min_Stock']:
-                bars[i].set_color('#F44336')  # Red for low stock
+                bars[i].set_color('#E53E3E')  # Red for low stock
             elif row['Quantity'] <= row['Min_Stock'] * 2:
-                bars[i].set_color('#FF9800')  # Orange for medium stock
+                bars[i].set_color('#E77E23')  # Orange for medium stock
             else:
-                bars[i].set_color('#4CAF50')  # Green for good stock
+                bars[i].set_color('#38A169')  # Green for good stock
         
         ax.set_title('Stock Levels - Top Products', fontsize=14, fontweight='bold')
         ax.set_xlabel('Products')
@@ -310,12 +310,12 @@ class InventoryWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -438,7 +438,7 @@ class OrdersWidget(QWidget):
         ax = chart_widget.figure.add_subplot(111)
         
         status_counts = df['Status'].value_counts()
-        colors = ['#4CAF50', '#FF9800', '#2196F3', '#9C27B0']
+        colors = ['#38A169', '#E77E23', '#006775', '#9C27B0']
         
         bars = ax.bar(status_counts.index, status_counts.values, color=colors[:len(status_counts)])
         ax.set_title(title, fontsize=14, fontweight='bold')
@@ -491,12 +491,12 @@ class OrdersWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -583,9 +583,9 @@ class PerformanceWidget(QWidget):
         recent_data = self.data.daily_metrics.tail(30)
         
         ax.plot(recent_data['Date'], recent_data['Items_Received'], 
-               label='Received', color='#4CAF50', linewidth=2)
+               label='Received', color='#38A169', linewidth=2)
         ax.plot(recent_data['Date'], recent_data['Items_Shipped'], 
-               label='Shipped', color='#2196F3', linewidth=2)
+               label='Shipped', color='#006775', linewidth=2)
         
         ax.set_title('Daily Operations Trend (Last 30 Days)', fontsize=14, fontweight='bold')
         ax.set_xlabel('Date')
@@ -605,7 +605,7 @@ class PerformanceWidget(QWidget):
         # Storage utilization by zone (simulated)
         zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D']
         utilization = [85, 72, 91, 68]
-        colors = ['#FF5722' if u > 85 else '#FF9800' if u > 75 else '#4CAF50' for u in utilization]
+        colors = ['#FF5722' if u > 85 else '#E77E23' if u > 75 else '#38A169' for u in utilization]
         
         bars = ax.bar(zones, utilization, color=colors)
         
@@ -638,9 +638,9 @@ class PerformanceWidget(QWidget):
         
         ax.fill_between(range(len(weekly_data)), 
                        weekly_data['Order_Fulfillment_Rate'], 
-                       alpha=0.3, color='#4CAF50')
+                       alpha=0.3, color='#38A169')
         ax.plot(range(len(weekly_data)), weekly_data['Order_Fulfillment_Rate'], 
-               color='#4CAF50', linewidth=3, marker='o', markersize=6)
+               color='#38A169', linewidth=3, marker='o', markersize=6)
         
         ax.set_title('Order Fulfillment Rate Trend', fontsize=14, fontweight='bold')
         ax.set_xlabel('Time Period')
@@ -676,7 +676,7 @@ class WarehouseDashboard(QMainWindow):
                 background-color: #f5f5f5;
             }
             QTabWidget::pane {
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 background-color: white;
             }
             QTabBar::tab {
@@ -688,7 +688,7 @@ class WarehouseDashboard(QMainWindow):
             }
             QTabBar::tab:selected {
                 background-color: white;
-                border-bottom: 2px solid #2196F3;
+                border-bottom: 2px solid #006775;
             }
         """)
         
@@ -721,7 +721,7 @@ class WarehouseDashboard(QMainWindow):
                 background-color: #f5f5f5;
             }
             QTabWidget::pane {
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 background-color: white;
             }
             QTabBar::tab {
@@ -733,7 +733,7 @@ class WarehouseDashboard(QMainWindow):
             }
             QTabBar::tab:selected {
                 background-color: white;
-                border-bottom: 2px solid #2196F3;
+                border-bottom: 2px solid #006775;
             }
         """)
 
@@ -774,7 +774,7 @@ class WarehouseDashboard(QMainWindow):
         search_bar.setStyleSheet("""
             QLineEdit {
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 4px;
                 font-size: 14px;
             }
@@ -791,7 +791,7 @@ class WarehouseDashboard(QMainWindow):
         header_layout.addWidget(user_label)
         
         header_widget.setLayout(header_layout)
-        header_widget.setStyleSheet("background-color: white; padding: 10px; border-bottom: 1px solid #e0e0e0;")
+        header_widget.setStyleSheet("background-color: white; padding: 10px; border-bottom: 1px solid #D3DCE0;")
         
         return header_widget
 
@@ -816,17 +816,17 @@ if __name__ == '__main__':
     
     palette = QPalette()
     palette.setColor(QPalette.Window, QColor("#f5f5f5"))
-    palette.setColor(QPalette.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.WindowText, QColor("#2D3748"))
     palette.setColor(QPalette.Base, QColor("#ffffff"))
     palette.setColor(QPalette.AlternateBase, QColor("#f0f0f0"))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
-    palette.setColor(QPalette.Text, QColor("#333333"))
-    palette.setColor(QPalette.Button, QColor("#e0e0e0"))
-    palette.setColor(QPalette.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.Text, QColor("#2D3748"))
+    palette.setColor(QPalette.Button, QColor("#D3DCE0"))
+    palette.setColor(QPalette.ButtonText, QColor("#2D3748"))
     palette.setColor(QPalette.BrightText, Qt.red)
-    palette.setColor(QPalette.Link, QColor("#2196F3"))
-    palette.setColor(QPalette.Highlight, QColor("#2196F3"))
+    palette.setColor(QPalette.Link, QColor("#006775"))
+    palette.setColor(QPalette.Highlight, QColor("#006775"))
     palette.setColor(QPalette.HighlightedText, Qt.white)
     app.setPalette(palette)
 

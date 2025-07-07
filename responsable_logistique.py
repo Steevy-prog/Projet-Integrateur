@@ -39,9 +39,9 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="projet",
         user="postgres",
-        password="steevy",
+        password="postgres",
         port=5432
     )
 cur = conn.cursor()
@@ -319,8 +319,8 @@ class PerformanceWidget(QWidget):
         
         # Convert pandas Timestamps to Unix timestamps for pyqtgraph DateAxisItem
         x_vals = recent_data['Date'].apply(lambda x: x.timestamp()).values
-        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#4CAF50', width=2), name='Received')
-        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#2196F3', width=2), name='Shipped')
+        chart_widget.plot(x_vals, recent_data['Items_Received'].to_numpy(), pen=pg.mkPen(color='#38A169', width=2), name='Received')
+        chart_widget.plot(x_vals, recent_data['Items_Shipped'].to_numpy(), pen=pg.mkPen(color='#006775', width=2), name='Shipped')
         
         chart_widget.plotItem.addLegend()
         chart_widget.plotItem.setLabel('bottom', 'Date', axisClass=pg.DateAxisItem)
@@ -335,7 +335,7 @@ class PerformanceWidget(QWidget):
         x_vals = np.arange(len(zones))
         y_vals = np.array(utilization)
 
-        colors = [QColor('#FF5722') if u > 85 else QColor('#FF9800') if u > 75 else QColor('#4CAF50') for u in utilization]
+        colors = [QColor('#FF5722') if u > 85 else QColor('#E77E23') if u > 75 else QColor('#38A169') for u in utilization]
         brushes = [color for color in colors]
 
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
@@ -404,13 +404,13 @@ class ChartWidget(pg.PlotWidget):
 class MetricCard(QFrame):
     """Card widget for displaying key metrics"""
     
-    def __init__(self, title, value, subtitle="", color="#4CAF50"):
+    def __init__(self, title, value, subtitle="", color="#38A169"):
         super().__init__()
         self.setFrameStyle(QFrame.Shape.StyledPanel)
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -421,7 +421,7 @@ class MetricCard(QFrame):
         
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
         
         # Value
         value_label = QLabel(str(value))
@@ -487,7 +487,7 @@ class LogisticsOverviewWidget(QWidget):
         refresh_btn = QPushButton("Actualiser")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -514,9 +514,9 @@ class LogisticsOverviewWidget(QWidget):
         cmd_en_prep = cur.fetchone()[0]
         delai_moyen = self.data.performance_df['delais_moyens'].mean()
         
-        metrics_layout.addWidget(MetricCard("Commandes en prép.", cmd_en_prep, "À traiter", "#FF9800"))
-        metrics_layout.addWidget(MetricCard("Prêtes à expédier", len(bonexp) , "En attente", "#2196F3"))
-        metrics_layout.addWidget(MetricCard("En transit", cmd_en_transit, "En cours", "#4CAF50"))
+        metrics_layout.addWidget(MetricCard("Commandes en prép.", cmd_en_prep, "À traiter", "#E77E23"))
+        metrics_layout.addWidget(MetricCard("Prêtes à expédier", len(bonexp) , "En attente", "#006775"))
+        metrics_layout.addWidget(MetricCard("En transit", cmd_en_transit, "En cours", "#38A169"))
         metrics_layout.addWidget(MetricCard("Délai moyen", f"{delai_moyen:.1f} jours", "Livraison", "#9C27B0"))
         
         # Charts section
@@ -575,7 +575,7 @@ class LogisticsOverviewWidget(QWidget):
         x_vals = np.arange(len(status_counts))
         y_vals = status_counts.values
         
-        colors = [QColor('#FF9800'), QColor('#2196F3'), QColor('#4CAF50'), QColor('#9C27B0')]
+        colors = [QColor('#E77E23'), QColor('#006775'), QColor('#38A169'), QColor('#9C27B0')]
         brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
         
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
@@ -597,7 +597,7 @@ class LogisticsOverviewWidget(QWidget):
         x_vals = weekly_summary['week'].apply(lambda x: x.timestamp()).values
         y_vals = weekly_summary['taux_livraison'].values
         
-        chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#2196F3', width=2), symbol='o', symbolSize=8)
+        chart_widget.plot(x_vals, y_vals, pen=pg.mkPen(color='#006775', width=2), symbol='o', symbolSize=8)
         chart_widget.plotItem.setYRange(min(y_vals)*0.9, 100)
         
         target_line = pg.InfiniteLine(95, angle=0, pen=pg.mkPen('r', width=2, style=Qt.PenStyle.DashLine))
@@ -640,8 +640,8 @@ class LogisticsOverviewWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
                 height:600px;
             }
             QHeaderView::section {
@@ -707,15 +707,15 @@ class ConducteurSelectionDialog(QDialog):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
                 padding: 8px;
                 border: 1px solid #dcdcdc;
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 13px;
                 color: #555;
             }
         """)
@@ -729,7 +729,7 @@ class ConducteurSelectionDialog(QDialog):
         btn_confirm = QPushButton("Confirmer la sélection")
         btn_confirm.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -822,8 +822,8 @@ class TransportManagementWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -871,7 +871,7 @@ class TransportManagementWidget(QWidget):
                 QFrame {
                     background-color: white;
                     border-radius: 5px;
-                    border: 1px solid #e0e0e0;
+                    border: 1px solid #D3DCE0;
                     padding: 10px;
                 }
             """)
@@ -887,7 +887,7 @@ class TransportManagementWidget(QWidget):
             date_label = QLabel(f"Date expédition: {str(colis['date_expedition'])}")
 
             for label in [id_label, dest_label, date_label]:
-                label.setStyleSheet("font-size: 12px; color: #555;")
+                label.setStyleSheet("font-size: 13px; color: #555;")
                 info_layout.addWidget(label)
 
             frame_layout.addLayout(info_layout)
@@ -899,12 +899,12 @@ class TransportManagementWidget(QWidget):
             assign_btn.setProperty("colis_index", idx)  # Stocker l'index du colis
             assign_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #4CAF50;
+                    background-color: #38A169;
                     color: white;
                     border: none;
-                    padding: 8px 12px;
+                    padding: 8px 13px;
                     border-radius: 4px;
-                    font-size: 12px;
+                    font-size: 13px;
                 }
                 QPushButton:hover {
                     background-color: #43A047;
@@ -964,7 +964,7 @@ class TransportManagementWidget(QWidget):
         assign_btn = QPushButton("Assigner transporteur")
         assign_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -1002,8 +1002,8 @@ class TransportManagementWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1033,7 +1033,7 @@ class TransportManagementWidget(QWidget):
         x_vals = np.arange(len(self.data.transporteurs_df))
         y_vals = self.data.transporteurs_df['capacite'].values
         
-        colors = [QColor('#2196F3'), QColor('#4CAF50'), QColor('#FF9800'), QColor('#9C27B0')]
+        colors = [QColor('#006775'), QColor('#38A169'), QColor('#E77E23'), QColor('#9C27B0')]
         brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
         
         bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
@@ -1078,8 +1078,8 @@ class TransportManagementWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1145,7 +1145,7 @@ class TraceabilityWidget(QWidget):
         
         search_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -1224,7 +1224,7 @@ class TraceabilityWidget(QWidget):
         y_pos = 20
         for i, (_, trace) in enumerate(traces.iterrows()):
             # Timeline node
-            color = QColor('#4CAF50') if trace['statut'] == 'Terminé' else QColor('#FF9800')
+            color = QColor('#38A169') if trace['statut'] == 'Terminé' else QColor('#E77E23')
             scene.addEllipse(50, y_pos, 20, 20, QPen(color), QBrush(color))
         
             # Timeline text
@@ -1276,8 +1276,8 @@ class TraceabilityWidget(QWidget):
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
                 gridline-color: #dcdcdc;
-                border: 1px solid #e0e0e0;
-                font-size: 12px;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1364,7 +1364,7 @@ class LogisticsReportsWidget(QWidget):
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -1440,8 +1440,17 @@ class LogisticsReportsWidget(QWidget):
         # Style et configuration
         table.setStyleSheet("""
             QTableWidget {
+<<<<<<< Updated upstream
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
+=======
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #D3DCE0;
+                font-size: 13px;
+>>>>>>> Stashed changes
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1498,6 +1507,178 @@ class LogisticsReportsWidget(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save low stock report: {e}")
 
+<<<<<<< Updated upstream
+=======
+    
+    def create_performance_tab(self, from_date, to_date):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # Filter data
+        mask = (self.data.performance_df['date'] >= from_date) & (self.data.performance_df['date'] <= to_date)
+        filtered_df = self.data.performance_df[mask]
+        
+        if filtered_df.empty:
+            layout.addWidget(QLabel("Aucune donnée disponible pour cette période"))
+            return widget
+        
+        # Metrics
+        metrics_layout = QHBoxLayout()
+        
+        avg_delivery = filtered_df['delais_moyens'].mean()
+        success_rate = filtered_df['taux_livraison'].mean()
+        total_shipments = filtered_df['commandes_expediees'].sum()
+        
+        metrics_layout.addWidget(MetricCard("Délai moyen", f"{avg_delivery:.1f} jours", "Livraison"))
+        metrics_layout.addWidget(MetricCard("Taux réussite", f"{success_rate:.1f}%", "Livraisons"))
+        metrics_layout.addWidget(MetricCard("Commandes", f"{total_shipments:,}", "Expédiées"))
+        
+        layout.addLayout(metrics_layout)
+        
+        # Charts
+        charts_layout = QHBoxLayout()
+        
+        # Delivery time trend
+        deliv_chart = ChartWidget(parent=self, title='Délais de livraison', y_label='Jours', x_label='Date',
+                                 axisItems={'bottom': pg.DateAxisItem()})
+        x_vals = filtered_df['date'].apply(lambda x: x.timestamp()).values
+        deliv_chart.plot(x_vals, filtered_df['delais_moyens'].values, pen=pg.mkPen(color='#006775', width=2))
+        deliv_chart.setMinimumHeight(300)
+        
+        # Success rate trend
+        success_chart = ChartWidget(parent=self, title='Taux de livraison', y_label='%', x_label='Date',
+                                   axisItems={'bottom': pg.DateAxisItem()})
+        success_chart.plot(x_vals, filtered_df['taux_livraison'].values, pen=pg.mkPen(color='#38A169', width=2))
+        success_chart.setMinimumHeight(300)
+        
+        charts_layout.addWidget(deliv_chart)
+        charts_layout.addWidget(success_chart)
+        layout.addLayout(charts_layout)
+        
+        return widget
+    
+    def create_costs_tab(self, from_date, to_date):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # Filter expeditions data
+        mask = (self.data.expeditions_df['date_expedition'] >= from_date) & (self.data.expeditions_df['date_expedition'] <= to_date)
+        filtered_df = self.data.expeditions_df[mask]
+        
+        if filtered_df.empty:
+            layout.addWidget(QLabel("Aucune donnée disponible pour cette période"))
+            return widget
+        
+        # Calculate costs by carrier
+        costs_by_carrier = filtered_df.groupby('id_transporteur')['cout_estime'].sum().reset_index()
+        costs_by_carrier['nom'] = costs_by_carrier['id_transporteur'].apply(
+            lambda x: self.data.transporteurs_df[self.data.transporteurs_df['id'] == x]['nom'].values[0])
+        
+        # Metrics
+        metrics_layout = QHBoxLayout()
+        
+        total_cost = filtered_df['cout_estime'].sum()
+        avg_cost = filtered_df['cout_estime'].mean()
+        shipments = len(filtered_df)
+        
+        metrics_layout.addWidget(MetricCard("Coût total", f"${total_cost:,.0f}", "Transport"))
+        metrics_layout.addWidget(MetricCard("Coût moyen", f"${avg_cost:,.0f}", "Par commande"))
+        metrics_layout.addWidget(MetricCard("Commandes", f"{shipments:,}", "Expédiées"))
+        
+        layout.addLayout(metrics_layout)
+        
+        # Cost by carrier chart
+        cost_chart = ChartWidget(title='Coûts par transporteur', y_label='Coût ($)', x_label='Transporteur')
+        
+        x_vals = np.arange(len(costs_by_carrier))
+        y_vals = costs_by_carrier['cout_estime'].values
+        
+        colors = [QColor('#006775'), QColor('#38A169'), QColor('#E77E23'), QColor('#9C27B0')]
+        brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
+        
+        bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
+        cost_chart.addItem(bargraph)
+        
+        ticks = [(i, label) for i, label in enumerate(costs_by_carrier['nom'])]
+        cost_chart.getAxis('bottom').setTicks([ticks])
+        
+        for i, value in enumerate(y_vals):
+            text_item = pg.TextItem(text=f"${value:,.0f}", anchor=(0.5, 0), color='k')
+            text_item.setPos(x_vals[i], value + max(y_vals)*0.05)
+            cost_chart.addItem(text_item)
+        
+        cost_chart.setMinimumHeight(300)
+        layout.addWidget(cost_chart)
+        
+        return widget
+    
+    def create_transport_tab(self, from_date, to_date):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # Filter expeditions data
+        mask = ((self.data.expeditions_df['date_expedition'] >= from_date) & 
+        (self.data.expeditions_df['date_expedition'] <= to_date))
+        filtered_df = self.data.expeditions_df[mask]
+        
+        if filtered_df.empty:
+            layout.addWidget(QLabel("Aucune donnée disponible pour cette période"))
+            return widget
+        
+        # Calculate shipments by carrier
+        shipments_by_carrier = filtered_df.groupby('id_transporteur').size().reset_index(name='count')
+        shipments_by_carrier['nom'] = shipments_by_carrier['id_transporteur'].apply(
+            lambda x: self.data.transporteurs_df[self.data.transporteurs_df['id'] == x]['nom'].values[0])
+        
+        # Metrics
+        metrics_layout = QHBoxLayout()
+        
+        total_shipments = len(filtered_df)
+        carriers_used = len(shipments_by_carrier)
+        avg_per_carrier = total_shipments / carriers_used if carriers_used > 0 else 0
+        
+        metrics_layout.addWidget(MetricCard("Commandes", f"{total_shipments:,}", "Expédiées"))
+        metrics_layout.addWidget(MetricCard("Transporteurs", f"{carriers_used}", "Utilisés"))
+        metrics_layout.addWidget(MetricCard("Moyenne", f"{avg_per_carrier:.1f}", "Par transporteur"))
+        
+        layout.addLayout(metrics_layout)
+        
+        # Shipments by carrier chart
+        ship_chart = ChartWidget(title='Commandes par transporteur', y_label='Nombre', x_label='Transporteur')
+        
+        x_vals = np.arange(len(shipments_by_carrier))
+        y_vals = shipments_by_carrier['count'].values
+        
+        colors = [QColor('#006775'), QColor('#38A169'), QColor('#E77E23'), QColor('#9C27B0')]
+        brushes = [colors[i % len(colors)] for i in range(len(x_vals))]
+        
+        bargraph = pg.BarGraphItem(x=x_vals, height=y_vals, width=0.6, brushes=brushes)
+        ship_chart.addItem(bargraph)
+        
+        ticks = [(i, label) for i, label in enumerate(shipments_by_carrier['nom'])]
+        ship_chart.getAxis('bottom').setTicks([ticks])
+        
+        for i, value in enumerate(y_vals):
+            text_item = pg.TextItem(text=f"{int(value)}", anchor=(0.5, 0), color='k')
+            text_item.setPos(x_vals[i], value + max(y_vals)*0.05)
+            ship_chart.addItem(text_item)
+        
+        ship_chart.setMinimumHeight(300)
+        layout.addWidget(ship_chart)
+        
+        return widget
+    
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
+
+>>>>>>> Stashed changes
 class LogisticsDashboardWidget(QWidget):
     """Dashboard principal pour le responsable logistique"""
     
@@ -1596,7 +1777,7 @@ class LogisticsDashboardWidget(QWidget):
                 btn.setStyleSheet("""
                     QPushButton {
                         text-align: left;
-                        padding: 12px 15px;
+                        padding: 13px 15px;
                         color: white;
                         border: none;
                         border-left: 4px solid transparent;
@@ -1611,7 +1792,7 @@ class LogisticsDashboardWidget(QWidget):
                 btn.setStyleSheet("""
                     QPushButton {
                         text-align: left;
-                        padding: 12px 15px;
+                        padding: 13px 15px;
                         color: white;
                         border: none;
                         border-left: 4px solid transparent;
@@ -1775,17 +1956,17 @@ if __name__ == '__main__':
     app.setStyle("Fusion")
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#2D3748"))
     palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
     palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))
     palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
     palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.Text, QColor("#333333"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Text, QColor("#2D3748"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#D3DCE0"))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#2D3748"))
     palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
-    palette.setColor(QPalette.ColorRole.Link, QColor("#2196F3"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#2196F3"))
+    palette.setColor(QPalette.ColorRole.Link, QColor("#006775"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#006775"))
     palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
     
     app.setPalette(palette)

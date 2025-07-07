@@ -30,8 +30,8 @@ class AnimatedButton(QPushButton):
                                  stop:0 #667eea, stop:1 #764ba2);
                     color: white;
                     border: none;
-                    border-radius: 12px;
-                    padding: 12px 20px;
+                    border-radius: 13px;
+                    padding: 13px 20px;
                     font-weight: 600;
                     text-align: left;
                     margin: 2px;
@@ -47,8 +47,8 @@ class AnimatedButton(QPushButton):
                     background: rgba(255, 255, 255, 0.1);
                     color: #4a5568;
                     border: 1px solid rgba(0, 0, 0, 0.1);
-                    border-radius: 12px;
-                    padding: 12px 20px;
+                    border-radius: 13px;
+                    padding: 13px 20px;
                     font-weight: 500;
                     text-align: left;
                     margin: 2px;
@@ -104,7 +104,7 @@ class StatsCard(QFrame):
             }}
             QFrame:hover {{
                 border: 1px solid {color};
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 4px 13px rgba(0, 0, 0, 0.1);
             }}
         """)
     
@@ -155,7 +155,7 @@ class SideBar(QFrame):
         user_frame.setStyleSheet("""
             QFrame {
                 background: rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
+                border-radius: 13px;
                 padding: 15px;
             }
         """)
@@ -336,8 +336,8 @@ class DriverApp(QWidget):
                                  stop:0 #4f46e5, stop:1 #7c3aed);
                     color: white;
                     border: none;
-                    border-radius: 12px;
-                    padding: 12px 20px;
+                    border-radius: 13px;
+                    padding: 13px 20px;
                     font-weight: 600;
                 }
                 QPushButton:hover {
@@ -458,7 +458,7 @@ class DriverApp(QWidget):
         self.map_view.setStyleSheet("""
             QWebEngineView {
                 border: 1px solid #e2e8f0;
-                border-radius: 12px;
+                border-radius: 13px;
             }
         """)
         layout.addWidget(self.map_view)
@@ -528,11 +528,11 @@ class DriverApp(QWidget):
             QTableWidget {
                 background: white;
                 border: 1px solid #e2e8f0;
-                border-radius: 12px;
+                border-radius: 13px;
                 gridline-color: #f7fafc;
             }
             QTableWidget::item {
-                padding: 12px;
+                padding: 13px;
                 border: none;
             }
             QTableWidget::item:selected {
@@ -545,15 +545,15 @@ class DriverApp(QWidget):
             QHeaderView::section {
                 background: #4f46e5;
                 color: white;
-                padding: 12px;
+                padding: 13px;
                 border: none;
                 font-weight: 600;
             }
             QHeaderView::section:first {
-                border-top-left-radius: 12px;
+                border-top-left-radius: 13px;
             }
             QHeaderView::section:last {
-                border-top-right-radius: 12px;
+                border-top-right-radius: 13px;
             }
         """)
 
@@ -585,7 +585,7 @@ class DriverApp(QWidget):
                     color: white;
                     border: none;
                     border-radius: 8px;
-                    padding: 8px 12px;
+                    padding: 8px 13px;
                     font-weight: 500;
                 }
                 QPushButton:hover {
@@ -612,7 +612,7 @@ class DriverApp(QWidget):
         msg.setStyleSheet("""
             QMessageBox {
                 background: white;
-                border-radius: 12px;
+                border-radius: 13px;
             }
             QMessageBox QLabel {
                 color: #2d3748;
@@ -668,7 +668,7 @@ class DriverApp(QWidget):
         success_msg.setStyleSheet("""
             QMessageBox {
                 background: white;
-                border-radius: 12px;
+                border-radius: 13px;
             }
             QMessageBox QPushButton {
                 background: #38a169;
@@ -739,13 +739,13 @@ class DriverApp(QWidget):
 
                 // Add markers for pending deliveries (red)
                 pendingDeliveries.forEach(function(delivery) {{
-                    L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: "<div style='background-color:#e53e3e; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;'>🕒</div>", iconSize: [30,30]}})}}).addTo(mymap)
+                    L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: "<div style='background-color:#e53e3e; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;'>🕒</div>", iconSize: [30,30]}})}}).addTo(mymap)
                         .bindPopup('<b>Livraison #' + delivery.id + '</b><br>Destinataire: ' + delivery.recipient + '<br>Statut: En cours');
                 }});
 
                 // Add markers for completed deliveries (green)
                 completedDeliveries.forEach(function(delivery) {{
-                    L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: "<div style='background-color:#38a169; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;'>✅</div>", iconSize: [30,30]}})}}).addTo(mymap)
+                    L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: "<div style='background-color:#38a169; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;'>✅</div>", iconSize: [30,30]}})}}).addTo(mymap)
                         .bindPopup('<b>Livraison #' + delivery.id + '</b><br>Destinataire: ' + delivery.recipient + '<br>Statut: Terminée');
                 }});
                 
@@ -785,7 +785,7 @@ class LoginScreen(QWidget):
         title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         title.setStyleSheet("color: #4f46e5;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
+        layout.addWidget(title) 
 
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Nom d'utilisateur")
@@ -832,8 +832,8 @@ class LoginScreen(QWidget):
                 background: #4f46e5;
                 color: white;
                 border: none;
-                border-radius: 12px;
-                padding: 12px 20px;
+                border-radius: 13px;
+                padding: 13px 20px;
                 font-weight: 600;
                 letter-spacing: 1px;
             }

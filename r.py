@@ -111,13 +111,13 @@ class ChartWidget(QWidget):
 class MetricCard(QFrame):
     """Card widget for displaying key metrics"""
 
-    def __init__(self, title, value, subtitle="", color="#4CAF50"):
+    def __init__(self, title, value, subtitle="", color="#38A169"):
         super().__init__()
         self.setFrameStyle(QFrame.StyledPanel)
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: white;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 border-radius: 8px;
                 padding: 15px;
                 margin: 5px;
@@ -128,7 +128,7 @@ class MetricCard(QFrame):
 
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 12px; color: #666; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 13px; color: #666; font-weight: bold;")
 
         # Value
         value_label = QLabel(str(value))
@@ -165,7 +165,7 @@ class OrderProcessingWidget(QWidget):
         refresh_btn = QPushButton("Refresh Orders")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
+                background-color: #006775;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -190,8 +190,8 @@ class OrderProcessingWidget(QWidget):
         total_value = self.data.orders_df['Value'].sum()
 
         metrics_layout.addWidget(MetricCard("Total Orders", str(total_orders), "All Orders"))
-        metrics_layout.addWidget(MetricCard("Pending", str(pending_orders), "Awaiting Processing", "#FF9800"))
-        metrics_layout.addWidget(MetricCard("Processing", str(processing_orders), "In Progress", "#2196F3"))
+        metrics_layout.addWidget(MetricCard("Pending", str(pending_orders), "Awaiting Processing", "#E77E23"))
+        metrics_layout.addWidget(MetricCard("Processing", str(processing_orders), "In Progress", "#006775"))
         metrics_layout.addWidget(MetricCard("Total Value", f"${total_value:,.0f}", "Order Worth"))
 
         # Charts section
@@ -222,7 +222,7 @@ class OrderProcessingWidget(QWidget):
         ax = chart_widget.figure.add_subplot(111)
 
         status_counts = self.data.orders_df['Status'].value_counts()
-        colors = ['#4CAF50', '#FF9800', '#2196F3', '#9C27B0', '#F44336']
+        colors = ['#38A169', '#E77E23', '#006775', '#9C27B0', '#E53E3E']
 
         ax.pie(status_counts.values,
                labels=status_counts.index,
@@ -236,7 +236,7 @@ class OrderProcessingWidget(QWidget):
         ax = chart_widget.figure.add_subplot(111)
 
         priority_counts = self.data.orders_df['Priority'].value_counts()
-        colors = {'Critical': '#F44336', 'High': '#FF9800', 'Medium': '#2196F3', 'Low': '#4CAF50'}
+        colors = {'Critical': '#E53E3E', 'High': '#E77E23', 'Medium': '#006775', 'Low': '#38A169'}
 
         bars = ax.bar(priority_counts.index, priority_counts.values,
                       color=[colors.get(p, '#888888') for p in priority_counts.index])
@@ -290,12 +290,12 @@ class OrderProcessingWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -328,7 +328,7 @@ class ShipmentTrackingWidget(QWidget):
         search_btn = QPushButton("Track")
         search_btn.setStyleSheet("""
             QPushButton {
-                background-color: #4CAF50;
+                background-color: #38A169;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -356,9 +356,9 @@ class ShipmentTrackingWidget(QWidget):
         delayed = len(self.data.shipments_df[self.data.shipments_df['Status'] == 'Delayed'])
 
         metrics_layout.addWidget(MetricCard("Total Shipments", str(total_shipments), "Active Shipments"))
-        metrics_layout.addWidget(MetricCard("In Transit", str(in_transit), "Currently Moving", "#2196F3"))
-        metrics_layout.addWidget(MetricCard("Delivered", str(delivered), "Completed", "#4CAF50"))
-        metrics_layout.addWidget(MetricCard("Delayed", str(delayed), "Need Attention", "#F44336"))
+        metrics_layout.addWidget(MetricCard("In Transit", str(in_transit), "Currently Moving", "#006775"))
+        metrics_layout.addWidget(MetricCard("Delivered", str(delivered), "Completed", "#38A169"))
+        metrics_layout.addWidget(MetricCard("Delayed", str(delayed), "Need Attention", "#E53E3E"))
 
         # Charts section
         charts_layout = QHBoxLayout()
@@ -388,7 +388,7 @@ class ShipmentTrackingWidget(QWidget):
         ax = chart_widget.figure.add_subplot(111)
 
         status_counts = self.data.shipments_df['Status'].value_counts()
-        colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0']
+        colors = ['#38A169', '#006775', '#E77E23', '#E53E3E', '#9C27B0']
 
         bars = ax.bar(status_counts.index, status_counts.values,
                       color=colors[:len(status_counts)])
@@ -409,7 +409,7 @@ class ShipmentTrackingWidget(QWidget):
         ax = chart_widget.figure.add_subplot(111)
 
         carrier_counts = self.data.shipments_df['Carrier'].value_counts()
-        colors = ['#FF9800', '#4CAF50', '#2196F3', '#9C27B0', '#F44336']
+        colors = ['#E77E23', '#38A169', '#006775', '#9C27B0', '#E53E3E']
 
         ax.pie(carrier_counts.values,
                labels=carrier_counts.index,
@@ -449,12 +449,12 @@ class ShipmentTrackingWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -489,9 +489,9 @@ class ResourceAllocationWidget(QWidget):
         maintenance = len(self.data.resources_df[self.data.resources_df['Status'] == 'Maintenance'])
 
         metrics_layout.addWidget(MetricCard("Total Resources", str(total_resources), "Fleet Size"))
-        metrics_layout.addWidget(MetricCard("Available", str(available), "Ready for Use", "#4CAF50"))
-        metrics_layout.addWidget(MetricCard("In Use", str(in_use), "Currently Active", "#2196F3"))
-        metrics_layout.addWidget(MetricCard("Maintenance", str(maintenance), "Under Service", "#FF9800"))
+        metrics_layout.addWidget(MetricCard("Available", str(available), "Ready for Use", "#38A169"))
+        metrics_layout.addWidget(MetricCard("In Use", str(in_use), "Currently Active", "#006775"))
+        metrics_layout.addWidget(MetricCard("Maintenance", str(maintenance), "Under Service", "#E77E23"))
 
         # Charts section
         charts_layout = QHBoxLayout()
@@ -520,7 +520,7 @@ class ResourceAllocationWidget(QWidget):
         ax = chart_widget.figure.add_subplot(111)
 
         status_counts = self.data.resources_df['Status'].value_counts()
-        colors = ['#4CAF50', '#2196F3', '#FF9800', '#F44336']
+        colors = ['#38A169', '#006775', '#E77E23', '#E53E3E']
 
         ax.pie(status_counts.values,
                labels=status_counts.index,
@@ -545,11 +545,11 @@ class ResourceAllocationWidget(QWidget):
         # Color bars based on utilization level
         for i, util in enumerate(type_utilization.values):
             if util > 80:
-                bars[i].set_color('#F44336')  # Red for high utilization
+                bars[i].set_color('#E53E3E')  # Red for high utilization
             elif util > 60:
-                bars[i].set_color('#FF9800')  # Orange for medium utilization
+                bars[i].set_color('#E77E23')  # Orange for medium utilization
             else:
-                bars[i].set_color('#4CAF50')  # Green for low utilization
+                bars[i].set_color('#38A169')  # Green for low utilization
 
         ax.set_title('Average Utilization by Resource Type', fontsize=14, fontweight='bold')
         ax.set_ylabel('Utilization %')
@@ -601,12 +601,12 @@ class ResourceAllocationWidget(QWidget):
                 background-color: white;
                 alternate-background-color: #f5f5f5;
                 selection-background-color: #e3f2fd;
-                gridline-color: #e0e0e0;
+                gridline-color: #D3DCE0;
             }
             QHeaderView::section {
                 background-color: #f5f5f5;
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid #D3DCE0;
                 font-weight: bold;
             }
         """)
@@ -693,9 +693,9 @@ class PerformanceMonitoringWidget(QWidget):
         recent_data = self.data.daily_metrics.tail(30)
 
         ax.plot(recent_data['Date'], recent_data['On_Time_Delivery_Rate'],
-                label='On-Time Rate', color='#4CAF50', linewidth=2)
+                label='On-Time Rate', color='#38A169', linewidth=2)
         ax.plot(recent_data['Date'], recent_data['Average_Delivery_Time'] * 10, # Scale for visualization
-                label='Delivery Time (×10)', color='#2196F3', linewidth=2)
+                label='Delivery Time (×10)', color='#006775', linewidth=2)
 
         ax.set_title('Delivery Performance Trend', fontsize=14, fontweight='bold')
         ax.set_xlabel('Date')
@@ -712,7 +712,7 @@ class PerformanceMonitoringWidget(QWidget):
         recent_data = self.data.daily_metrics.tail(30)
 
         ax.plot(recent_data['Date'], recent_data['Cost_Per_Shipment'],
-                label='Cost Per Shipment', color='#FF9800', linewidth=2)
+                label='Cost Per Shipment', color='#E77E23', linewidth=2)
 
         ax.set_title('Cost Per Shipment Trend', fontsize=14, fontweight='bold')
         ax.set_xlabel('Date')
@@ -756,7 +756,7 @@ class MainDashboard(QMainWindow):
         # Set a professional and modern stylesheet
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f0f2f5; /* Light gray background */
+                background-color: #EDF2F7; /* Light gray background */
             }
             QTabWidget::pane {
                 border: 1px solid #c0c0c0; /* Subtle border for tab content */
@@ -764,7 +764,7 @@ class MainDashboard(QMainWindow):
                 border-radius: 8px; /* Rounded corners for the tab pane */
             }
             QTabBar::tab {
-                background: #e0e0e0; /* Light gray for inactive tabs */
+                background: #D3DCE0; /* Light gray for inactive tabs */
                 border: 1px solid #c0c0c0;
                 border-bottom-color: #c0c0c0; /* Same as pane border */
                 border-top-left-radius: 6px;
@@ -855,18 +855,18 @@ if __name__ == '__main__':
 
     # Set up a global palette for consistent colors
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor('#f0f2f5')) # Background of main window
-    palette.setColor(QPalette.WindowText, QColor('#333333'))
+    palette.setColor(QPalette.Window, QColor('#EDF2F7')) # Background of main window
+    palette.setColor(QPalette.WindowText, QColor('#2D3748'))
     palette.setColor(QPalette.Base, QColor('#ffffff')) # Background of input fields, tables
     palette.setColor(QPalette.AlternateBase, QColor('#f5f5f5')) # Alternate row color in tables
     palette.setColor(QPalette.ToolTipBase, QColor('#ffffff'))
-    palette.setColor(QPalette.ToolTipText, QColor('#333333'))
-    palette.setColor(QPalette.Text, QColor('#333333'))
-    palette.setColor(QPalette.Button, QColor('#e0e0e0'))
-    palette.setColor(QPalette.ButtonText, QColor('#333333'))
+    palette.setColor(QPalette.ToolTipText, QColor('#2D3748'))
+    palette.setColor(QPalette.Text, QColor('#2D3748'))
+    palette.setColor(QPalette.Button, QColor('#D3DCE0'))
+    palette.setColor(QPalette.ButtonText, QColor('#2D3748'))
     palette.setColor(QPalette.BrightText, QColor('#ff0000'))
-    palette.setColor(QPalette.Link, QColor('#2196F3'))
-    palette.setColor(QPalette.Highlight, QColor('#2196F3')) # Selection color
+    palette.setColor(QPalette.Link, QColor('#006775'))
+    palette.setColor(QPalette.Highlight, QColor('#006775')) # Selection color
     palette.setColor(QPalette.HighlightedText, QColor('#ffffff'))
     app.setPalette(palette)
 

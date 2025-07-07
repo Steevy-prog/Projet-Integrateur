@@ -27,8 +27,8 @@ class AppConfig:
         self.COLOR_TEXT_MUTED = get_color_from_hex("#BDBDBD")   # Gris très clair pour indications discrètes
 
         # Couleurs de statut/feedback
-        self.COLOR_SUCCESS = get_color_from_hex("#4CAF50")  # Vert
-        self.COLOR_WARNING = get_color_from_hex("#FF9800")  # Orange
+        self.COLOR_SUCCESS = get_color_from_hex("#38A169")  # Vert
+        self.COLOR_WARNING = get_color_from_hex("#E77E23")  # Orange
         self.COLOR_ERROR = get_color_from_hex("#F44366")    # Rouge (légèrement modifié pour une meilleure visibilité)
         self.COLOR_INFO = get_color_from_hex("#03A9F4")     # Bleu ciel
 
