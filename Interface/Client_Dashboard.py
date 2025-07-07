@@ -9,9 +9,9 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QSpacerItem, QGridLayout, QMessageBox, QComboBox, QStackedWidget,
     QTableWidgetItem, QTableWidget, QHeaderView, QTextEdit, QSplitter, QSpinBox,
     QAbstractItemView, QGroupBox, QListWidget, QListWidgetItem, QRadioButton, QDoubleSpinBox, QButtonGroup, QStyle,
-    QDialog
+    QDialog,QDateEdit
 )
-from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QDate
 from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
@@ -19,6 +19,11 @@ import psycopg2
 from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
 from helpbot import ChatBot
 import internalmail
+from db_connection import ConnectionDB
+
+Connection = ConnectionDB()
+connection_info = Connection.connection()
+db_connection = connection_info['db_connection']
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
@@ -27,31 +32,32 @@ client_org_id = 'OFIRST' # Example client organization ID
 # --- START OF BACKEND/DATABASE INITIALIZATION (DO NOT TOUCH) ---
 # This section establishes the database connection and fetches initial data.
 # It is intended to remain as provided in its initial configuration.
-global conn
-print("1. online")
-print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# global conn
+# print("1. online")
+# print("2. offline")
+# it = input("Enter the number of bd you want to use : ")
 
-if it == '1':
-    print("You have chosen the online database.")
-    conn = psycopg2.connect(
-        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-        database="projet_integrateur",
-        user="group13",
-        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-        port=5432
-    )
-elif it == '2':
-    print("You have chosen the offline database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="USER",
-        user="postgres",
-        password="steevy",
-        port=5432
-    )
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="USER",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
 
-cur = conn.cursor()
+cur = db_connection.cursor()
+
 
 # Fetch initial data for product, lot, and package IDs to ensure uniqueness
 # These queries fetch existing data from the database at startup.
@@ -78,6 +84,7 @@ inq_db = cur.fetchall() # Existing products from the database
 productids = [l[0] for l in produits_db]
 lotids = [l[0] for l in lots_db] # Assuming colis_db contains lot IDs, this might need adjustment
 packageids = [c[0] for c in colis_db] # Assuming package IDs are in colis_db
+contenuids = [c[0] for c in contenu] # Assuming package IDs are in colis_db
 
 print(idgenerator.generate_id('^P[A-Z0-9]{5}$',productids))
 os.system("pause")
@@ -144,12 +151,18 @@ class ClientData:
 
     def __init__(self, client_id):
         self.client_id = client_id
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
 
     def generate_sample_data(self):
         """Generates or fetches sample data for client's view."""
         # Fetch products relevant to the client's organization
         # For simplicity, assuming all products are relevant or fetching client-specific products
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
         if not products:
@@ -440,9 +453,13 @@ class ProductCreationPopup(QDialog):
         self.setWindowTitle("Create Product")
         self.setFixedSize(900, 600)
         self.layout = QVBoxLayout(self)
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.step = 1
         self.product_type = None
-
+    
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.setStyleSheet("""
             QLabel {
                 color: black;
@@ -633,7 +650,10 @@ class ProductCreationPopup(QDialog):
         if not name or not fournisseur_id:
             QMessageBox.warning(self, "Validation Error", "Product name and supplier are required.")
             return
-
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection
         try:
             cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)',
                         (self.produitid, fournisseur_id, name, description, prix_unitaire, marque, modele, category))
@@ -649,11 +669,11 @@ class ProductCreationPopup(QDialog):
                             (self.produitid,
                              self.version_input.text().strip(),
                              self.license_input.text().strip()))
-            conn.commit()
+            self.db_connection.commit()
             QMessageBox.information(self, "Success", f"Product '{name}' created successfully.")
             self.accept()
         except psycopg2.Error as e:
-            conn.rollback()
+            self.db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to create product: {e}")
 
     def clear_layout(self):
@@ -844,6 +864,10 @@ class ProductCreationPopup1(QDialog):
             QMessageBox.warning(self, "Validation Error", "Product name and supplier are required.")
             return
 
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)',
                         (self.produitid, fournisseur_id, name, description, prix_unitaire, marque, modele, category))
@@ -859,11 +883,11 @@ class ProductCreationPopup1(QDialog):
                 license_key = self.license_input.text().strip()
                 cur.execute('CALL "EMIR".ProduitLogiciel_INS(%s,%s,%s)',
                             (self.produitid, version, license_key))
-            conn.commit()
+            db_connection.commit()
             QMessageBox.information(self, "Success", f"Product '{name}' (ID: {self.produitid}) created successfully.")
             self.accept()
         except psycopg2.Error as e:
-            conn.rollback()
+            db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to create product: {e}")
 
     def clear_layout(self):
@@ -884,7 +908,7 @@ class ProductInputRow(QHBoxLayout):
         super().__init__()
         self.products_data = products_data
         self.remove_callback = remove_callback
-
+        
         self.product_combo = QComboBox()
         self.product_combo.setFixedWidth(150)
         self.product_combo.addItem("— Select a product —", None)
@@ -960,6 +984,8 @@ class ClientLogisticsWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.package_input_rows = [] # To keep track of ProductInputRow instances
         self.init_ui()
 
@@ -1200,6 +1226,7 @@ class ClientLogisticsWidget(QWidget):
         self.clear_package_rows()
 
 
+
     def create_send_section(self, name):
         section = QFrame()
         section.setStyleSheet("""
@@ -1214,7 +1241,7 @@ class ClientLogisticsWidget(QWidget):
                 font-size: 16px;
                 color: #333;
             }
-            QLineEdit, QComboBox {
+            QLineEdit, QComboBox, QDateEdit { /* Ensure QDateEdit is styled */
                 padding: 15px;
                 border: 1px solid #CCCCCC;
                 border-radius: 5px;
@@ -1230,8 +1257,16 @@ class ClientLogisticsWidget(QWidget):
         layout.addWidget(title)
 
         form = QGridLayout()
-        self.transporting_org_combo = QComboBox()
+        # self.transporting_org_combo = QComboBox() # This combo box is declared but not used in the form layout
         self.receiving_org_combo = QComboBox()
+        
+        self.expedition_date_edit = QDateEdit()
+        # --- IMPORTANT: Configure QDateEdit for calendar popup ---
+        self.expedition_date_edit.setCalendarPopup(True) # This line enables the popup
+        self.expedition_date_edit.setDisplayFormat("yyyy-MM-dd") # Set your desired display format
+        self.expedition_date_edit.setDate(QDate.currentDate()) # Optional: Set initial date to today
+        # --------------------------------------------------------
+
         for org in orgs:
             if org[0] != client_org_id:
                 self.receiving_org_combo.addItem(org[1], org[0])
@@ -1245,11 +1280,14 @@ class ClientLogisticsWidget(QWidget):
         form.addWidget(self.receiving_org_combo, 0, 1)
         form.addWidget(QLabel("Choose a Package:"), 1, 0)
         form.addWidget(self.package_to_send_combo, 1, 1)
+        form.addWidget(QLabel("Expedition Date:"), 2, 0)
+        form.addWidget(self.expedition_date_edit, 2, 1) # <--- Ensure it's added to the layout
+        
         layout.addLayout(form)
 
-        # Apply styling to combos
+        # Apply styling to combos and QDateEdit
         combo_style = """
-            QComboBox {
+            QComboBox, QDateEdit {
                 background-color: #F0F2F5;
                 color: #333;
                 border: 1px solid #D0D0D0;
@@ -1262,14 +1300,45 @@ class ClientLogisticsWidget(QWidget):
                 width: 20px;
             }
             QComboBox::down-arrow {
-                image: url(icons/arrow_down.png);
+                /* If you don't want an image, you can remove this */
+                /* image: url(icons/arrow_down.png); */
                 width: 12px;
                 height: 12px;
             }
+
+            /* --- Specific Styling for QDateEdit Drop-down/Arrow WITHOUT IMAGE --- */
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 25px; /* Give enough width for the clickable area */
+                border-left: 1px solid #D0D0D0; /* Add a separator line */
+                border-top-right-radius: 6px;
+                border-bottom-right-radius: 6px;
+                background-color: #E0E2E5; /* Slightly darker background for the button part */
+            }
+
+            QDateEdit::down-arrow {
+                /* Remove the image line entirely */
+                /* image: url(icons/calendar_icon.png); */
+
+                /* Style to create a simple triangle arrow */
+                border: 4px solid transparent; /* Base for the triangle */
+                border-top-color: #555555; /* Color of the arrow itself */
+                width: 0px; /* Essential for border-based triangles */
+                height: 0px; /* Essential for border-based triangles */
+                margin-left: auto; /* Center the arrow horizontally */
+                margin-right: auto;
+            }
+            /* Optional: Hover effect for the drop-down area */
+            QDateEdit::drop-down:hover {
+                background-color: #D0D2D5;
+            }
         """
-        self.transporting_org_combo.setStyleSheet(combo_style)
+        self.expedition_date_edit.setStyleSheet(combo_style)
+        # self.transporting_org_combo.setStyleSheet(combo_style) # Not in layout
         self.receiving_org_combo.setStyleSheet(combo_style)
         self.package_to_send_combo.setStyleSheet(combo_style)
+        self.expedition_date_edit.setStyleSheet(combo_style) # Apply style to QDateEdit
 
         send_btn = QPushButton("Send Package")
         send_btn.setStyleSheet("""
@@ -1289,38 +1358,46 @@ class ClientLogisticsWidget(QWidget):
                 transform: translateY(-2px);
             }
         """)
-        send_btn.clicked.connect(self.send_package)
+        # Placeholder for send_package method
+        send_btn.clicked.connect(self.send_package) 
 
         layout.addWidget(send_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
         return section
 
-
     def send_package(self):
         receive_org_id = self.receiving_org_combo.currentData()
         package_id = self.package_to_send_combo.currentText()  # key from added_packages is the name, not the ID
+        selected_date = self.expedition_date_edit.date()  
+        date_str = selected_date.toString("yyyy-MM-dd")# returns QDate object
         lots = added_packages.get(package_id)
         idcolis = idgenerator.generate_id("^PCO[0-9]{5}$", packageids)
     
         if not lots:
             QMessageBox.warning(self, "Missing", "No lots found for selected package.")
             return
-        
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
-            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s)',
+            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s,%s,%s)',
                 (   client_org_id,
                     idcolis,  # Dummy ID for BonExpedition
                     str(datetime.date.today().isoformat()),
+                    str(date_str),
+                    receive_org_id,
                     'en attente'
                 )
             )
             print("sucess")
         except psycopg2.Error as e:
-            conn.rollback()
+            self.db_connectionn.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
     
         for lot in lots:
             nlotid = idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids)
+            ncontenuid = idgenerator.generate_id('^PCON[0-9]{3}$', contenuids)
             try:
                 cur.execute(
                     'CALL "EMIR".PLot_INS(%s,%s, %s, %s, %s, %s)',
@@ -1334,16 +1411,17 @@ class ClientLogisticsWidget(QWidget):
                 )
                 print("sucess")
                 cur.execute(
-                    'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s)',
-                    (   client_org_id,
+                    'CALL "EMIR".PContenuColis_INS(%s,%s, %s, %s, %s)',
+                    (   ncontenuid,
+                     client_org_id,
                         idcolis,
-                        nlotid,                         # _idproduit             # _quantite
+                        nlotid,                         # _idproduit           # _quantite
                         str(datetime.date.today().isoformat()),  #                     # _statut
                     )
                 )
                 print("sucess")
             except psycopg2.Error as e:
-                conn.rollback()
+                self.db_connection.rollback()
                 QMessageBox.critical(self, "Database Error", f"Failed to send lot: {e}")
                 return
     
@@ -2232,6 +2310,8 @@ class ClientMainDashboard(QWidget):
     def __init__(self, data, main_window):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.main_window = main_window
         self.init_ui()
 
@@ -2253,6 +2333,10 @@ class ClientMainDashboard(QWidget):
                 color: #FFFFFF;
             }
         """)
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         hero_layout = QVBoxLayout(hero_frame)
         cur.execute('SELECT "EMIR".getorganisationname(%s);',(self.data.client_id,))
         name = cur.fetchone()[0]
