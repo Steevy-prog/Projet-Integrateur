@@ -100,7 +100,7 @@ class WarehouseData:
                 columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
         
         for product in self.products_df.itertuples():
             print(f"Product ID: {product.ID}, Name: {product.Name}")

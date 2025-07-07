@@ -89,6 +89,7 @@ inq_db = cur.fetchall() # Existing products from the database
 productids = [l[0] for l in produits_db]
 lotids = [l[0] for l in lots_db] # Assuming colis_db contains lot IDs, this might need adjustment
 packageids = [c[0] for c in colis_db] # Assuming package IDs are in colis_db
+contenuids = [c[0] for c in contenu] # Assuming package IDs are in colis_db
 
 print(idgenerator.generate_id('^P[A-Z0-9]{5}$',productids))
 os.system("pause")
@@ -1353,6 +1354,8 @@ class ClientLogisticsWidget(QWidget):
     def send_package(self):
         receive_org_id = self.receiving_org_combo.currentData()
         package_id = self.package_to_send_combo.currentText()  # key from added_packages is the name, not the ID
+        selected_date = self.expedition_date_edit.date()  
+        date_str = selected_date.toString("yyyy-MM-dd")# returns QDate object
         lots = added_packages.get(package_id)
         idcolis = idgenerator.generate_id("^PCO[0-9]{5}$", packageids)
     
@@ -1361,10 +1364,12 @@ class ClientLogisticsWidget(QWidget):
             return
         
         try:
-            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s)',
+            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s,%s,%s)',
                 (   client_org_id,
                     idcolis,  # Dummy ID for BonExpedition
                     str(datetime.date.today().isoformat()),
+                    str(date_str),
+                    receive_org_id,
                     'en attente'
                 )
             )
@@ -1375,6 +1380,7 @@ class ClientLogisticsWidget(QWidget):
     
         for lot in lots:
             nlotid = idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids)
+            ncontenuid = idgenerator.generate_id('^PCON[0-9]{3}$', contenuids)
             try:
                 cur.execute(
                     'CALL "EMIR".PLot_INS(%s,%s, %s, %s, %s, %s)',
@@ -1388,11 +1394,11 @@ class ClientLogisticsWidget(QWidget):
                 )
                 print("sucess")
                 cur.execute(
-                    'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s, %s)',
-                    (   client_org_id,
+                    'CALL "EMIR".PContenuColis_INS(%s,%s, %s, %s, %s)',
+                    (   ncontenuid,
+                     client_org_id,
                         idcolis,
-                        nlotid,                         # _idproduit
-                        str(len(lots)),              # _quantite
+                        nlotid,                         # _idproduit           # _quantite
                         str(datetime.date.today().isoformat()),  #                     # _statut
                     )
                 )
