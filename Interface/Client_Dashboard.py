@@ -190,13 +190,13 @@ class ClientData:
             })
         
 
-        # Product Movement History (tracking shipments for client's packages)
-        #self.movement_history = []
-        #movement_types = ['Outbound', 'In Transit', 'Received', 'Return']
-        #for i in range(50):
-        #    product = random.choice(products)
-        #    # Simulate movements for this client's packages
-        #    package_id_sim = f'PKG{random.randint(100, 999):03d}'
+        #Product Movement History (tracking shipments for client's packages)
+        self.movement_history = []
+        movement_types = ['Outbound', 'In Transit', 'Received', 'Return']
+        for i in range(50):
+            product = random.choice(produits_db)
+            # Simulate movements for this client's packages
+            package_id_sim = f'PKG{random.randint(100, 999):03d}'
             if random.random() < 0.6: # More likely to be client's package
                 self.movement_history.append({
                     'Movement_ID': f"MOV{i:05d}",
@@ -207,8 +207,8 @@ class ClientData:
                     'Location': random.choice(['Warehouse A', 'Transit Hub B', 'Client Dock', 'Supplier C']),
                     'Description': f"Package {package_id_sim} {random.choice(['departed', 'arrived at', 'in transit to'])} {random.choice(['destination', 'next hub'])}."
                 })
-        
-        # Exceptions/Inquiries
+    
+        #Exceptions/Inquiries
         self.inquiries = []
         inquiry_types = ['Missing Package', 'Damaged Item', 'Incorrect Order', 'Billing Issue', 'General Support']
         inquiry_statuses = ['Open', 'In Progress', 'Resolved', 'Closed']
@@ -1383,15 +1383,8 @@ class ClientLogisticsWidget(QWidget):
                     )
                 )
                 print("sucess")
-                cur.execute(
-                    'CALL "EMIR".PContenuColis_INS(%s,%s, %s, %s, %s)',
-                    (   ncontenuid,
-                     client_org_id,
-                        idcolis,
-                        nlotid,                         # _idproduit           # _quantite
-                        str(datetime.date.today().isoformat()),  #                     # _statut
-                    )
-                )
+                print(ncontenuid)
+                cur.execute('CALL "EMIR".PContenuColis_INS(%s,%s, %s, %s, %s)',(ncontenuid, client_org_id,idcolis,nlotid,str(datetime.date.today().isoformat())))
                 print("sucess")
             except psycopg2.Error as e:
                 conn.rollback()
@@ -1401,7 +1394,7 @@ class ClientLogisticsWidget(QWidget):
             QMessageBox.information(
                 self,
                 "Success",
-                f"Package '{package_id}' sent successfully from {self.transporting_org_combo.currentText()} to {self.receiving_org_combo.currentText()}."
+                f"Package '{package_id}' sent successfully from {client_org_id} to {self.receiving_org_combo.currentText()}."
             )
             cur.execute('SELECT "EMIR".getorganisationname(%s);',(client_org_id,))
             name = cur.fetchone()[0]

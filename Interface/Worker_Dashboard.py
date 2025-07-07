@@ -1575,6 +1575,207 @@ class ExceptionReportsWidget(QWidget):
     #    if dialog.exec() == QDialog.DialogCode.Accepted:
     #        self.update_exceptions_table(self.data.exceptions.to_dict('records')) # Refresh table after new entry
 
+class CellDetailDialog(QDialog):
+    """Dialog to display details of a selected storage cell."""
+    def __init__(self, cell_id, cell_data, parent=None):
+        super().__init__(parent)
+        self.cell_id = cell_id
+        self.cell_data = cell_data
+        self.setWindowTitle(f"Cell Details: {cell_id}")
+        self.setFixedSize(450, 400)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(25, 25, 25, 25)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            }
+            QLabel {
+                font-size: 15px;
+                color: #333333;
+            }
+            QLabel#title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #232946;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #E0E0E0;
+            }
+            QListWidget {
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 10px;
+                background-color: white;
+                min-height: 100px;
+                color: #333333;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+            }
+        """)
+
+        title_label = QLabel(f"Cell: {self.cell_id}")
+        title_label.setObjectName("title")
+        layout.addWidget(title_label)
+
+        form_layout = QFormLayout()
+        form_layout.addRow("Status:", QLabel(self.cell_data['status']))
+        form_layout.addRow("Capacity:", QLabel(f"{self.cell_data['capacity']} units"))
+
+        current_fill = sum(self.cell_data['products'].values())
+        utilization_percent = (current_fill / self.cell_data['capacity']) * 100 if self.cell_data['capacity'] > 0 else 0
+        form_layout.addRow("Current Fill:", QLabel(f"{current_fill} units ({utilization_percent:.1f}%)"))
+        layout.addLayout(form_layout)
+
+        products_label = QLabel("Products in Cell:")
+        layout.addWidget(products_label)
+
+        products_list_widget = QListWidget()
+        if self.cell_data['products']:
+            # Assuming self.parent().data.products_df is accessible for product names
+            # Need to ensure parent is StorageCellWidget, which has a 'data' attribute
+            worker_data = self.parent().data # Access worker_data from parent StorageCellWidget
+            for prod_id, quantity in self.cell_data['products'].items():
+                product_info = worker_data.products_df[worker_data.products_df['ID'] == prod_id]
+                product_name = product_info['Name'].iloc[0] if not product_info.empty else f"Unknown Product ({prod_id})"
+                products_list_widget.addItem(f"{product_name}: {quantity} units")
+        else:
+            products_list_widget.addItem("No products in this cell.")
+        layout.addWidget(products_list_widget)
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+        layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.setLayout(layout)
+
+class MoveProductDialog(QDialog):
+    """Dialog to move products between storage cells."""
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
+        self.data = data # WorkerData instance
+        self.setWindowTitle("Move Product Between Cells")
+        self.setFixedSize(500, 450)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(25, 25, 25, 25)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            }
+            QLabel {
+                font-size: 15px;
+                color: #333333;
+            }
+            QLineEdit, QComboBox, QSpinBox {
+                padding: 8px;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                font-size: 15px;
+                background-color: white;
+            }
+            QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
+                border: 1px solid #00BFA5; /* Teal focus color */
+            }
+            QPushButton {
+                background-color: #00BFA5; /* Teal for primary action */
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #00897B;
+            }
+        """)
+
+        form_layout = QFormLayout()
+
+        self.product_combo = QComboBox()
+        # Populate with all products from WorkerData
+        self.product_combo.addItems(self.data.products_df['Name'].tolist())
+        self.product_combo.setEditable(True)
+        self.product_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.product_combo.completer().setFilterMode(Qt.MatchFlag.MatchContains)
+        form_layout.addRow("Product:", self.product_combo)
+
+        self.quantity_spin = QSpinBox()
+        self.quantity_spin.setRange(1, 1000)
+        form_layout.addRow("Quantity:", self.quantity_spin)
+
+        self.from_cell_combo = QComboBox()
+        self.to_cell_combo = QComboBox()
+        # Populate with all storage cell IDs
+        all_cell_ids = sorted(list(self.data.storage_cells.keys()))
+        self.from_cell_combo.addItems(all_cell_ids)
+        self.to_cell_combo.addItems(all_cell_ids)
+        form_layout.addRow("From Cell:", self.from_cell_combo)
+        form_layout.addRow("To Cell:", self.to_cell_combo)
+
+        layout.addLayout(form_layout)
+
+        button_layout = QHBoxLayout()
+        move_button = QPushButton("Move Product")
+        move_button.clicked.connect(self.perform_move)
+        button_layout.addWidget(move_button)
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setStyleSheet("background-color: #CCCCCC;")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def perform_move(self):
+        product_name = self.product_combo.currentText()
+        # Get product ID from name
+        product_info = self.data.products_df[self.data.products_df['Name'] == product_name]
+        if product_info.empty:
+            QMessageBox.warning(self, "Input Error", "Please select a valid product.")
+            return
+        product_id = product_info['ID'].iloc[0]
+
+        quantity = self.quantity_spin.value()
+        from_cell_id = self.from_cell_combo.currentText()
+        to_cell_id = self.to_cell_combo.currentText()
+
+        if not all([product_id, quantity, from_cell_id, to_cell_id]):
+            QMessageBox.warning(self, "Input Error", "Please fill in all fields.")
+            return
+
+        success, message = self.data.move_product_between_cells(product_id, quantity, from_cell_id, to_cell_id)
+
+        if success:
+            QMessageBox.information(self, "Success", message)
+            self.accept() # Close dialog on success
+        else:
+            QMessageBox.warning(self, "Move Failed", message)
+            
 class StorageCellWidget(QWidget):
     """Widget for viewing and managing storage cells in a 2D grid."""
     cell_clicked = pyqtSignal(str) # Signal to emit the cell ID when clicked
@@ -1591,10 +1792,32 @@ class StorageCellWidget(QWidget):
 
         # Header
         header_layout = QHBoxLayout()
-        title = QLabel("Cellule d'Entreposage (2D View)")
+        title = QLabel("Storage Zones Overview")
         title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
+
+        move_product_btn = QPushButton("Move Product")
+        move_product_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+                box-shadow: 0 4px 10px rgba(108, 99, 255, 0.2);
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+                transform: translateY(-2px);
+            }
+        """)
+        move_product_btn.clicked.connect(self.open_move_product_dialog)
+
         header_layout.addWidget(title)
         header_layout.addStretch()
+        header_layout.addWidget(move_product_btn)
         layout.addLayout(header_layout)
 
         # Storage grid area
@@ -1602,98 +1825,152 @@ class StorageCellWidget(QWidget):
         grid_scroll_area.setWidgetResizable(True)
         grid_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        grid_widget = QWidget()
-        self.grid_layout = QGridLayout(grid_widget)
-        self.grid_layout.setSpacing(10) # Spacing between cells
-        self.grid_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_zones_layout = QVBoxLayout() # Main layout to hold zone group boxes
+        self.main_zones_layout.setSpacing(30) # Spacing between zones
 
-        # Populate the grid with cells
-        self.populate_cell_grid()
+        self.populate_zones_and_cells()
 
-        grid_scroll_area.setWidget(grid_widget)
+        main_zones_widget = QWidget()
+        main_zones_widget.setLayout(self.main_zones_layout)
+        grid_scroll_area.setWidget(main_zones_widget)
         layout.addWidget(grid_scroll_area)
 
         self.setLayout(layout)
 
-    def populate_cell_grid(self):
+    def populate_zones_and_cells(self):
         # Clear existing widgets if repopulating
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+        while self.main_zones_layout.count():
+            item = self.main_zones_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                # Recursively clear layout
+                self.clear_layout(item.layout())
 
-        # Get all unique aisles and sort for horizontal layout
-        aisles = sorted(list(set(c[0] for c in self.data.storage_cells.keys())))
-        max_rows_per_aisle = max([int(c.split('-')[0][1:]) for c in self.data.storage_cells.keys()])
-        max_cols_per_aisle = max([int(c.split('-')[1]) for c in self.data.storage_cells.keys()])
+        zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D']
+        cells_per_zone = 10 # Hardcoded as per requirement
 
-        # Add aisle labels as column headers (horizontal)
-        for col, aisle_char in enumerate(aisles):
-            aisle_label = QLabel(f"Aisle {aisle_char}")
-            aisle_label.setStyleSheet("font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #333;")
-            self.grid_layout.addWidget(aisle_label, 0, col + 1)  # Row 0, columns 1..N
+        for zone_name in zones:
+            zone_group_box = QGroupBox(zone_name)
+            zone_group_box.setStyleSheet("""
+                QGroupBox {
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #232946;
+                    margin-top: 20px;
+                    border: 1px solid #D0D0D0;
+                    border-radius: 12px;
+                    padding-top: 25px;
+                    background-color: #FFFFFF;
+                }
+                QGroupBox::title {
+                    subcontrol-origin: margin;
+                    subcontrol-position: top center;
+                    padding: 0 10px;
+                    margin-left: 10px;
+                    color: #6C63FF;
+                }
+            """)
+            zone_grid_layout = QGridLayout()
+            zone_grid_layout.setSpacing(10)
+            zone_grid_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Add row labels (row numbers)
-        for row in range(1, max_rows_per_aisle + 1):
-            row_label = QLabel(f"Row {row}")
-            row_label.setStyleSheet("font-weight: bold; font-size: 16px; margin-right: 5px; color: #333;")
-            self.grid_layout.addWidget(row_label, row, 0)  # Column 0
+            # Populate cells within each zone
+            for i in range(cells_per_zone):
+                cell_num = i + 1
+                cell_id = f"{zone_name}-{cell_num}"
+                
+                if cell_id in self.data.storage_cells:
+                    cell_data = self.data.get_cell_contents(cell_id)
+                    cell_button = QPushButton(cell_id)
+                    cell_button.setFixedSize(120, 100) # Slightly larger cells
+                    cell_button.setCursor(Qt.CursorShape.PointingHandCursor)
+                    cell_button.setToolTip(f"Click to see details for {cell_id}") # Tooltip
 
-        # Place cells in grid: rows = row numbers, columns = aisles
-        for col, aisle_char in enumerate(aisles):
-            for row in range(1, max_rows_per_aisle + 1):
-                for c in range(1, max_cols_per_aisle + 1):
-                    cell_id = f"{aisle_char}{row}-{c}"
-                    if cell_id in self.data.storage_cells:
-                        cell_data = self.data.get_cell_contents(cell_id)
-                        cell_button = QPushButton(cell_id)
-                        cell_button.setFixedSize(100, 80)
-                        cell_button.setCursor(Qt.CursorShape.PointingHandCursor)
+                    # Determine color and text for cell
+                    current_fill = sum(cell_data['products'].values())
+                    utilization_percent = (current_fill / cell_data['capacity']) * 100 if cell_data['capacity'] > 0 else 0
 
-                        # Determine color and text for cell
-                        if cell_data['products']:
-                            bg_color = "#E6E6FF"  # Light blue/purple for occupied
-                            text_color = "#232946"
-                            # Show product count in button
-                            content = "<br>".join([f"{qty}x" for qty in cell_data['products'].values()])
-                            cell_button.setText(f"{cell_id}\n{content}")
-                        elif cell_data['status'] == 'Available':
-                            bg_color = "#E8F5E8"  # Light green
-                            text_color = "#232946"
-                            cell_button.setText(f"{cell_id}\nEmpty")
-                        elif cell_data['status'] == 'Full':
-                            bg_color = "#FFEBEE"  # Light red
-                            text_color = "#232946"
-                            cell_button.setText(f"{cell_id}\nFull")
+                    if current_fill > 0:
+                        if utilization_percent >= 90:
+                            bg_color = "#FFCDD2"  # Light Red for nearly full
+                            text_color = "#D32F2F"
+                        elif utilization_percent >= 50:
+                            bg_color = "#FFECB3"  # Light Orange for half full
+                            text_color = "#FF9800"
                         else:
-                            bg_color = "#E0E0E0"  # Default grey
-                            text_color = "#232946"
-                            cell_button.setText(f"{cell_id}\nN/A")
+                            bg_color = "#C8E6C9"  # Light Green for less than half
+                            text_color = "#4CAF50"
+                        
+                        # Show product count and utilization
+                        product_summary = []
+                        for prod_id, qty in cell_data['products'].items():
+                            product_info = self.data.products_df[self.data.products_df['ID'] == prod_id]
+                            prod_name = product_info['Name'].iloc[0] if not product_info.empty else "Product"
+                            product_summary.append(f"{qty}x {prod_name}")
+                        
+                        cell_button.setText(f"<b>{cell_id}</b><br>{'<br>'.join(product_summary)}<br><span style='font-size:10px;'>{utilization_percent:.0f}% Util.</span>")
+                    else:
+                        bg_color = "#E0E0E0"  # Default grey for empty
+                        text_color = "#666666"
+                        cell_button.setText(f"<b>{cell_id}</b><br>Empty<br><span style='font-size:10px;'>0% Util.</span>")
 
-                        cell_button.setStyleSheet(f"""
-                            QPushButton {{
-                                background-color: {bg_color};
-                                border: 1px solid #CCCCCC;
-                                border-radius: 8px;
-                                font-size: 14px;
-                                font-weight: bold;
-                                color: {text_color};
-                            }}
-                            QPushButton:hover {{
-                                border: 2px solid #6C63FF;
-                            }}
-                        """)
-                        cell_button.clicked.connect(lambda checked, cid=cell_id: self.on_cell_clicked(cid))
-                        # Place in grid: row index = row, column index = col+1 (since col 0 is label)
-                        self.grid_layout.addWidget(cell_button, row, col + 1)
-        # Stretch for nice layout
-        self.grid_layout.setRowStretch(self.grid_layout.rowCount(), 1)
-        self.grid_layout.setColumnStretch(self.grid_layout.columnCount(), 1)
-    
+                    cell_button.setStyleSheet(f"""
+                        QPushButton {{
+                            background-color: {bg_color};
+                            border: 1px solid #A0A0A0;
+                            border-radius: 10px;
+                            font-size: 13px;
+                            font-weight: normal;
+                            color: {text_color};
+                            padding: 5px;
+                            text-align: center;
+                        }}
+                        QPushButton:hover {{
+                            border: 2px solid #6C63FF;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                        }}
+                        QPushButton b {{
+                            font-weight: bold;
+                            font-size: 14px;
+                            color: #232946; /* Darker color for cell ID */
+                        }}
+                    """)
+                    cell_button.setTextFormat(Qt.TextFormat.RichText)
+                    cell_button.clicked.connect(lambda checked, cid=cell_id: self.on_cell_clicked(cid))
+                    
+                    # Arrange cells in a 2x5 grid within each zone
+                    row = i // 5 # 0 for first 5 cells, 1 for next 5
+                    col = i % 5  # 0 to 4
+                    zone_grid_layout.addWidget(cell_button, row, col)
+            
+            zone_group_box.setLayout(zone_grid_layout)
+            self.main_zones_layout.addWidget(zone_group_box)
+        
+        self.main_zones_layout.addStretch() # Push zones to top
+
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
+
     def on_cell_clicked(self, cell_id):
-        """Emit the cell_clicked signal with the cell ID."""
+        """Emit the cell_clicked signal with the cell ID and open detail dialog."""
         self.cell_clicked.emit(cell_id)
+        cell_data = self.data.get_cell_contents(cell_id)
+        dialog = CellDetailDialog(cell_id, cell_data, self)
+        dialog.exec()
+
+    def open_move_product_dialog(self):
+        dialog = MoveProductDialog(self.data, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Refresh the grid after a successful move
+            self.populate_zones_and_cells()
         
 class MainWindow(QMainWindow):
     """Main application window with top navigation and modern design."""
