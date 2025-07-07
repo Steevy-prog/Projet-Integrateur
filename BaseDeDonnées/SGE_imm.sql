@@ -1030,7 +1030,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "SCA".idpcontenu_CONF(v TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
-    RETURN v ~ '^CON[0-9]{3}$';
+    RETURN v ~ '^PCON[0-9]{3}$';
 END;
 $$ LANGUAGE plpgsql;
 
