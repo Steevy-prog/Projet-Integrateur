@@ -657,3 +657,19 @@ return query
 select idindividu,nom,prenom from "SCA".individu;
 end;
 $$ language plpgsql;
+
+-- Fonction pour récupérer tous les individus qui ne sont pas des utilisateurs
+CREATE OR REPLACE FUNCTION "EMIR".IndividusNonUtilisateurs_EVA()
+RETURNS TABLE (
+    _idindividu "SCA".IDindividu,
+    _nom "SCA".Nom,
+    _prenom "SCA".Nom
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT i.idindividu, i.nom, i.prenom
+    FROM "SCA".Individu i
+    LEFT JOIN "SCA".Utilisateur u ON i.idindividu = u.idindividu
+    WHERE u.idutilisateur IS NULL;
+END;
+$$ LANGUAGE plpgsql;

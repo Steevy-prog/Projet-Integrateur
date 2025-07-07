@@ -159,7 +159,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             
             cursor = self.db_connection.cursor()
-            query = "SELECT id, first_name, last_name FROM \"EMIR\".getnameandid()"
+            query = "SELECT _idindividu,_nom, _prenom FROM \"EMIR\".IndividusNonUtilisateurs_EVA()"
             cursor.execute(query)
             results = cursor.fetchall()
             cursor.close()
@@ -374,7 +374,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             
             cursor = self.db_connection.cursor()
-            delete_query = f"SELECT \"EMIR\".Utilisateur_RET(%s);"
+            delete_query = f"CALL \"EMIR\".Utilisateur_RET(%s);"
             cursor.execute(delete_query, (username,))
             self.db_connection.commit()
             cursor.close()
@@ -1027,7 +1027,7 @@ class DatabaseMaintenancePage(QWidget):
             QMessageBox.warning(self, "No Query", "Please enter an SQL query to execute.")
             return
         
-        QMessageBox.information(self, "Query", "Query is executing.")
+        
 
         self.results_table.clearContents()
         self.results_table.setRowCount(0)

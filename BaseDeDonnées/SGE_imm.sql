@@ -3097,3 +3097,4 @@ BEGIN
     FROM "SCA".Individu;
 END;
 $$ LANGUAGE plpgsql;
+
