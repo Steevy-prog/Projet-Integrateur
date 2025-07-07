@@ -184,7 +184,7 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION "EMIR".avgitemsexpedition()
+CREATE OR REPLACE FUNCTION "EMIR".avgitemsreception()
 RETURNS INTEGER AS $$
 DECLARE
     nb_colis INTEGER;
