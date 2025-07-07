@@ -125,7 +125,7 @@ class AccountSettingsPage(QWidget):
                     "id": row[5]
                 }
                 employee_data.append(employee)
-                return employee_data
+            return employee_data
         except Error as e:
             QMessageBox.warning(self,"Error", f"Error extracting user data: {e}")
             self.db_connection.rollback()

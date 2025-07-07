@@ -203,7 +203,7 @@ class BackupWorker(QThread):
         pg_dump_command = [
             "pg_dump",
             "-h", self.db_host,
-            "-p", self.db_port,
+            "-p", str(self.db_port),
             "-U", self.db_user,
             "-d", self.db_name,
             "-F", "p", # Plain-text SQL dump format
@@ -436,7 +436,7 @@ class TerminalPage(QWidget):
                     self.db_connection = self.connection_info['db_connection']
                 else:
                     cursor = self.db_connection.cursor()
-                    cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY timestamp;")  # Assuming a 'logs' table
+                    cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY _timestamp;")  # Assuming a 'logs' table
                     logs = cursor.fetchall()
                     self.db_connection.commit()
                     self.terminal_output.append("\n--- ALl System Logs ---")
@@ -665,7 +665,7 @@ class TerminalPage(QWidget):
                     self.db_connection = self.connection_info['db_connection']
                 else:
                     cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT idproduit, nom, prix_unitaire FROM \"EMIR\".ProduitInfoBasique_EVA()") # Assuming 'products' table
+                    cursor.execute("SELECT _idproduit, _nom, _prix_unitaire FROM \"EMIR\".ProduitInfoBasique_EVA()") # Assuming 'products' table
                     products = cursor.fetchall()
                     self.db_connection.commit()
                     self.terminal_output.append("\n--- Products in Stock ---")
@@ -696,7 +696,7 @@ Unit Price: {product[2]}
                     self.db_connection = self.connection_info['db_connection']
                 else:
                     cursor = self.db_connection.cursor()
-                    cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"EMIR\".IndividuInfoBasique_EVA()") # Assuming 'users' table
+                    cursor.execute("SELECT nom, adresse, telephone, prenom FROM \"SCA\".UtilisateursComplets") # Assuming 'users' table
                     users = cursor.fetchall()
                     self.db_connection.commit()
                     self.terminal_output.append("\n--- Users List ---")

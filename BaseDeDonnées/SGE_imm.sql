@@ -3040,7 +3040,7 @@ BEGIN
     WHERE statut = 'actif';
     
     RETURN nombre_utilisateurs_actifs;
-END;
+END;²
 $$ LANGUAGE plpgsql;
 
 -- Fonction pour obtenir des statistiques détaillées sur les utilisateurs
@@ -3072,9 +3072,9 @@ $$ LANGUAGE plpgsql;
 -- Fonction EMIR pour récupérer les informations de base des produits
 CREATE OR REPLACE FUNCTION "EMIR".ProduitInfoBasique_EVA()
 RETURNS TABLE (
-    idproduit "SCA".Idproduit,
-    nom "SCA".Nom,
-    prix_unitaire FLOAT
+    _idproduit "SCA".Idproduit,
+    _nom "SCA".Nom,
+    _prix_unitaire FLOAT
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -3086,10 +3086,10 @@ $$ LANGUAGE plpgsql;
 -- Fonction EMIR pour récupérer les informations de base des individus
 CREATE OR REPLACE FUNCTION "EMIR".IndividuInfoBasique_EVA()
 RETURNS TABLE (
-    nom "SCA".Nom,
-    adresse "SCA".Adresse,
-    telephone "SCA".Numero,
-    prenom "SCA".Nom
+    _nom "SCA".Nom,
+    _adresse "SCA".Adresse,
+    _telephone "SCA".Numero,
+    _prenom "SCA".Nom
 ) AS $$
 BEGIN
     RETURN QUERY

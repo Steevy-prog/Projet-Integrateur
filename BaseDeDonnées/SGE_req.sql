@@ -495,7 +495,7 @@ create or replace function "EMIR".Logs_get(_date1 timestamp,_date2 timestamp)
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message from "SCA".Logs where timestamp between _date1 and _date2;
+return query select id,timestamp,level,message from "SCA".Logs where timestamp between _date1 and _date2;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_gethigher(_date timestamp)
@@ -503,12 +503,11 @@ create or replace function "EMIR".Logs_gethigher(_date timestamp)
                      _id int,
                      _timestamp timestamp,
                      _level varchar(10),
-                     _message text,
-                     _extra jsonb
+                     _message text
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message from "SCA".Logs where timestamp >= _date;
+return query select id, timestamp,level,message from "SCA".Logs where timestamp >= _date;
 end; $$ language plpgsql;
 
 create or replace function "EMIR".Logs_getlower(_date timestamp)
@@ -516,12 +515,11 @@ create or replace function "EMIR".Logs_getlower(_date timestamp)
                      _id int,
                      _timestamp timestamp,
                      _level varchar(10),
-                     _message text,
-                     _extra jsonb
+                     _message text
                  )
 as $$
 begin
-return query select id, TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp,level,message from "SCA".Logs where timestamp <= _date;
+return query select id, timestamp,level,message from "SCA".Logs where timestamp <= _date;
 end; $$ language plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".pendingtasks(_idtravailleur "SCA".idtravailleur)
