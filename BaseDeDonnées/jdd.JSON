@@ -70,28 +70,28 @@
     ],
     "Cellule": [
       {
-        "idcellule": "CA1001",
+        "idcellule": "CA0001",
         "longueur": 10.5,
         "largeur": 5.2,
         "hauteur": 3.0,
         "masse_maximale": 5000.0
       },
       {
-        "idcellule": "CB1002",
+        "idcellule": "CB0002",
         "longueur": 12.0,
         "largeur": 6.0,
         "hauteur": 3.5,
         "masse_maximale": 7500.0
       },
       {
-        "idcellule": "CC1003",
+        "idcellule": "CC0003",
         "longueur": 8.0,
         "largeur": 4.0,
         "hauteur": 2.5,
         "masse_maximale": 3000.0
       },
       {
-        "idcellule": "CD1004",
+        "idcellule": "CD0004",
         "longueur": 15.0,
         "largeur": 8.0,
         "hauteur": 4.0,
@@ -245,14 +245,14 @@
         "masse_maximale": 8800.0
       },
       {
-        "idcellule": "CB1026",
+        "idcellule": "CE0005",
         "longueur": 5.7,
         "largeur": 2.7,
         "hauteur": 1.7,
         "masse_maximale": 1700.0
       },
       {
-        "idcellule": "CC1027",
+        "idcellule": "CF0006",
         "longueur": 8.3,
         "largeur": 4.1,
         "hauteur": 2.4,
