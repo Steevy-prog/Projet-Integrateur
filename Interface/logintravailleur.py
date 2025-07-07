@@ -343,10 +343,15 @@ class FlipCard(QWidget):
         poste = cur.fetchone()[0]
         if poste:
             if poste == 'Administrateur':
+                pass
             elif poste == 'Manager':
+                pass
             elif poste == 'Logisticien':
+                pass
             elif poste == 'Magasinier':
+                pass
             elif poste == 'Securite':
+                pass
             
             self.login_status.setText("Login successful! Redirecting...")
             self.login_status.setStyleSheet("color: #27ae60; font-weight: bold;")
