@@ -1,10 +1,5 @@
 
-<<<<<<< Updated upstream
-import login as login
-import sys,os
-=======
 import sys, os
->>>>>>> Stashed changes
 
 import numpy as np
 import pandas as pd
@@ -4341,24 +4336,6 @@ class ClientMainWindow(QMainWindow):
         navbar_layout.addWidget(self.logout_btn)
         navbar_layout.addStretch()
 
-<<<<<<< Updated upstream
-        self.main_layout.addWidget(self.navbar)
-    
-    def logout(self):
-        response = QMessageBox.question(
-            self,
-            "Logout",
-            "Are you sure you want to logout?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        if response == QMessageBox.StandardButton.Yes:
-            self.close()
-            self.loginpage = login.FlipCard()
-            self.loginpage.show()
-
-=======
->>>>>>> Stashed changes
     def create_content_area(self):
         self.content_stack = QStackedWidget()
         self.content_stack.setStyleSheet("background-color: #EDF2F7; padding: 25px;") 
