@@ -14,6 +14,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
+import login as login
 from helpbot import ChatBot
 
 # Assuming 'id.py' exists and contains idgenerator
@@ -1446,11 +1447,14 @@ class EmballeurMainWindow(QMainWindow):
         self.order_preparation_btn = QPushButton("Order Preparation")
         self.packaging_material_btn = QPushButton("Packaging Materials")
         self.help_btn = QPushButton("Help")
+        self.logout_btn = QPushButton("Logout")
 
         self.dashboard_btn.setCheckable(True)
         self.order_preparation_btn.setCheckable(True)
         self.packaging_material_btn.setCheckable(True)
         self.help_btn.setCheckable(True)
+        self.logout_btn.setCheckable(True)
+
 
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
@@ -1458,20 +1462,35 @@ class EmballeurMainWindow(QMainWindow):
         self.button_group.addButton(self.order_preparation_btn)
         self.button_group.addButton(self.packaging_material_btn)
         self.button_group.addButton(self.help_btn)
+        self.button_group.addButton(self.logout_btn)
+
 
         self.dashboard_btn.clicked.connect(lambda: self.navigate_to_widget(self.dashboard_widget))
         self.order_preparation_btn.clicked.connect(lambda: self.navigate_to_widget(self.order_preparation_widget))
         self.packaging_material_btn.clicked.connect(lambda: self.navigate_to_widget(self.packaging_material_widget))
         self.help_btn.clicked.connect(lambda: self.navigate_to_widget(self.help_widget))
-
+        self.logout_btn.clicked.connect(self.logout)
         navbar_layout.addStretch()
         navbar_layout.addWidget(self.dashboard_btn)
         navbar_layout.addWidget(self.order_preparation_btn)
         navbar_layout.addWidget(self.packaging_material_btn)
-        navbar_layout.addWidget(self.help_btn)  
+        navbar_layout.addWidget(self.help_btn) 
+        navbar_layout.addWidget(self.logout_btn) 
         navbar_layout.addStretch()
 
         self.main_layout.addWidget(self.navbar)
+    def logout(self):
+        response = QMessageBox.question(
+            self,
+            "Logout",
+            "Are you sure you want to logout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self.close()
+            self.loginpage = login.FlipCard()
+            self.loginpage.show()
 
     def create_content_area(self):
         self.content_stack = QStackedWidget()

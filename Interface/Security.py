@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QSplitter, QTabWidget, QProgressBar, QSpacerItem, QSizePolicy)
 from PyQt6.QtCore import Qt, QTimer, QDateTime, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QLinearGradient
-
+import login as login
 class SecurityDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -144,8 +144,26 @@ class SecurityDashboard(QMainWindow):
         # Incidents tab
         incidents_tab = self.create_incidents_tab()
         content_tabs.addTab(incidents_tab, "⚠️ Incidents")
-        
+
+        logout_btn=QPushButton("logout")
+        logout_btn.clicked.connect(self.logout)
+        content_tabs.addTab(logout_btn,"logout")
         main_layout.addWidget(content_tabs)
+    def logout(self):
+        response = QMessageBox.question(
+            self,
+            "Logout",
+            "Are you sure you want to logout?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self.close()
+            parent_window = self.window()
+            if parent_window is not self:
+                parent_window.close()
+            self.loginpage = login.FlipCard()
+            self.loginpage.show()
         
     def create_header(self):
         header_frame = QFrame()
@@ -215,8 +233,9 @@ class SecurityDashboard(QMainWindow):
         # Cameras Card
         cameras_card = self.create_status_card("📹 Caméras", "16/16", "#4facfe", "Toutes opérationnelles")
         cards_layout.addWidget(cameras_card)
-        
+
         layout.addLayout(cards_layout)
+
         
         # Recent activity
         activity_frame = QFrame()
@@ -234,6 +253,7 @@ class SecurityDashboard(QMainWindow):
         layout.addWidget(activity_frame)
         
         return dashboard_widget
+    
     
     def create_access_control_tab(self):
         access_widget = QWidget()

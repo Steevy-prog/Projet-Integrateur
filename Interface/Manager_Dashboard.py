@@ -36,7 +36,6 @@ import random
 import psycopg2
 
 idorg = 'OABCDE'
-
 global conn
 print("1. online")
 print("2. offline")
@@ -57,7 +56,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 
