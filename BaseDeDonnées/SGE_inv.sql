@@ -37,3 +37,8 @@ BEGIN
     RETURN (select sum(quantite*prix_unitaire) from "SCA".lot  NATURAL JOIN "SCA".Produit);
 END;
 $$ LANGUAGE plpgsql;
+
+--INSERT INTO "SCA".Logs (timestamp, level, message) VALUES
+   -- ('2024-07-01 08:00:00', 'INFO', 'Démarrage du système'),
+    --('2024-07-01 08:05:00', 'WARNING', 'Connexion lente à la base de données'),
+    --('2024-07-01 08:10:00', 'ERROR', 'Erreur lors de l\'importation des données');
