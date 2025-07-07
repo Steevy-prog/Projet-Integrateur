@@ -75,9 +75,10 @@ class WarehouseData:
     """Data generator and manager for warehouse operations"""
 
     def __init__(self):
-        self.generate_sample_data()
         self.connection_info = Connection.connection()
         self.db_connection = self.connection_info['db_connection']
+        self.generate_sample_data()
+        
         
         
     def generate_sample_data(self):
@@ -285,7 +286,7 @@ class RealtimeInventoryViewWidget(QWidget):
         self.data = data
         
         self.connection_info = Connection.connection()
-        self.db_connection = connection_info['db_connection']
+        self.db_connection = self.connection_info['db_connection']
         self.init_ui()
 
     def init_ui(self):
