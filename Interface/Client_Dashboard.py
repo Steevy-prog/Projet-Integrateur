@@ -19,6 +19,11 @@ import psycopg2
 from id import idgenerator # Assuming 'id.py' exists and contains idgenerator
 from helpbot import ChatBot
 import internalmail
+from db_connection import ConnectionDB
+
+Connection = ConnectionDB()
+connection_info = Connection.connection()
+db_connection = connection_info['db_connection']
 
 # Global organization ID for the client currently logged in
 # In a real application, this would come from a login system
@@ -27,31 +32,32 @@ client_org_id = 'OFIRST' # Example client organization ID
 # --- START OF BACKEND/DATABASE INITIALIZATION (DO NOT TOUCH) ---
 # This section establishes the database connection and fetches initial data.
 # It is intended to remain as provided in its initial configuration.
-global conn
-print("1. online")
-print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# global conn
+# print("1. online")
+# print("2. offline")
+# it = input("Enter the number of bd you want to use : ")
 
-if it == '1':
-    print("You have chosen the online database.")
-    conn = psycopg2.connect(
-        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-        database="projet_integrateur",
-        user="group13",
-        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-        port=5432
-    )
-elif it == '2':
-    print("You have chosen the offline database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="USER",
-        user="postgres",
-        password="steevy",
-        port=5432
-    )
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="USER",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
 
-cur = conn.cursor()
+cur = db_connection.cursor()
+
 
 # Fetch initial data for product, lot, and package IDs to ensure uniqueness
 # These queries fetch existing data from the database at startup.
@@ -144,12 +150,18 @@ class ClientData:
 
     def __init__(self, client_id):
         self.client_id = client_id
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
 
     def generate_sample_data(self):
         """Generates or fetches sample data for client's view."""
         # Fetch products relevant to the client's organization
         # For simplicity, assuming all products are relevant or fetching client-specific products
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
         if not products:
@@ -440,9 +452,13 @@ class ProductCreationPopup(QDialog):
         self.setWindowTitle("Create Product")
         self.setFixedSize(900, 600)
         self.layout = QVBoxLayout(self)
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.step = 1
         self.product_type = None
-
+    
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.setStyleSheet("""
             QLabel {
                 color: black;
@@ -633,7 +649,10 @@ class ProductCreationPopup(QDialog):
         if not name or not fournisseur_id:
             QMessageBox.warning(self, "Validation Error", "Product name and supplier are required.")
             return
-
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection
         try:
             cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)',
                         (self.produitid, fournisseur_id, name, description, prix_unitaire, marque, modele, category))
@@ -649,11 +668,11 @@ class ProductCreationPopup(QDialog):
                             (self.produitid,
                              self.version_input.text().strip(),
                              self.license_input.text().strip()))
-            conn.commit()
+            self.db_connection.commit()
             QMessageBox.information(self, "Success", f"Product '{name}' created successfully.")
             self.accept()
         except psycopg2.Error as e:
-            conn.rollback()
+            self.db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to create product: {e}")
 
     def clear_layout(self):
@@ -844,6 +863,10 @@ class ProductCreationPopup1(QDialog):
             QMessageBox.warning(self, "Validation Error", "Product name and supplier are required.")
             return
 
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute('CALL "EMIR".Produit_INS(%s,%s,%s,%s,%s,%s,%s,%s)',
                         (self.produitid, fournisseur_id, name, description, prix_unitaire, marque, modele, category))
@@ -859,11 +882,11 @@ class ProductCreationPopup1(QDialog):
                 license_key = self.license_input.text().strip()
                 cur.execute('CALL "EMIR".ProduitLogiciel_INS(%s,%s,%s)',
                             (self.produitid, version, license_key))
-            conn.commit()
+            db_connection.commit()
             QMessageBox.information(self, "Success", f"Product '{name}' (ID: {self.produitid}) created successfully.")
             self.accept()
         except psycopg2.Error as e:
-            conn.rollback()
+            db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to create product: {e}")
 
     def clear_layout(self):
@@ -884,7 +907,7 @@ class ProductInputRow(QHBoxLayout):
         super().__init__()
         self.products_data = products_data
         self.remove_callback = remove_callback
-
+        
         self.product_combo = QComboBox()
         self.product_combo.setFixedWidth(150)
         self.product_combo.addItem("— Select a product —", None)
@@ -960,6 +983,8 @@ class ClientLogisticsWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.package_input_rows = [] # To keep track of ProductInputRow instances
         self.init_ui()
 
@@ -1305,7 +1330,10 @@ class ClientLogisticsWidget(QWidget):
         if not lots:
             QMessageBox.warning(self, "Missing", "No lots found for selected package.")
             return
-        
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s)',
                 (   client_org_id,
@@ -1316,7 +1344,7 @@ class ClientLogisticsWidget(QWidget):
             )
             print("sucess")
         except psycopg2.Error as e:
-            conn.rollback()
+            self.db_connectionn.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to insert BonExpedition: {e}")
     
         for lot in lots:
@@ -1344,7 +1372,7 @@ class ClientLogisticsWidget(QWidget):
                 )
                 print("sucess")
             except psycopg2.Error as e:
-                conn.rollback()
+                self.db_connection.rollback()
                 QMessageBox.critical(self, "Database Error", f"Failed to send lot: {e}")
                 return
     
@@ -2233,6 +2261,8 @@ class ClientMainDashboard(QWidget):
     def __init__(self, data, main_window):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.main_window = main_window
         self.init_ui()
 
@@ -2254,6 +2284,10 @@ class ClientMainDashboard(QWidget):
                 color: #FFFFFF;
             }
         """)
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         hero_layout = QVBoxLayout(hero_frame)
         cur.execute('SELECT "EMIR".getorganisationname(%s);',(self.data.client_id,))
         name = cur.fetchone()[0]

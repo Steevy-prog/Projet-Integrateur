@@ -16,7 +16,7 @@ import random
 import psycopg2
 import login as login
 from helpbot import ChatBot
-
+from db_connection import ConnectionDB
 # Assuming 'id.py' exists and contains idgenerator
 # from id import idgenerator 
 # Mock idgenerator for standalone execution if id.py is not available
@@ -53,48 +53,52 @@ emballeur_org_id = 'OEMB' # Example emballeur organization ID
 # --- START OF BACKEND/DATABASE INITIALIZATION (DO NOT TOUCH) ---
 # This section establishes the database connection and fetches initial data.
 # It is intended to remain as provided in its initial configuration.
-global conn
-print("1. online")
-print("2. offline")
-# In a real application, this input would be handled differently (e.g., config file)
-# For this example, we'll default to offline for easier testing.
-it='2' # input("Enter the number of bd you want to use : ") 
+# global conn
+# print("1. online")
+# print("2. offline")
+# # In a real application, this input would be handled differently (e.g., config file)
+# # For this example, we'll default to offline for easier testing.
+# it='2' # input("Enter the number of bd you want to use : ") 
 
-if it == '1':
-    print("You have chosen the online database.")
-    try:
-        conn = psycopg2.connect(
-            host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-            database="projet_integrateur",
-            user="group13",
-            password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-            port=5432
-        )
-    except psycopg2.OperationalError as e:
-        print(f"Could not connect to online database: {e}. Falling back to offline.")
-        it = '2' # Fallback to offline if online fails
-elif it == '2':
-    print("You have chosen the Steevy's database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="postgres",
-        password="steevy",
-        port=5432
-    )
+# if it == '1':
+#     print("You have chosen the online database.")
+#     try:
+#         conn = psycopg2.connect(
+#             host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#             database="projet_integrateur",
+#             user="group13",
+#             password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#             port=5432
+#         )
+#     except psycopg2.OperationalError as e:
+#         print(f"Could not connect to online database: {e}. Falling back to offline.")
+#         it = '2' # Fallback to offline if online fails
+# elif it == '2':
+#     print("You have chosen the Steevy's database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="postgres",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
 
-elif it == '3':
-    print("You have chosen the Viktor's database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="Projet",
-        user="postgres",
-        password="Lune.Hatik123",
-        port=5432
-    )
-    
+# elif it == '3':
+#     print("You have chosen the Viktor's database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="Projet",
+#         user="postgres",
+#         password="Lune.Hatik123",
+#         port=5432
+#     )
+
+Connection = ConnectionDB()
+connection_info = Connection.connection()
+db_connection = connection_info['db_connection']
+
   
-cur = conn.cursor()
+cur = db_connection.cursor()
 
 # Fetch initial data for product, lot, and package IDs to ensure uniqueness
 # These queries fetch existing data from the database at startup.
@@ -200,11 +204,18 @@ class EmballeurData:
 
     def __init__(self, emballeur_id):
         self.emballeur_id = emballeur_id
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.generate_sample_data()
 
     def generate_sample_data(self):
         """Generates or fetches sample data for emballeur's view."""
         # Fetch products relevant to the client's organization
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
         if not products:
@@ -932,6 +943,9 @@ class EmballeurDashboardWidget(QWidget):
         super().__init__()
         self.data = data
         self.main_window = main_window
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
 
     def init_ui(self):
@@ -956,6 +970,11 @@ class EmballeurDashboardWidget(QWidget):
         
         # Fetch emballeur organization name
         emballeur_name = "Emballeur"
+        
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute('SELECT "EMIR".getorganisationname(%s);',(self.data.emballeur_id,))
             result = cur.fetchone()
