@@ -1030,7 +1030,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION "SCA".idpcontenu_CONF(v TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
-    RETURN v ~ '^CON[0-9]{3}$';
+    RETURN v ~ '^PCON[0-9]{3}$';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1512,18 +1512,16 @@ CREATE OR REPLACE PROCEDURE "EMIR".PContenuColis_INS(
     _idorg TEXT,
     _idpcolis TEXT,
     _idplot TEXT,
-    _quantite TEXT,
     _date_MAJ TEXT
 )
 AS $$
 BEGIN
-    INSERT INTO "EXTERNE".ContenuColis(idpcontenu, idorg, idpcolis, idplot, quantite, date_maj)
+    INSERT INTO "EXTERNE".ContenuColis(idpcontenu, idorg, idpcolis, idplot, date_maj)
     VALUES (
         "SCA".idpcontenu_conv(_idpcontenu),
         "SCA".idorg_conv(_idorg),
         "EXTERNE".idpcolis_conv(_idpcolis),
         "EXTERNE".idplot_conv(_idplot),
-        "SCA".dims_conv(_quantite),
         _date_MAJ::date
     );
 END;
@@ -1898,20 +1896,19 @@ $$ LANGUAGE plpgsql;
 -- 20. CONDUCTEUR
 create or replace function "EMIR".Conducteur_EVA()
     returns table (
-                      idconducteur "SCA".idconducteur,
-                      idutilisateur "SCA".idutilisateur,
-                      numero_permis "SCA".Nom,
-                      type_permis varchar(10),
-                      date_obtention_permis date,
-                      date_expiration_permis date,
-                      experience_annees integer,
-                      statut "SCA".statut_conducteur,
-                      date_derniere_evaluation date,
-                      note_evaluation decimal(3,2),
-                      specialites text
+                      _idconducteur "SCA".idconducteur,
+                      _idutilisateur "SCA".idutilisateur,
+                      _numero_permis "SCA".Nom,
+                      _type_permis varchar(10),
+                      _date_obtention_permis date,
+                      _date_expiration_permis date,
+                      _experience_annees integer,
+                      _statut "SCA".statut_conducteur,
+                      _date_derniere_evaluation date,
+                      _note_evaluation decimal(3,2)
                   ) as $$
 begin
-    return query select idconducteur, idutilisateur, numero_permis, type_permis, date_obtention_permis, date_expiration_permis, experience_annees, statut, date_derniere_evaluation, note_evaluation, specialites from "SCA".Conducteur;
+    return query select idconducteur, idutilisateur, numero_permis, type_permis, date_obtention_permis, date_expiration_permis, experience_annees, statut, date_derniere_evaluation, note_evaluation from "SCA".Conducteur;
 end; $$ language plpgsql;
 
 -- 21. UTILISATEUR

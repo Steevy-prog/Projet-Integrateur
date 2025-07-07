@@ -19,32 +19,40 @@ from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
 from PyQt6.QtGui import QBrush
 #import login as login
 import internalmail
+from db_connection import ConnectionDB
+
 
 # Configuration de la base de données
-global conn
-print("1. online")
-print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# global conn
+# print("1. online")
+# print("2. offline")
+# it = input("Enter the number of bd you want to use : ")
 
-if it == '1':
-    print("You have chosen the online database.")
-    conn = psycopg2.connect(
-        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-        database="projet_integrateur",
-        user="group13",
-        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-        port=5432
-    )
-elif it == '2':
-    print("You have chosen the offline database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="postgres",
-        password="steevy",
-        port=5432
-    )
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="postgres",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
+
+
+Connection = ConnectionDB()
+Connection_info = Connection.
+
 cur = conn.cursor()
+
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
 conducteurs = cur.fetchall()
@@ -75,7 +83,7 @@ class LogisticsData:
     def __init__(self):
         self.generate_sample_data()
     def generate_sample_data(self):
-        self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva','spec'])
+        self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva'])
         self.colis_df = pd.DataFrame(colis,columns=['id','date_cre','exp_date','receiving_org','statut'])
         self.bonexp_df = pd.DataFrame(bonexp,columns=['id','idcol','idtrans','date_cre','iddest','statut','remarque'])
         self.contenu_df = pd.DataFrame(contenucolis,columns=['idcol','idlot','quantity','date_maj'])
@@ -106,7 +114,7 @@ class LogisticsData:
                 columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
         
         for product in self.products_df.itertuples():
             print(f"Product ID: {product.ID}, Name: {product.Name}")

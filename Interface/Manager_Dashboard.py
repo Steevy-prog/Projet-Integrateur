@@ -17,7 +17,12 @@ import datetime
 import random
 import psycopg2
 
+from db_connection import ConnectionDB
+
+Connection = ConnectionDB()
+
 idorg = 'OABCDE'
+
 global conn
 print("1. online")
 print("2. offline")
@@ -38,7 +43,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="steevy",
+        password="1234",
         port=5432
     )
 
@@ -66,22 +71,23 @@ contenu = cur.fetchall() # Existing packages from the database
 cur.execute("SELECT (p).* FROM \"EMIR\".Pcontenucolis_eva() AS p;")
 pcontenu = cur.fetchall() # Existing packages from the database
 
-cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
-produits_db = cur.fetchall() # Existing products from the database
-
-# Fetch workers for assignment
-cur.execute("SELECT (w).* FROM \"EMIR\".Travailleur_EVA() AS w;")
-workers_db = cur.fetchall()
-workers_list = [{'id': w[0], 'name': w[1]} for w in workers_db] # Assuming worker ID and Name
-
 class WarehouseData:
     """Data generator and manager for warehouse operations"""
 
     def __init__(self):
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
-
+        
+        
+        
     def generate_sample_data(self):
         # Products data
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
+        cur = self.db_connection.cursor()
         cur.execute("SELECT (p).* FROM \"EMIR\".produit_eva() AS p;")
         products = cur.fetchall()
         self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','exp_date','receiving_org','statut'])
@@ -96,7 +102,7 @@ class WarehouseData:
                     ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
                     ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
                 ],
-                columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category']
+                columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
             self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
@@ -163,11 +169,7 @@ class WarehouseData:
                 'Expected_Date': i.expected_date,
                 'Items_Count': quan,
                 'Status': i.statut,
-                'Total_Value': total,
-                'Products': items, # Store raw product data for detail dialog
-                'packer_assignment_status': 'unassigned', # New field for colis assignment
-                'assigned_packer_id': None,
-                'colis_assignment_date': None
+                'Total_Value': total
             })
         self.reception_df = pd.DataFrame(reception_data)
 
@@ -282,6 +284,9 @@ class RealtimeInventoryViewWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.init_ui()
 
     def init_ui(self):
@@ -332,7 +337,11 @@ class RealtimeInventoryViewWidget(QWidget):
         # Metrics cards section
         metrics_layout = QHBoxLayout()
         metrics_layout.setSpacing(15)
-
+        
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute("SELECT \"EMIR\".total();")
             total_items = cur.fetchone()[0] or 0
@@ -1007,7 +1016,7 @@ class MenuExpedition(QWidget):
         layout.addWidget(bouton, alignment=Qt.AlignmentFlag.AlignCenter) # Center the button
         layout.addStretch() # Push content to top
 
-    def clear_layout(self, layout):
+    def clear_layout(self: 'MenuExpedition', layout):
         if layout is not None:
             while layout.count():
                 item = layout.takeAt(0)
@@ -1296,14 +1305,27 @@ class ReceptionOrderCard(QFrame):
         layout.addLayout(button_layout)
         layout.addStretch()
 
+    def get_menu_reception_parent(self):
+        """Helper to find the MenuReception parent widget."""
+        parent_widget = self.parentWidget()
+        while parent_widget is not None:
+            if isinstance(parent_widget, MenuReception):
+                return parent_widget
+            parent_widget = parent_widget.parentWidget()
+        return None
+
     def show_details(self):
         dialog = ProductDetailDialog(self.order_data, self)
-        dialog.product_validated.connect(self.parent().parent().parent().handle_order_validated) # Connect to MenuReception's handler
-        dialog.product_refused.connect(self.parent().parent().parent().handle_order_refused)   # Connect to MenuReception's handler
+        menu_reception_widget = self.get_menu_reception_parent()
+        if menu_reception_widget:
+            dialog.product_validated.connect(menu_reception_widget.handle_order_validated)
+            dialog.product_refused.connect(menu_reception_widget.handle_order_refused)
+        else:
+            QMessageBox.warning(self, "Error", "Could not find parent MenuReception widget to connect signals.")
         dialog.exec()
 
     def validate_order(self):
-        menu_reception_widget = self.parent().parent().parent()
+        menu_reception_widget = self.get_menu_reception_parent()
         if isinstance(menu_reception_widget, MenuReception):
             menu_reception_widget.validate_order(self.order_data['Order_ID'])
             self.deleteLater() # Remove card after action
@@ -1311,7 +1333,7 @@ class ReceptionOrderCard(QFrame):
             QMessageBox.warning(self, "Error", "Could not find parent MenuReception widget.")
 
     def refuse_order(self):
-        menu_reception_widget = self.parent().parent().parent()
+        menu_reception_widget = self.get_menu_reception_parent()
         if isinstance(menu_reception_widget, MenuReception):
             menu_reception_widget.refuse_order(self.order_data['Order_ID'])
             self.deleteLater() # Remove card after action
@@ -1323,9 +1345,7 @@ class MenuReception(QWidget):
     def __init__(self,data):
         super().__init__()
         self.data=data
-        self.accepted_products = [] # List to store accepted products for assignment
         self.init_ui()
-
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
@@ -1997,12 +2017,9 @@ class WarehouseMenuInteractionWidget(QWidget):
 
         # Onglets
         tabs = QTabWidget()
-        tabs.addTab(MenuReception(self.data), "Reception Validation") # Updated tab name
-        tabs.addTab(MenuExpedition(self.data), "Expedition")
-        tabs.addTab(ZoneEmballage(self.data),"Packaging Zone")
-        tabs.addTab(AssignColisToEmballeurWidget(self.data, workers_list), "Assign Colis") # New tab for colis assignment
-        tabs.addTab(AssignLotToMagasinierWidget(self.data, workers_list), "Assign Lots") # Renamed tab for lot assignment
-        tabs.addTab(AssignedTasksViewWidget(self.data, workers_list), "View Assigned Tasks") # New tab for assigned tasks
+        #tabs.addTab(MenuReception(self.data), "menu reception")
+        tabs.addTab(MenuExpedition(self.data), "menu expedition")
+        tabs.addTab(ZoneEmballage(self.data),"zone d'emballage")
         layout.addWidget(tabs)
         layout.addStretch() # Ensure tabs expand
         
@@ -2021,8 +2038,11 @@ class StorageSpaceManagementWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.init_ui()
-
+        
+        
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
@@ -2047,6 +2067,9 @@ class StorageSpaceManagementWidget(QWidget):
         content_layout.addWidget(title)
 
         # Metric Card for Utilization
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
         try:
             cur.execute('SELECT "EMIR".cellutilisation();')
             utilization = cur.fetchone()[0]
@@ -2082,6 +2105,8 @@ class ReportsWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.init_ui()
 
     def init_ui(self):
@@ -2089,8 +2114,22 @@ class ReportsWidget(QWidget):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QVBoxLayout(self)
-
+            # Créer un QScrollArea comme widget principal
+            self.scroll_area = QScrollArea()
+            self.scroll_area.setWidgetResizable(True)
+            self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            
+            # Créer le widget conteneur et son layout
+            self.container_widget = QWidget()
+            self._main_layout = QVBoxLayout(self.container_widget)
+            
+            # Configurer le scroll area
+            self.scroll_area.setWidget(self.container_widget)
+            super().setLayout(QVBoxLayout())
+            super().layout().addWidget(self.scroll_area)
+            super().layout().setContentsMargins(0, 0, 0, 0)
+    
         layout = self._main_layout
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -2108,16 +2147,16 @@ class ReportsWidget(QWidget):
         content_layout.addWidget(title)
 
         tabs = QTabWidget()
-
+    
         # Stock Reports
         stock_reports_widget = QWidget()
         stock_reports_layout = QVBoxLayout()
         stock_reports_layout.addWidget(QLabel("<h4>Stock Reports</h4>"))
         stock_reports_layout.addWidget(QLabel("Generate reports on current stock levels, low stock items, and inventory value."))
-
+    
         self.stock_summary_table = self.create_stock_summary_table()
         stock_reports_layout.addWidget(self.stock_summary_table)
-
+    
         # Add Save button for Stock Reports
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
@@ -2136,15 +2175,14 @@ class ReportsWidget(QWidget):
         """)
         save_stock_btn.clicked.connect(self.save_stock_report_to_csv)
         stock_reports_layout.addWidget(save_stock_btn)
-
-
+    
         stock_reports_widget.setLayout(stock_reports_layout)
         tabs.addTab(stock_reports_widget, "Stock Reports")
-
-        # Performance Reports (reusing PerformanceWidget logic)
+    
+        # Performance Reports
         self.performance_reports_widget = PerformanceWidget(self.data)
         tabs.addTab(self.performance_reports_widget, "Performance Reports")
-
+    
         # Exception Reports
         exception_reports_widget = QWidget()
         exception_reports_layout = QVBoxLayout()
@@ -2182,6 +2220,7 @@ class ReportsWidget(QWidget):
         scroll_area.setWidget(content_widget)
         layout.addWidget(scroll_area)
         
+        
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
@@ -2194,10 +2233,16 @@ class ReportsWidget(QWidget):
 
     def create_stock_summary_table(self):
         table = QTableWidget()
-        table.setRowCount(len(self.data.inventory_df))
+        row_count = len(self.data.inventory_df)
+        table.setRowCount(row_count)
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
-
+    
+        # Désactiver complètement les scrollbars
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    
+        # Remplir le tableau
         self.stock_summary_data = []
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             product_info = self.data.products_df[self.data.products_df['ID'] == row['Product_ID']].iloc[0] if not self.data.products_df.empty else {'Category': 'N/A'}
@@ -2212,39 +2257,34 @@ class ReportsWidget(QWidget):
                 'Quantity': row['Quantity'],
                 'Current Value': current_value
             })
-        self.stock_summary_df = pd.DataFrame(self.stock_summary_data)
-        
+    
+        # Style et configuration
         table.setStyleSheet("""
             QTableWidget {
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #e3f2fd;
-                gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
-                padding: 10px 8px;
-                border: 1px solid #dcdcdc;
+                padding: 6px;
                 font-weight: bold;
-                font-size: 13px;
-                color: #555;
-            }
-            QTableWidget::item {
-                padding: 8px;
-            }
-            QTableWidget::item:selected {
-                background-color: #cce7ff;
-                color: #333;
             }
         """)
         table.setAlternatingRowColors(True)
-        table.resizeColumnsToContents()
+        
+        # Calculer la hauteur exacte nécessaire
+        header_height = table.horizontalHeader().height()
+        row_height = 30  # Hauteur moyenne par ligne
+        total_height = header_height + (row_count * row_height) + 2  # +2 pour la bordure
+        
+        # Appliquer la hauteur fixe
+        table.setFixedHeight(total_height)
+        
+        # Configuration des colonnes
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
+        
         return table
-
     def save_stock_report_to_csv(self):
         if not self.stock_summary_df.empty:
             options = QFileDialog.Option.DontUseNativeDialog  # option facultative
@@ -2368,6 +2408,9 @@ class OrdersWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
 
     def init_ui(self):
@@ -2405,6 +2448,10 @@ class OrdersWidget(QWidget):
                     self.clear_layout(item.layout())
 
     def create_reception_tab(self):
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0,0,0,0)
@@ -2417,6 +2464,7 @@ class OrdersWidget(QWidget):
         header_layout.addStretch()
 
         # Metrics
+        cur = self.db_connection.cursor()
         metrics_layout = QHBoxLayout()
         cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
         today_rec = cur.fetchone()[0]
@@ -2462,6 +2510,10 @@ class OrdersWidget(QWidget):
         return widget
 
     def create_expedition_tab(self):
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0,0,0,0)
@@ -2790,6 +2842,9 @@ class MainDashboardWidget(QWidget):
         self.data = data
         self.current_widget = None
         self.is_menu_expanded = True
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
 
     def init_ui(self):
@@ -2920,6 +2975,10 @@ class MainDashboardWidget(QWidget):
         """)
         metrics_layout = QVBoxLayout(metrics_widget)
         metrics_layout.setContentsMargins(10, 10, 10, 10)
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute("SELECT \"EMIR\".total();")
             total_items = cur.fetchone()[0] or 0
