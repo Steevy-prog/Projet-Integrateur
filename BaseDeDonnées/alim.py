@@ -36,9 +36,9 @@ elif it == '2':
     print("You have chosen the Steevy's database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="USER",
         user="postgres",
-        password="1234",
+        password="steevy",
         port=5432
     )
 
@@ -86,6 +86,27 @@ def insert(table, cols, rows):
 # ➕ Préparation des données à insérer
 sc = data["SCA"]
 
+# Insertion des tables de référence en premier
+insert('"SCA".REF_Marque',
+       ["idmarque", "nom", "pays_origine", "date_creation"],
+       [(m["idmarque"], m["nom"], m["pays_origine"], m["date_creation"])
+        for m in sc["REF_Marque"]])
+
+insert('"SCA".REF_Modele',
+       ["idmodele", "idmarque", "nom", "type_produit", "date_creation"],
+       [(m["idmodele"], m["idmarque"], m["nom"], m["type_produit"], m["date_creation"])
+        for m in sc["REF_Modele"]])
+
+insert('"SCA".REF_Specialite',
+       ["idspecialite", "nom", "description", "date_creation"],
+       [(s["idspecialite"], s["nom"], s["description"], s["date_creation"])
+        for s in sc["REF_Specialite"]])
+
+insert('"SCA".REF_Competence',
+       ["idcompetence", "nom", "description", "niveau_requis", "date_creation"],
+       [(c["idcompetence"], c["nom"], c["description"], c["niveau_requis"], c["date_creation"])
+        for c in sc["REF_Competence"]])
+
 # Utilisation de noms de table qualifiés par le schéma (ex: '"SCA"."Organisation"')
 # et de noms de colonnes entre guillemets pour respecter la casse.
 
@@ -94,7 +115,7 @@ insert('"SCA".Organisation',
        [(o["idorganisation"], o["nom"], o["telephone"], o["type"])
         for o in sc["Organisation"]])
 
-# Insertion dans LocalisationOrganisation (nouvelle table)
+# Insertion dans LocalisationOrganisation
 if "LocalisationOrganisation" in sc:
     insert('"SCA".LocalisationOrganisation',
         ["idorganisation", "adresse", "ville", "region", "pays", "latitude", "longitude", "date_ajout"],
@@ -147,7 +168,7 @@ insert('"SCA".Utilisateur',
        ])
 
 insert('"SCA".Travailleur',
-       ["idtravailleur", "idutilisateur", "date_embauche", "poste", "departement", "salaire_horaire", "statut", "competences", "date_derniere_evaluation"],
+       ["idtravailleur", "idutilisateur", "date_embauche", "poste", "departement", "salaire_horaire", "statut", "date_derniere_evaluation"],
        [(
            t["idtravailleur"],
            t["idutilisateur"],
@@ -156,17 +177,26 @@ insert('"SCA".Travailleur',
            t["departement"],
            t["salaire_horaire"],
            t["statut"],
-           t["competences"],
            t["date_derniere_evaluation"]
         ) for t in sc["Travailleur"]])
 
+insert('"SCA".TravailleurCompetence',
+       ["idtravailleur", "idcompetence", "niveau_maitrise", "date_acquisition", "certifie", "date_derniere_evaluation"],
+       [(
+           tc["idtravailleur"],
+           tc["idcompetence"],
+           tc["niveau_maitrise"],
+           tc["date_acquisition"],
+           tc["certifie"],
+           tc["date_derniere_evaluation"]
+        ) for tc in sc["TravailleurCompetence"]])
+
 insert('"SCA".Vehicule',
-       ["idvehicule", "immatriculation", "marque", "modele", "annee_fabrication", "types", "capacite_charge", "capacite_volume", "date_acquisition", "statut", "kilometrage_actuel", "date_derniere_maintenance", "prochaine_maintenance", "carburant", "consommation_moyenne"],
+       ["idvehicule", "immatriculation", "idmodele", "annee_fabrication", "types", "capacite_charge", "capacite_volume", "date_acquisition", "statut", "kilometrage_actuel", "date_derniere_maintenance", "prochaine_maintenance", "carburant"],
        [(
            v["idvehicule"],
            v["immatriculation"],
-           v["marque"],
-           v["modele"],
+           v["idmodele"],
            v["annee_fabrication"],
            v["types"],
            v["capacite_charge"],
@@ -176,12 +206,11 @@ insert('"SCA".Vehicule',
            v["kilometrage_actuel"],
            v["date_derniere_maintenance"],
            v["prochaine_maintenance"],
-           v["carburant"],
-           v["consommation_moyenne"]
+           v["carburant"]
         ) for v in sc["Vehicule"]])
 
 insert('"SCA".Conducteur',
-       ["idconducteur", "idutilisateur", "numero_permis", "type_permis", "date_obtention_permis", "date_expiration_permis", "experience_annees", "statut", "date_derniere_evaluation", "note_evaluation", "specialites"],
+       ["idconducteur", "idutilisateur", "numero_permis", "type_permis", "date_obtention_permis", "date_expiration_permis", "experience_annees", "statut", "date_derniere_evaluation", "note_evaluation"],
        [(
            c["idconducteur"],
            c["idutilisateur"],
@@ -192,19 +221,29 @@ insert('"SCA".Conducteur',
            c["experience_annees"],
            c["statut"],
            c["date_derniere_evaluation"],
-           c["note_evaluation"],
-           c["specialites"]
+           c["note_evaluation"]
         ) for c in sc["Conducteur"]])
 
+insert('"SCA".ConducteurSpecialite',
+       ["idconducteur", "idspecialite", "date_obtention", "niveau", "certifie", "date_expiration"],
+       [(
+           cs["idconducteur"],
+           cs["idspecialite"],
+           cs["date_obtention"],
+           cs["niveau"],
+           cs["certifie"],
+           cs["date_expiration"]
+        ) for cs in sc["ConducteurSpecialite"]])
+
 insert('"SCA".Repertoire',
-       ["idindividu", "idorganisation", "role"],
-       [(r["idindividu"], r["idorganisation"], r["role"])
+       ["idrepertoire","date_debut","date_fin","idindividu", "idorganisation", "role"],
+       [(r["idrepertoire"],r["date_debut"],r["date_fin"],r["idindividu"], r["idorganisation"], r["role"])
         for r in sc["Repertoire"]])
 
 insert('"SCA".Produit',
-       ["idproduit", "idfournisseur", "nom", "description", "prix_unitaire", "marque", "modele", "categorie"],
+       ["idproduit", "idfournisseur", "nom", "description", "prix_unitaire", "idmodele", "categorie"],
        [(p["idproduit"], p["idfournisseur"], p["nom"], p["description"],
-         p["prix_unitaire"], p["marque"], p["modele"], p["categorie"])
+         p["prix_unitaire"], p["idmodele"], p["categorie"])
         for p in sc["Produit"]])
 
 insert('"SCA".ProduitMateriel',
@@ -218,31 +257,36 @@ insert('"SCA".ProduitLogiciel',
         for l in sc["ProduitLogiciel"]])
 
 insert('"SCA".Lot',
-       ["idlot", "idproduit", "quantite", "date_creation", "statut"],
-       [(l["idlot"], l["idproduit"], l["quantite"], l["date_creation"],
-         l["statut"])
+       ["idlot", "idproduit", "quantite", "date_creation"],
+       [(l["idlot"], l["idproduit"], l["quantite"], l["date_creation"])
         for l in sc["Lot"]])
 
+insert('"SCA".LotEmballage',
+       ["idlotemballage", "idproduit", "quantite", "date_creation", "statut", "nbuses", "condition"],
+       [(le["idlotemballage"], le["idproduit"], le["quantite"], le["date_creation"],
+         le["statut"], le["nbuses"], le["condition"])
+        for le in sc["LotEmballage"]])
+
 insert('"SCA".ContenuColis',
-       ["idcolis", "idlot", "quantite", "date_maj"],
-       [(c["idcolis"], c["idlot"], c["quantite"], c["date_MAJ"])
+       ["idcontenu","idcolis", "idlot", "date_maj"],
+       [(c["idcontenu"], c["idcolis"], c["idlot"], c["date_MAJ"])
         for c in sc["ContenuColis"]])
 
 insert('"SCA".InventaireEmplacement',
-       ["idcellule", "idlot", "quantite", "datemaj"],
-       [(i["idcellule"], i["idlot"], i["quantite"], i["datemaj"])
+       ["idinventaire", "idcellule", "idlot", "datemaj"],
+       [(i["idinventaire"], i["idcellule"], i["idlot"], i["datemaj"])
         for i in sc["InventaireEmplacement"]])
 
 insert('"SCA".Tache',
-       ["idtache", "idtravailleur", "idcellule", "idcolis", "date_creation", "date_echeance", "duree_estime", "description", "priority", "statut", "type"],
+       ["idtache", "idtravailleur", "idcellule", "idlot", "date_creation", "date_echeance", "duree_estimee", "description", "priority", "statut", "type"],
        [(
            t["idtache"],
            t["idtravailleur"],
            t["idcellule"],
-           t["idcolis"],
+           t["idlot"],
            t["date_creation"],
            t["date_echeance"],
-           t["duree_estime"],
+           t["duree_estimee"],
            t["description"],
            t["priority"],
            t["statut"],
@@ -261,7 +305,6 @@ insert('"SCA".Bonexpedition',
          b["iddestinataire"], b["statut"], b["remarques"])
         for b in sc["Bonexpedition"]])
 
-# CORRECTION: La colonne s'appelle 'type' dans le JSON, et doit correspondre à la colonne 'type' de la table.
 insert('"SCA".RapportException',
        ["idrapport", "idcolis", "type", "date_creation", "description", "statut"],
        [(r["idrapport"], r["idcolis"], r["type"], r["date_creation"], r["description"], r["statut"])
@@ -274,6 +317,12 @@ insert('"SCA".entrepot',
 insert('"SCA".LivraisonConducteurColis',
        ["idconducteur","idbonexpedition","date_affectation","statut"],
        [(f["idconducteur"], f["idbonexpedition"], f["date_affectation"], f["statut"]) for f in sc["LivraisonConducteurColis"]])
+
+insert('"SCA".ConsommationVehicule',
+       ["idconsommation","idvehicule","consommation_moyenne" ,"date_mesure","conditions_mesure", "kilometrage_debut", "kilometrage_fin", "litres_consommes", "type_trajet", "date_creation"],
+       [(cv["idconsommation"], cv["idvehicule"], cv["consommation_moyenne"], cv["date_mesure"],cv["conditions_mesure"], cv["kilometrage_debut"], cv["kilometrage_fin"], 
+         cv["litres_consommes"], cv["type_trajet"], cv["date_creation"])
+        for cv in sc["ConsommationVehicule"]])
 
 # 🔐 Credentials et policies
 cred = data["CREDENTIALS"]
@@ -288,14 +337,11 @@ insert('"CREDENTIALS".Credentials',
        [(c["email"], c["mot_de_passe_hash"], c["idutilisateur"], c["date_creation"])
         for c in cred["Credentials"]])
 
-# CORRECTION: La table s'appelle 'organisation' et non 'OrganisationCred'.
 insert('"CREDENTIALS".organisation',
        ["idorganisation", "mdporg"],
        [(o["idorganisation"], o["mdpOrg"])
         for o in cred["organisation"]])
 
-# Cette table n'a pas de schéma spécifié, donc elle est probablement dans le schéma 'public'.
-# Pas besoin de préfixe de schéma si 'public' est dans le search_path.
 insert('"CREDENTIALS".application_theme',
        ["theme_name", "interface", "theme_qss"],
        [(t["theme_name"], t["window"], t["theme_qss"])
@@ -303,22 +349,21 @@ insert('"CREDENTIALS".application_theme',
 
 ext = data["EXTERNE"]
 
+insert('"EXTERNE".Colis',
+       ["idorg","idpcolis", "date_creation", "expected_date","receiving_org", "statut"],
+       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"],c["receiving_org"], c["statut"])
+        for c in ext["Colis"]])
+
 insert('"EXTERNE".Lot',
        ["idorg","idplot", "idproduit", "quantite", "date_creation", "statut"],
        [(l["idorg"],l["idplot"], l["idproduit"], l["quantite"], l["date_creation"],
          l["statut"])
         for l in ext["Lot"]])
 
-insert('"EXTERNE".Colis',
-       ["idorg","idpcolis", "date_creation", "expected_date","receiving_org", "statut"],
-       [(c["idorg"],c["idpcolis"], c["date_creation"], c["expected_date"],c["receiving_org"], c["statut"])
-        for c in ext["Colis"]])
-
 insert('"EXTERNE".ContenuColis',
-       ["idorg","idpcolis", "idplot", "quantite", "date_maj"],
-       [(c["idorg"],c["idpcolis"], c["idplot"], c["quantite"], c["date_MAJ"])
+       ["idpcontenu","idorg","idpcolis", "idplot", "date_maj"],
+       [(c["idpcontenu"],c["idorg"],c["idpcolis"], c["idplot"], c["date_MAJ"])
         for c in ext["ContenuColis"]])
-
 
 # ✅ Finalisation
 conn.commit()

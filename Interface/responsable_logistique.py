@@ -17,7 +17,7 @@ import random
 import psycopg2
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
 from PyQt6.QtGui import QBrush
-import login as login
+#import login as login
 import internalmail
 
 # Configuration de la base de données
@@ -1682,7 +1682,7 @@ class LogisticsDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
-            self.loginpage = login.FlipCard()
+            #self.loginpage = login.FlipCard()
             self.loginpage.show()
     
     def create_metric_label(self, text):

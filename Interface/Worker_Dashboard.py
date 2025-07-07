@@ -16,54 +16,63 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
-import login as login
+from db_connection import ConnectionDB
+
+Connection = ConnectionDB()
+#import login as login
 
 worker_id = 'TR1234'
-global conn
-print("1. online")
-print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# global conn
+# print("1. online")
+# print("2. offline")
+# it = input("Enter the number of bd you want to use : ")
 
-if it == '1':
-    print("You have chosen the online database.")
-    conn = psycopg2.connect(
-        host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
-        database="projet_integrateur",
-        user="group13",
-        password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
-        port=5432
-    )
-elif it == '2':
-    print("You have chosen the offline database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="postgres",
-        password="steevy",
-        port=5432
-    )
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="USER",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
     
-elif it == '3':
-    print("You have chosen the Viktor's database.")
-    conn = psycopg2.connect(
-        host="localhost",
-        database="Projet",
-        user="postgres",
-        password="Lune.Hatik123",
-        port=5432
-    )
-
-cur = conn.cursor()
+# elif it == '3':
+#     print("You have chosen the Viktor's database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="Projet",
+#         user="postgres",
+#         password="Lune.Hatik123",
+#         port=5432
+#     )
+# cur = con.cursor()
 
 class WorkerData:
     """Data generator and manager for warehouse worker operations"""
 
     def __init__(self):
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
         self.initialize_storage_cells()
 
     def generate_sample_data(self):
         # Products data
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        
+        cur = self.db_connection.cursor()
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
         products = cur.fetchall()
         if len(products) == 0:
@@ -77,7 +86,7 @@ class WorkerData:
                 columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire','idModel', 'Category'])
 
         # Expedition Tasks data
         task_statuses = ['Pending', 'In Progress', 'Completed', 'Cancelled']
@@ -151,6 +160,11 @@ class WorkerData:
         #self.exceptions = pd.DataFrame(exceptions_data)
 
     def initialize_storage_cells(self):
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
+        cur = self.db_connection.cursor()
         # Create a dictionary to hold the state of each storage cell
         # For a more robust system, this would be loaded from a database or config
         self.storage_cells = {}
@@ -334,7 +348,11 @@ class TaskCard(QFrame):
             info_layout.addLayout(header_row)
 
         # Details row
-
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            
+            cur = self.db_connection.cursor()
             cur.execute("SELECT (p).* FROM \"EMIR\".getlots(%s) AS p;", (self.task_data['Colis'],))
             items_count = cur.fetchall()
             details_text = f"Items: <b>{len(items_count)}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
@@ -1846,7 +1864,7 @@ class MainWindow(QMainWindow):
         navbar_layout.addWidget(self.exceptions_btn)
         navbar_layout.addWidget(self.cells_btn) # Add new button to navbar layout
         navbar_layout.addStretch() # For more centered look if desired
-        navbar_layout.addWidget(self.logout.btn)
+        #navbar_layout.addWidget(self.logout.btn)
 
         self.main_layout.addWidget(self.navbar)
 
@@ -1884,7 +1902,7 @@ class MainWindow(QMainWindow):
         )
         if response == QMessageBox.StandardButton.Yes:
             self.close()
-            self.loginpage = login.FlipCard()
+            #self.loginpage = login.FlipCard()
             self.loginpage.show()
 
     def navigate_to_widget(self, target_widget):

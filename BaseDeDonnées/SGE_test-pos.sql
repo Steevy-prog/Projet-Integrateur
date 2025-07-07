@@ -134,7 +134,7 @@ BEGIN
     INSERT INTO "SCA".Utilisateur (idutilisateur, idindividu, username, statut, niveau_acces) VALUES
     ('UABCDE', 'IABCDE', 'johndoe', 'actif', 'admin'),
     ('UFGHIJ', 'IFGHIJ', 'janesmith', 'actif', 'manager'),
-    ('UKLMNO', 'IKLMNO', 'peterb', 'en attente_validation', 'employe');
+    ('UKLMNO', 'IKLMNO', 'peterb', 'en attente_validation', 'employee');
     RAISE NOTICE 'Successfully inserted into "SCA".Utilisateur (in transaction).';
 EXCEPTION
     WHEN OTHERS THEN

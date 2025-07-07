@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from PyQt6.QtGui import QIcon, QPixmap, QPen
-from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtWidgets import QProgressBar
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt6.QtWidgets import QScrollArea
@@ -20,8 +20,8 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtCore import (
-    QPropertyAnimation, 
-    QEasingCurve, 
+    QPropertyAnimation,
+    QEasingCurve,
     QParallelAnimationGroup,
     QSequentialAnimationGroup
 )
@@ -51,7 +51,7 @@ if it == '1':
         port=5432
     )
 elif it == '2':
-    print("You have chosen the offline database.")
+    print("You have chosen the Steevy's database.")
     conn = psycopg2.connect(
         host="localhost",
         database="postgres",
@@ -59,7 +59,19 @@ elif it == '2':
         password="steevy",
         port=5432
     )
-cur=conn.cursor()
+
+elif it == '3':
+    print("You have chosen the Viktor's database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="Projet",
+        user="postgres",
+        password="Lune.Hatik123",
+        port=5432
+    )
+
+cur = conn.cursor()
+
 cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
 
@@ -71,6 +83,14 @@ contenu = cur.fetchall() # Existing packages from the database
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Pcontenucolis_eva() AS p;")
 pcontenu = cur.fetchall() # Existing packages from the database
+
+cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+produits_db = cur.fetchall() # Existing products from the database
+
+# Fetch workers for assignment
+cur.execute("SELECT (w).* FROM \"EMIR\".Travailleur_EVA() AS w;")
+workers_db = cur.fetchall()
+workers_list = [{'id': w[0], 'name': w[1]} for w in workers_db] # Assuming worker ID and Name
 
 class WarehouseData:
     """Data generator and manager for warehouse operations"""
@@ -143,6 +163,11 @@ class WarehouseData:
             cur.execute("SELECT \"EMIR\".getvaluecol(%s,%s);",(i.idorg,i.id))
             total = cur.fetchone()[0]
             items = [t for t in self.pcontenu_df.to_dict('records') if t['idcol'] == i.id]
+            
+            # Add a status to each product item in the list for assignment tracking
+            for item in items:
+                item['assignment_status'] = 'pending_assignment' # New field for lot assignment
+            
             quan = len(items)
             reception_data.append({
                 'Order_ID': i.id,
@@ -150,7 +175,11 @@ class WarehouseData:
                 'Expected_Date': i.expected_date,
                 'Items_Count': quan,
                 'Status': i.statut,
-                'Total_Value': total
+                'Total_Value': total,
+                'Products': items, # Store raw product data for detail dialog
+                'packer_assignment_status': 'unassigned', # New field for colis assignment
+                'assigned_packer_id': None,
+                'colis_assignment_date': None
             })
         self.reception_df = pd.DataFrame(reception_data)
 
@@ -990,30 +1019,165 @@ class MenuExpedition(QWidget):
         table.verticalHeader().setVisible(False)
         return table
 
+# New ProductDetailDialog
+class ProductDetailDialog(QDialog):
+    product_validated = pyqtSignal(str) # Emits order_id when validated
+    product_refused = pyqtSignal(str) # Emits order_id when refused
+
+    def __init__(self, order_data, parent=None):
+        super().__init__(parent)
+        self.order_data = order_data
+        self.setWindowTitle(f"Product Details for Order: {order_data['Order_ID']}")
+        self.setFixedSize(600, 700)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(25, 25, 25, 25)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            }
+            QLabel {
+                font-size: 15px;
+                color: #333333;
+                margin-bottom: 7px;
+            }
+            QLabel.title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #333333;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #E0E0E0;
+            }
+            QPushButton {
+                background-color: #6C63FF;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+                transition: all 0.2s ease-in-out;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+            }
+            QListWidget {
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 10px;
+                background-color: white;
+                min-height: 150px;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QFormLayout QLabel {
+                font-weight: bold;
+                color: #555555;
+            }
+        """)
+
+        title_label = QLabel(f"Order: {self.order_data['Order_ID']}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+
+        form_layout = QFormLayout()
+        form_layout.addRow("Supplier:", QLabel(self.order_data['Supplier']))
+        form_layout.addRow("Expected Date:", QLabel(str(self.order_data['Expected_Date'])))
+        form_layout.addRow("Items Count:", QLabel(str(self.order_data['Items_Count'])))
+        form_layout.addRow("Total Value:", QLabel(f"${self.order_data['Total_Value']:.2f}"))
+        layout.addLayout(form_layout)
+
+        products_label = QLabel("Products in this Order:")
+        layout.addWidget(products_label)
+        products_list_widget = QListWidget()
+        for item in self.order_data['Products']:
+            # Fetch product details from the global produits_db
+            product_id_or_lot = item.get('idlot') # Changed from idproduit to idlot
+            product_name = "Unknown Product"
+            quantity = item.get('quantity', 'N/A')
+
+            # Find product name from produits_db using product_id_or_lot
+            for prod_data in produits_db:
+                if prod_data[0] == product_id_or_lot: # Assuming prod_data[0] is the ID to match idlot
+                    product_name = prod_data[2] # Assuming name is at index 2
+                    break
+            products_list_widget.addItem(f"- {product_name} (ID: {product_id_or_lot}), Quantity: {quantity}")
+        layout.addWidget(products_list_widget)
+
+        button_layout = QHBoxLayout()
+        validate_button = QPushButton("Validate Order")
+        validate_button.setStyleSheet("background-color: #4CAF50;")
+        validate_button.clicked.connect(self.validate_product)
+        button_layout.addWidget(validate_button)
+
+        refuse_button = QPushButton("Refuse Order")
+        refuse_button.setStyleSheet("background-color: #F44336;")
+        refuse_button.clicked.connect(self.refuse_product)
+        button_layout.addWidget(refuse_button)
+
+        close_button = QPushButton("Close")
+        close_button.setStyleSheet("background-color: #999999;")
+        close_button.clicked.connect(self.reject)
+        button_layout.addWidget(close_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def validate_product(self):
+        # Update status in DB (example, replace with actual DB call)
+        try:
+            cur.execute('UPDATE "EMIR".PColis SET statut = %s WHERE id = %s AND idorg = %s;', ('Accepte', self.order_data['Order_ID'], self.order_data['Supplier']))
+            conn.commit()
+            QMessageBox.information(self, "Success", f"Order {self.order_data['Order_ID']} validated successfully!")
+            self.product_validated.emit(self.order_data['Order_ID'])
+            self.accept()
+        except psycopg2.Error as e:
+            conn.rollback()
+            QMessageBox.critical(self, "Database Error", f"Failed to validate order: {e}")
+
+    def refuse_product(self):
+        # Update status in DB (example, replace with actual DB call)
+        try:
+            cur.execute('UPDATE "EMIR".PColis SET statut = %s WHERE id = %s AND idorg = %s;', ('Refuse', self.order_data['Order_ID'], self.order_data['Supplier']))
+            conn.commit()
+            QMessageBox.information(self, "Success", f"Order {self.order_data['Order_ID']} refused.")
+            self.product_refused.emit(self.order_data['Order_ID'])
+            self.accept()
+        except psycopg2.Error as e:
+            conn.rollback()
+            QMessageBox.critical(self, "Database Error", f"Failed to refuse order: {e}")
+
+# Modified MenuReception
 class MenuReception(QWidget):
     def __init__(self,data):
         super().__init__()
         self.data=data
+        self.accepted_products = [] # List to store accepted products for assignment
         self.init_ui()
+
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            self._main_layout = QGridLayout(self)
+            self._main_layout = QVBoxLayout(self) # Changed to QVBoxLayout for better flow
 
         layout = self._main_layout
-        expedition_summary_table = self.create_expedition_summary_table()
-        bouton = QPushButton("chatte")
-        bouton.setFixedWidth(500) # This fixed width might constrain layout
-        bouton.setStyleSheet("""
-                    QPushButton { background-color: #2196F3; color: white; border: none; padding: 50px 16px; border-radius: 15px; font-weight: bold; }
-                    QPushButton:hover { background-color: #1976D2; }
-                """)
-        layout.addWidget(expedition_summary_table,0,0,Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(bouton,1,0)
-
         
+        title = QLabel("Reception Orders Validation")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        layout.addWidget(title)
+
+        self.reception_table = self.create_reception_table()
+        layout.addWidget(self.reception_table)
+        layout.addStretch()
+
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
@@ -1024,18 +1188,95 @@ class MenuReception(QWidget):
                 else:
                     self.clear_layout(item.layout())
 
-    def create_expedition_summary_table(self):
+    def create_reception_table(self):
         table = QTableWidget()
         
-        table.setRowCount(len(self.data.expedition2_df))
-        table.setColumnCount(4)
-        table.setHorizontalHeaderLabels(['identifiant du colis', 'identifiant du lot', 'id du bon de reception',"date d'expedition"])
+        # Filter reception_df to only show 'Pending' or 'In Transit' orders
+        # Assuming 'en attente' means pending and 'Accepte' means accepted for reception
+        # We want to show pending orders for validation
+        pending_orders_df = self.data.reception_df[
+            (self.data.reception_df['Status'] == 'en attente') | 
+            (self.data.reception_df['Status'] == 'Processing') # Include processing if they still need validation
+        ].copy() # Use .copy() to avoid SettingWithCopyWarning
 
-        for i, (_, row) in enumerate(self.data.expedition2_df.iterrows()):
-            table.setItem(i, 0, QTableWidgetItem(row['identifiant du colis']))
-            table.setItem(i, 1, QTableWidgetItem(row['identifiant du lot']))
-            table.setItem(i, 2, QTableWidgetItem(row['idbonexpedition']))
-            table.setItem(i, 3, QTableWidgetItem(str(row['dateexpedition'])))
+        table.setRowCount(len(pending_orders_df))
+        table.setColumnCount(7) # Added columns for Details, Validate, Refuse
+        table.setHorizontalHeaderLabels(['Order ID', 'Supplier', 'Expected Date', 'Items', 'Status', 'Details', 'Action'])
+
+        # Store original DataFrame index to map back
+        self.order_id_to_row_map = {order_id: i for i, order_id in enumerate(pending_orders_df['Order_ID'])}
+
+        for i, (_, row) in enumerate(pending_orders_df.iterrows()):
+            table.setItem(i, 0, QTableWidgetItem(row['Order_ID']))
+            table.setItem(i, 1, QTableWidgetItem(row['Supplier']))
+            table.setItem(i, 2, QTableWidgetItem(str(row['Expected_Date'])))
+            table.setItem(i, 3, QTableWidgetItem(str(row['Items_Count'])))
+            
+            status_item = QTableWidgetItem(row['Status'])
+            status_item.setBackground(QColor('#FFF3E0')) # Pending color
+            table.setItem(i, 4, status_item)
+
+            # Details Button
+            details_btn = QPushButton("View Details")
+            details_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #2196F3;
+                    color: white;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #1976D2;
+                }
+            """)
+            details_btn.clicked.connect(lambda _, order=row.to_dict(): self.show_product_details(order))
+            table.setCellWidget(i, 5, details_btn)
+
+            # Action Buttons (Validate/Refuse) container
+            action_widget = QWidget()
+            action_layout = QHBoxLayout(action_widget)
+            action_layout.setContentsMargins(0, 0, 0, 0)
+            action_layout.setSpacing(5)
+
+            validate_btn = QPushButton("Validate")
+            validate_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #388E3C;
+                }
+            """)
+            validate_btn.clicked.connect(lambda _, order_id=row['Order_ID']: self.validate_order(order_id))
+            action_layout.addWidget(validate_btn)
+
+            refuse_btn = QPushButton("Refuse")
+            refuse_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #F44336;
+                    color: white;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #D32F2F;
+                }
+            """)
+            refuse_btn.clicked.connect(lambda _, order_id=row['Order_ID']: self.refuse_order(order_id))
+            action_layout.addWidget(refuse_btn)
+            
+            table.setCellWidget(i, 6, action_widget)
+
+
         table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
@@ -1044,7 +1285,6 @@ class MenuReception(QWidget):
                 gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
-                width:200px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
@@ -1063,10 +1303,562 @@ class MenuReception(QWidget):
             }
         """)
 
+        table.setAlternatingRowColors(True)
+        # Set resize mode for columns
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents) # Order ID
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch) # Supplier
+        table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents) # Expected Date
+        table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents) # Items
+        table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents) # Status
+        table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents) # Details Button
+        table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents) # Action Buttons
+        
+        table.verticalHeader().setVisible(False) # Hide vertical header (row numbers)
+        return table
+
+    def show_product_details(self, order_data):
+        dialog = ProductDetailDialog(order_data, self)
+        dialog.product_validated.connect(self.handle_order_validated)
+        dialog.product_refused.connect(self.handle_order_refused)
+        dialog.exec()
+
+    def validate_order(self, order_id):
+        # Find the row in the table and remove it
+        row_to_remove = -1
+        for i in range(self.reception_table.rowCount()):
+            item = self.reception_table.item(i, 0)
+            if item and item.text() == order_id:
+                row_to_remove = i
+                break
+        
+        if row_to_remove != -1:
+            # Update status in the underlying DataFrame
+            # Find the original row in self.data.reception_df and update its status
+            self.data.reception_df.loc[self.data.reception_df['Order_ID'] == order_id, 'Status'] = 'Accepte'
+            
+            # Add the accepted order's products to the list for worker assignment
+            accepted_order_data = self.data.reception_df[self.data.reception_df['Order_ID'] == order_id].iloc[0].to_dict()
+            # Ensure 'Products' key exists and is a list
+            if 'Products' not in accepted_order_data or not isinstance(accepted_order_data['Products'], list):
+                accepted_order_data['Products'] = [] # Initialize if missing or not a list
+            self.accepted_products.append(accepted_order_data)
+            
+            self.reception_table.removeRow(row_to_remove)
+            QMessageBox.information(self, "Order Validated", f"Order {order_id} has been validated and moved for assignment.")
+            
+            # Notify the AssignLotToMagasinierWidget and AssignedTasksViewWidget to refresh
+            main_window = self.window()
+            if isinstance(main_window, MainWindow):
+                if hasattr(main_window.central_widget, 'current_widget') and isinstance(main_window.central_widget.current_widget, WarehouseMenuInteractionWidget):
+                    assign_lot_widget = main_window.central_widget.current_widget.findChild(AssignLotToMagasinierWidget)
+                    if assign_lot_widget:
+                        assign_lot_widget.refresh_accepted_products()
+                    assigned_tasks_widget = main_window.central_widget.current_widget.findChild(AssignedTasksViewWidget)
+                    if assigned_tasks_widget:
+                        assigned_tasks_widget.refresh_assigned_tasks()
+                    assign_colis_widget = main_window.central_widget.current_widget.findChild(AssignColisToEmballeurWidget)
+                    if assign_colis_widget:
+                        assign_colis_widget.refresh_pending_colis()
+        else:
+            QMessageBox.warning(self, "Error", f"Order {order_id} not found in the table.")
+
+    def refuse_order(self, order_id):
+        # Find the row in the table and remove it
+        row_to_remove = -1
+        for i in range(self.reception_table.rowCount()):
+            item = self.reception_table.item(i, 0)
+            if item and item.text() == order_id:
+                row_to_remove = i
+                break
+        
+        if row_to_remove != -1:
+            # Update status in the underlying DataFrame
+            self.data.reception_df.loc[self.data.reception_df['Order_ID'] == order_id, 'Status'] = 'Refuse'
+            
+            self.reception_table.removeRow(row_to_remove)
+            QMessageBox.information(self, "Order Refused", f"Order {order_id} has been refused.")
+        else:
+            QMessageBox.warning(self, "Error", f"Order {order_id} not found in the table.")
+
+    def handle_order_validated(self, order_id):
+        # This signal is emitted from ProductDetailDialog
+        # We already handle the removal in validate_order, so this might be redundant
+        # unless there's specific UI update needed here.
+        pass
+
+    def handle_order_refused(self, order_id):
+        # This signal is emitted from ProductDetailDialog
+        # We already handle the removal in refuse_order, so this might be redundant
+        pass
+
+# New AssignColisToEmballeurWidget
+class AssignColisToEmballeurWidget(QWidget):
+    def __init__(self, data, workers_list):
+        super().__init__()
+        self.data = data
+        self.workers_list = workers_list
+        self.init_ui()
+        self.refresh_pending_colis() # Initial refresh
+
+    def init_ui(self):
+        self._main_layout = QVBoxLayout(self)
+        self._main_layout.setContentsMargins(15, 15, 15, 15)
+        self._main_layout.setSpacing(20)
+
+        title = QLabel("Assign Colis (Packages) to Emballeurs (Packers)")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        self._main_layout.addWidget(title)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.colis_container = QWidget()
+        self.colis_layout = QVBoxLayout(self.colis_container)
+        self.colis_layout.setContentsMargins(0, 0, 0, 0)
+        self.colis_layout.setSpacing(15)
+        self.scroll_area.setWidget(self.colis_container)
+        self._main_layout.addWidget(self.scroll_area)
+
+        self._main_layout.addStretch()
+
+    def refresh_pending_colis(self):
+        # Clear existing cards
+        while self.colis_layout.count():
+            item = self.colis_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        # Filter for orders that are 'Accepte' and 'unassigned' for packer
+        pending_colis_for_assignment = [
+            order for order in self.data.reception_df.to_dict('records')
+            if order['Status'] == 'Accepte' and order['packer_assignment_status'] == 'unassigned'
+        ]
+
+        if not pending_colis_for_assignment:
+            no_colis_label = QLabel("No accepted colis awaiting emballeur assignment.")
+            no_colis_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
+            self.colis_layout.addWidget(no_colis_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
+
+        for colis_data in pending_colis_for_assignment:
+            colis_card = self.create_colis_assignment_card(
+                colis_data['Order_ID'],
+                colis_data['Supplier'],
+                colis_data['Items_Count'],
+                self.workers_list # Assuming all workers can be emballeurs for now
+            )
+            self.colis_layout.addWidget(colis_card)
+
+    def create_colis_assignment_card(self, order_id, supplier, items_count, workers):
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #E0E0E0;
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+            QLabel {
+                color: #333;
+                font-size: 14px;
+            }
+            QLabel.title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #6C63FF;
+                margin-bottom: 5px;
+            }
+            QComboBox {
+                border: 1px solid #CCC;
+                border-radius: 5px;
+                padding: 5px;
+                min-width: 100px;
+            }
+            QPushButton {
+                background-color: #00BFA5;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #00897B;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        
+        title_label = QLabel(f"Colis ID: {order_id} (Supplier: {supplier})")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+        
+        layout.addWidget(QLabel(f"Items in Colis: <b>{items_count}</b>"))
+        
+        assignment_layout = QHBoxLayout()
+        assignment_layout.addWidget(QLabel("Assign to Emballeur:"))
+        
+        worker_combo = QComboBox()
+        worker_combo.addItem("— Select Emballeur —", None)
+        for worker in workers:
+            worker_combo.addItem(worker['name'], worker['id'])
+        assignment_layout.addWidget(worker_combo)
+        
+        assign_btn = QPushButton("Assign Colis")
+        assign_btn.clicked.connect(lambda: self.assign_colis(order_id, worker_combo.currentData(), card))
+        assignment_layout.addWidget(assign_btn)
+        
+        layout.addLayout(assignment_layout)
+        layout.addStretch()
+        
+        return card
+
+    def assign_colis(self, order_id, worker_id, card_widget):
+        if not worker_id:
+            QMessageBox.warning(self, "Assignment Error", "Please select an emballeur.")
+            return
+
+        worker_name = next((w['name'] for w in self.workers_list if w['id'] == worker_id), "Unknown Emballeur")
+        
+        # Update the status of the specific colis in the reception_df
+        order_index = self.data.reception_df.index[self.data.reception_df['Order_ID'] == order_id].tolist()
+        if order_index:
+            order_idx = order_index[0]
+            self.data.reception_df.at[order_idx, 'packer_assignment_status'] = 'assigned'
+            self.data.reception_df.at[order_idx, 'assigned_packer_id'] = worker_id
+            self.data.reception_df.at[order_idx, 'colis_assignment_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        card_widget.deleteLater() # Remove the card from the UI
+        
+        QMessageBox.information(self, "Colis Assigned", 
+                                f"Colis '{order_id}' assigned to Emballeur: {worker_name}.")
+        
+        # Re-render the cards to ensure assigned items are gone
+        self.refresh_pending_colis()
+        # Notify the AssignedTasksViewWidget to refresh
+        main_window = self.window()
+        if isinstance(main_window, MainWindow):
+            if hasattr(main_window.central_widget, 'current_widget') and isinstance(main_window.central_widget.current_widget, WarehouseMenuInteractionWidget):
+                assigned_tasks_widget = main_window.central_widget.current_widget.findChild(AssignedTasksViewWidget)
+                if assigned_tasks_widget:
+                    assigned_tasks_widget.refresh_assigned_tasks()
+
+# Renamed AssignToWorkerWidget to AssignLotToMagasinierWidget
+class AssignLotToMagasinierWidget(QWidget):
+    def __init__(self, data, workers_list):
+        super().__init__()
+        self.data = data
+        self.workers_list = workers_list
+        self.accepted_products_for_assignment = [] # Will hold products from validated orders
+        self.init_ui()
+        self.refresh_accepted_products() # Initial refresh
+
+    def init_ui(self):
+        self._main_layout = QVBoxLayout(self)
+        self._main_layout.setContentsMargins(15, 15, 15, 15)
+        self._main_layout.setSpacing(20)
+
+        title = QLabel("Assign Lots (Product Items) to Magasiniers (Warehouse Workers)")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        self._main_layout.addWidget(title)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.products_container = QWidget()
+        self.products_layout = QVBoxLayout(self.products_container)
+        self.products_layout.setContentsMargins(0, 0, 0, 0)
+        self.products_layout.setSpacing(15)
+        self.scroll_area.setWidget(self.products_container)
+        self._main_layout.addWidget(self.scroll_area)
+
+        self._main_layout.addStretch()
+
+    def refresh_accepted_products(self):
+        # Clear existing cards
+        while self.products_layout.count():
+            item = self.products_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        # Get accepted orders from MenuReception (assuming it's the source)
+        main_window = self.window()
+        if isinstance(main_window, MainWindow):
+            if hasattr(main_window.central_widget, 'current_widget') and isinstance(main_window.central_widget.current_widget, WarehouseMenuInteractionWidget):
+                reception_widget = main_window.central_widget.current_widget.findChild(MenuReception)
+                if reception_widget:
+                    # Filter for orders that are 'Accepte'
+                    accepted_orders = [
+                        order for order in reception_widget.data.reception_df.to_dict('records')
+                        if order['Status'] == 'Accepte'
+                    ]
+                    self.accepted_products_for_assignment = []
+                    for order_data in accepted_orders:
+                        for product_item in order_data['Products']:
+                            # Only add products that are pending assignment
+                            if product_item.get('assignment_status') == 'pending_assignment':
+                                self.accepted_products_for_assignment.append({
+                                    'Order_ID': order_data['Order_ID'],
+                                    'product_item': product_item # Keep the full product item dictionary
+                                })
+
+        if not self.accepted_products_for_assignment:
+            no_products_label = QLabel("No accepted products awaiting assignment.")
+            no_products_label.setStyleSheet("font-style: italic; color: #777; padding: 20px;")
+            self.products_layout.addWidget(no_products_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
+
+        for assignment_data in self.accepted_products_for_assignment:
+            order_id = assignment_data['Order_ID']
+            product_item = assignment_data['product_item']
+
+            # Find full product details from produits_db using idlot
+            product_id_or_lot = product_item.get('idlot')
+            product_name = "Unknown Product"
+            product_category = "N/A"
+            product_details_from_db = next((p for p in produits_db if p[0] == product_id_or_lot), None)
+            if product_details_from_db:
+                product_name = product_details_from_db[2]
+                product_category = product_details_from_db[7]
+
+            product_card = self.create_product_assignment_card(
+                order_id,
+                product_name,
+                product_item['quantity'],
+                product_category,
+                self.workers_list,
+                product_id_or_lot # Pass product_id_or_lot to identify the specific product
+            )
+            self.products_layout.addWidget(product_card)
+
+    def create_product_assignment_card(self, order_id, product_name, quantity, category, workers, product_id_or_lot):
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid #E0E0E0;
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            }
+            QLabel {
+                color: #333;
+                font-size: 14px;
+            }
+            QLabel.title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #6C63FF;
+                margin-bottom: 5px;
+            }
+            QComboBox {
+                border: 1px solid #CCC;
+                border-radius: 5px;
+                padding: 5px;
+                min-width: 100px;
+            }
+            QPushButton {
+                background-color: #00BFA5;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #00897B;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        
+        title_label = QLabel(f"Order: {order_id} - Product: {product_name}")
+        title_label.setProperty("class", "title")
+        layout.addWidget(title_label)
+        
+        layout.addWidget(QLabel(f"Quantity: <b>{quantity}</b>"))
+        layout.addWidget(QLabel(f"Category: <b>{category}</b>"))
+        
+        assignment_layout = QHBoxLayout()
+        assignment_layout.addWidget(QLabel("Assign to Magasinier:"))
+        
+        worker_combo = QComboBox()
+        worker_combo.addItem("— Select Magasinier —", None)
+        for worker in workers:
+            worker_combo.addItem(worker['name'], worker['id'])
+        assignment_layout.addWidget(worker_combo)
+        
+        assign_btn = QPushButton("Assign Lot")
+        assign_btn.clicked.connect(lambda: self.assign_task(order_id, product_id_or_lot, worker_combo.currentData(), card))
+        assignment_layout.addWidget(assign_btn)
+        
+        layout.addLayout(assignment_layout)
+        layout.addStretch()
+        
+        return card
+
+    def assign_task(self, order_id, product_id_or_lot, worker_id, card_widget):
+        if not worker_id:
+            QMessageBox.warning(self, "Assignment Error", "Please select a worker.")
+            return
+
+        worker_name = next((w['name'] for w in self.workers_list if w['id'] == worker_id), "Unknown Worker")
+        
+        # Update the status of the specific product in the reception_df
+        # Find the order
+        order_index = self.data.reception_df.index[self.data.reception_df['Order_ID'] == order_id].tolist()
+        if order_index:
+            order_idx = order_index[0]
+            # Find the product within the order's Products list
+            products_list = self.data.reception_df.at[order_idx, 'Products']
+            for p_item in products_list:
+                if p_item.get('idlot') == product_id_or_lot: # Match by idlot
+                    p_item['assignment_status'] = 'assigned'
+                    # Optionally, store worker_id and assignment_date here
+                    p_item['assigned_worker_id'] = worker_id
+                    p_item['assignment_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    break
+        
+        card_widget.deleteLater() # Remove the card from the UI
+        
+        QMessageBox.information(self, "Task Assigned", 
+                                f"Product ID '{product_id_or_lot}' from Order '{order_id}' assigned to {worker_name}.")
+        
+        # Re-render the cards to ensure assigned items are gone
+        self.refresh_accepted_products()
+        # Notify the AssignedTasksViewWidget to refresh
+        main_window = self.window()
+        if isinstance(main_window, MainWindow):
+            if hasattr(main_window.central_widget, 'current_widget') and isinstance(main_window.central_widget.current_widget, WarehouseMenuInteractionWidget):
+                assigned_tasks_widget = main_window.central_widget.current_widget.findChild(AssignedTasksViewWidget)
+                if assigned_tasks_widget:
+                    assigned_tasks_widget.refresh_assigned_tasks()
+
+# New AssignedTasksViewWidget
+class AssignedTasksViewWidget(QWidget):
+    def __init__(self, data, workers_list):
+        super().__init__()
+        self.data = data
+        self.workers_list = workers_list
+        self.init_ui()
+        self.refresh_assigned_tasks() # Initial refresh
+
+    def init_ui(self):
+        self._main_layout = QVBoxLayout(self)
+        self._main_layout.setContentsMargins(15, 15, 15, 15)
+        self._main_layout.setSpacing(20)
+
+        title = QLabel("View All Assigned Tasks")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;")
+        self._main_layout.addWidget(title)
+
+        self.assigned_tasks_table = self.create_assigned_tasks_table()
+        self._main_layout.addWidget(self.assigned_tasks_table)
+        self._main_layout.addStretch()
+
+    def create_assigned_tasks_table(self):
+        table = QTableWidget()
+        table.setColumnCount(7) # Added column for Task Type
+        table.setHorizontalHeaderLabels([
+            'Task Type', 'Order ID', 'Item/Product Name', 'Quantity', 'Category', 'Assigned Worker', 'Assignment Date'
+        ])
+        
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
+                border: 1px solid #e0e0e0;
+                font-size: 12px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 10px 8px;
+                border: 1px solid #dcdcdc;
+                font-weight: bold;
+                font-size: 13px;
+                color: #555;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #cce7ff;
+                color: #333;
+            }
+        """)
+        table.setAlternatingRowColors(True)
         table.resizeColumnsToContents()
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
         return table
+
+    def refresh_assigned_tasks(self):
+        # Clear existing rows
+        self.assigned_tasks_table.setRowCount(0)
+        
+        assigned_tasks_data = []
+
+        # Collect Colis assignments
+        for order_data in self.data.reception_df.to_dict('records'):
+            if order_data.get('packer_assignment_status') == 'assigned':
+                assigned_packer_id = order_data.get('assigned_packer_id')
+                assigned_packer_name = next((w['name'] for w in self.workers_list if w['id'] == assigned_packer_id), "N/A")
+                assignment_date = order_data.get('colis_assignment_date', 'N/A')
+                
+                assigned_tasks_data.append({
+                    'Task_Type': 'Colis (Package)',
+                    'Order_ID': order_data['Order_ID'],
+                    'Item_Product_Name': f"{order_data['Items_Count']} items", # Display item count for colis
+                    'Quantity': order_data['Items_Count'],
+                    'Category': 'N/A', # Category not directly applicable to colis
+                    'Assigned_Worker': assigned_packer_name + " (Emballeur)",
+                    'Assignment_Date': assignment_date
+                })
+
+            # Collect Lot assignments within this order
+            if 'Products' in order_data and isinstance(order_data['Products'], list):
+                for product_item in order_data['Products']:
+                    if product_item.get('assignment_status') == 'assigned':
+                        product_id_or_lot = product_item.get('idlot')
+                        product_name = "Unknown Product"
+                        product_category = "N/A"
+                        product_details_from_db = next((p for p in produits_db if p[0] == product_id_or_lot), None)
+                        if product_details_from_db:
+                            product_name = product_details_from_db[2]
+                            product_category = product_details_from_db[7]
+                        
+                        assigned_worker_id = product_item.get('assigned_worker_id')
+                        assigned_worker_name = next((w['name'] for w in self.workers_list if w['id'] == assigned_worker_id), "N/A")
+                        assignment_date = product_item.get('assignment_date', 'N/A')
+
+                        assigned_tasks_data.append({
+                            'Task_Type': 'Lot (Product Item)',
+                            'Order_ID': order_data['Order_ID'],
+                            'Item_Product_Name': product_name,
+                            'Quantity': product_item.get('quantity', 'N/A'),
+                            'Category': product_category,
+                            'Assigned_Worker': assigned_worker_name + " (Magasinier)",
+                            'Assignment_Date': assignment_date
+                        })
+        
+        self.assigned_tasks_table.setRowCount(len(assigned_tasks_data))
+        for row_idx, task in enumerate(assigned_tasks_data):
+            self.assigned_tasks_table.setItem(row_idx, 0, QTableWidgetItem(task['Task_Type']))
+            self.assigned_tasks_table.setItem(row_idx, 1, QTableWidgetItem(task['Order_ID']))
+            self.assigned_tasks_table.setItem(row_idx, 2, QTableWidgetItem(task['Item_Product_Name']))
+            self.assigned_tasks_table.setItem(row_idx, 3, QTableWidgetItem(str(task['Quantity'])))
+            self.assigned_tasks_table.setItem(row_idx, 4, QTableWidgetItem(task['Category']))
+            self.assigned_tasks_table.setItem(row_idx, 5, QTableWidgetItem(task['Assigned_Worker']))
+            self.assigned_tasks_table.setItem(row_idx, 6, QTableWidgetItem(task['Assignment_Date']))
+
+        self.assigned_tasks_table.resizeColumnsToContents()
+        self.assigned_tasks_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
 
 class WarehouseMenuInteractionWidget(QWidget):
     """Widget principal de 'Menu interaction' qui regroupe les vues du module warehouse."""
@@ -1091,9 +1883,12 @@ class WarehouseMenuInteractionWidget(QWidget):
 
         # Onglets
         tabs = QTabWidget()
-        #tabs.addTab(MenuReception(self.data), "menu reception")
-        tabs.addTab(MenuExpedition(self.data), "menu expedition")
-        tabs.addTab(ZoneEmballage(self.data),"zone d'emballage")
+        tabs.addTab(MenuReception(self.data), "Reception Validation") # Updated tab name
+        tabs.addTab(MenuExpedition(self.data), "Expedition")
+        tabs.addTab(ZoneEmballage(self.data),"Packaging Zone")
+        tabs.addTab(AssignColisToEmballeurWidget(self.data, workers_list), "Assign Colis") # New tab for colis assignment
+        tabs.addTab(AssignLotToMagasinierWidget(self.data, workers_list), "Assign Lots") # Renamed tab for lot assignment
+        tabs.addTab(AssignedTasksViewWidget(self.data, workers_list), "View Assigned Tasks") # New tab for assigned tasks
         layout.addWidget(tabs)
         layout.addStretch() # Ensure tabs expand
         
@@ -1169,40 +1964,26 @@ class ReportsWidget(QWidget):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
             self.clear_layout(self._main_layout)
         else:
-            # Créer un QScrollArea comme widget principal
-            self.scroll_area = QScrollArea()
-            self.scroll_area.setWidgetResizable(True)
-            self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            
-            # Créer le widget conteneur et son layout
-            self.container_widget = QWidget()
-            self._main_layout = QVBoxLayout(self.container_widget)
-            
-            # Configurer le scroll area
-            self.scroll_area.setWidget(self.container_widget)
-            super().setLayout(QVBoxLayout())
-            super().layout().addWidget(self.scroll_area)
-            super().layout().setContentsMargins(0, 0, 0, 0)
-    
+            self._main_layout = QVBoxLayout(self)
+
         layout = self._main_layout
-        layout.setContentsMargins(10, 10, 10, 10)  # Ajouter des marges pour le contenu
-    
+        layout.setContentsMargins(0, 0, 0, 0)
+
         title = QLabel("Generate Reports")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #333;")
         layout.addWidget(title)
-    
+
         tabs = QTabWidget()
-    
+
         # Stock Reports
         stock_reports_widget = QWidget()
         stock_reports_layout = QVBoxLayout()
         stock_reports_layout.addWidget(QLabel("<h4>Stock Reports</h4>"))
         stock_reports_layout.addWidget(QLabel("Generate reports on current stock levels, low stock items, and inventory value."))
-    
+
         self.stock_summary_table = self.create_stock_summary_table()
         stock_reports_layout.addWidget(self.stock_summary_table)
-    
+
         # Add Save button for Stock Reports
         save_stock_btn = QPushButton("Save Stock Report to CSV")
         save_stock_btn.setStyleSheet("""
@@ -1221,27 +2002,29 @@ class ReportsWidget(QWidget):
         """)
         save_stock_btn.clicked.connect(self.save_stock_report_to_csv)
         stock_reports_layout.addWidget(save_stock_btn)
-    
+
+
         stock_reports_widget.setLayout(stock_reports_layout)
         tabs.addTab(stock_reports_widget, "Stock Reports")
-    
-        # Performance Reports
+
+        # Performance Reports (reusing PerformanceWidget logic)
         self.performance_reports_widget = PerformanceWidget(self.data)
         tabs.addTab(self.performance_reports_widget, "Performance Reports")
-    
+
         # Exception Reports
         exception_reports_widget = QWidget()
         exception_reports_layout = QVBoxLayout()
         exception_reports_layout.addWidget(QLabel("<h4>Exception Reports</h4>"))
         exception_reports_layout.addWidget(QLabel("View reports on overdue orders, critical low stock, and discrepancies."))
+        # Example: Low Stock Exception # Make it an instance variable
+
         exception_reports_layout.addWidget(QLabel("<p>No critical low stock items.</p>"))
-    
+
         exception_reports_widget.setLayout(exception_reports_layout)
         tabs.addTab(exception_reports_widget, "Exception Reports")
-    
+
         layout.addWidget(tabs)
         layout.addStretch()
-        
         
     def clear_layout(self, layout):
         if layout is not None:
@@ -1255,16 +2038,10 @@ class ReportsWidget(QWidget):
 
     def create_stock_summary_table(self):
         table = QTableWidget()
-        row_count = len(self.data.inventory_df)
-        table.setRowCount(row_count)
+        table.setRowCount(len(self.data.inventory_df))
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels(['Product', 'Category', 'Quantity', 'Current Value'])
-    
-        # Désactiver complètement les scrollbars
-        table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-    
-        # Remplir le tableau
+
         self.stock_summary_data = []
         for i, (_, row) in enumerate(self.data.inventory_df.iterrows()):
             product_info = self.data.products_df[self.data.products_df['ID'] == row['Product_ID']].iloc[0] if not self.data.products_df.empty else {'Category': 'N/A'}
@@ -1279,34 +2056,39 @@ class ReportsWidget(QWidget):
                 'Quantity': row['Quantity'],
                 'Current Value': current_value
             })
-    
-        # Style et configuration
+        self.stock_summary_df = pd.DataFrame(self.stock_summary_data)
+        
         table.setStyleSheet("""
             QTableWidget {
+                background-color: white;
+                alternate-background-color: #f5f5f5;
+                selection-background-color: #e3f2fd;
+                gridline-color: #dcdcdc;
                 border: 1px solid #e0e0e0;
                 font-size: 12px;
             }
             QHeaderView::section {
                 background-color: #f0f0f0;
-                padding: 6px;
+                padding: 10px 8px;
+                border: 1px solid #dcdcdc;
                 font-weight: bold;
+                font-size: 13px;
+                color: #555;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QTableWidget::item:selected {
+                background-color: #cce7ff;
+                color: #333;
             }
         """)
         table.setAlternatingRowColors(True)
-        
-        # Calculer la hauteur exacte nécessaire
-        header_height = table.horizontalHeader().height()
-        row_height = 30  # Hauteur moyenne par ligne
-        total_height = header_height + (row_count * row_height) + 2  # +2 pour la bordure
-        
-        # Appliquer la hauteur fixe
-        table.setFixedHeight(total_height)
-        
-        # Configuration des colonnes
+        table.resizeColumnsToContents()
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
-        
         return table
+
     def save_stock_report_to_csv(self):
         if not self.stock_summary_df.empty:
             options = QFileDialog.Option.DontUseNativeDialog  # option facultative

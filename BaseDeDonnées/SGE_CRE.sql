@@ -156,7 +156,7 @@ CREATE TYPE "SCA".type_vehicule AS ENUM ('camion','fourgon','camionnette','remor
 CREATE TYPE "SCA".statut_vehicule AS ENUM ('disponible','en maintenance','en livraison','hors service');
 CREATE TYPE "SCA".statut_conducteur AS ENUM ('disponible','en livraison','en congé','en formation');
 CREATE TYPE "SCA".statut_utilisateur AS ENUM ('actif','inactif','suspendu','en attente_validation');
-CREATE TYPE "SCA".niveau_acces AS ENUM ('admin','manager','employe');
+CREATE TYPE "SCA".niveau_acces AS ENUM ('admin','manager','employee');
 
 
 CREATE TABLE "SCA".REF_Marque (
@@ -238,7 +238,7 @@ CREATE TABLE "SCA".Utilisateur(
   date_inscription TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_derniere_connexion TIMESTAMP,
   statut "SCA".statut_utilisateur DEFAULT 'en attente_validation',
-  niveau_acces "SCA".niveau_acces DEFAULT 'employe',
+  niveau_acces "SCA".niveau_acces DEFAULT 'employee',
   CONSTRAINT Utilisateur_CC0 PRIMARY KEY (idutilisateur),
   CONSTRAINT Utilisateur_CR0 FOREIGN KEY (idindividu) REFERENCES "SCA".individu(idindividu) ON DELETE CASCADE
 );
@@ -581,6 +581,17 @@ CREATE TABLE "EXTERNE".inquiries (
     description   text,
     CONSTRAINT inq_pk PRIMARY KEY (idinq),
     FOREIGN KEY (idutilisateur) REFERENCES "SCA".Utilisateur(idutilisateur)
+);
+
+CREATE TABLE "SCA".inquiries (
+    idorg "SCA".idorg NOT NULL,
+    idinq         "EXTERNE".Idinquire NOT NULL,
+    type          "EXTERNE".typeinquire NOT NULL,
+    period        timestamp NOT NULL,
+    status        "EXTERNE".etatinq NOT NULL,
+    description   text,
+    CONSTRAINT inq_pk PRIMARY KEY (idinq),
+    FOREIGN KEY (idorg) REFERENCES "SCA".Organisation(idorganisation)
 );
 
 CREATE TABLE "SCA".Bugreport (
