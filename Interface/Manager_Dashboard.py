@@ -71,6 +71,9 @@ contenu = cur.fetchall() # Existing packages from the database
 cur.execute("SELECT (p).* FROM \"EMIR\".Pcontenucolis_eva() AS p;")
 pcontenu = cur.fetchall() # Existing packages from the database
 
+cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
+produits_db = cur.fetchall() # Existing products from the database
+
 class WarehouseData:
     """Data generator and manager for warehouse operations"""
 
@@ -169,7 +172,10 @@ class WarehouseData:
                 'Expected_Date': i.expected_date,
                 'Items_Count': quan,
                 'Status': i.statut,
-                'Total_Value': total
+                'Total_Value': total,
+                'packer_assignment_status' : 'unassigned',
+                'assigned_worker_name' : 'unnamed',
+                'assigned_worker_id' : 'none'
             })
         self.reception_df = pd.DataFrame(reception_data)
 
@@ -196,7 +202,10 @@ class WarehouseData:
                 'Request_Date': i.exp_date,
                 'Items_Count': len(items),
                 'Status': i.statut,
-                'Total_Value': total
+                'Total_Value': total,
+                'packer_assignment_status' : 'unassigned',
+                'assigned_worker_name' : 'unnamed',
+                'assigned_worker_id' : 'none'
             })
         self.expedition_df = pd.DataFrame(expedition_data)
 
@@ -880,9 +889,9 @@ class ZoneEmballage(QWidget):
                             if assignment_date == today:
                                 # Get product name and assigned worker name for display
                                 product_id_or_lot = product_item.get('idlot')
-                                product_name = next((p[2] for p in produits_db if p[0] == product_id_or_lot), "Unknown Product")
+                                product_name = next((p[2] for p in self.produits_db if p[0] == product_id_or_lot), "Unknown Product")
                                 assigned_worker_id = product_item.get('assigned_worker_id')
-                                assigned_worker_name = next((w['name'] for w in workers_list if w['id'] == assigned_worker_id), "N/A")
+                                assigned_worker_name = next((w['name'] for w in self.workers_list if w['id'] == assigned_worker_id), "N/A")
 
                                 lot_info = product_item.copy()
                                 lot_info['Order_ID'] = order_data['Order_ID'] # Add Order_ID for context
@@ -1172,7 +1181,7 @@ class ProductDetailDialog(QDialog):
             quantity = item.get('quantity', 'N/A')
 
             # Find product name from produits_db using product_id_or_lot
-            for prod_data in produits_db:
+            for prod_data in self.produits_db:
                 if prod_data[0] == product_id_or_lot: # Assuming prod_data[0] is the ID to match idlot
                     product_name = prod_data[2] # Assuming name is at index 2
                     break
@@ -1512,7 +1521,7 @@ class AssignColisToEmballeurWidget(QWidget):
         # Filter for orders that are 'Accepte' and 'unassigned' for packer
         pending_colis_for_assignment = [
             order for order in self.data.reception_df.to_dict('records')
-            if order['Status'] == 'Accepte' and order['packer_assignment_status'] == 'unassigned'
+            if order['Status'] == 'Accepte' 
         ]
 
         if not pending_colis_for_assignment:
@@ -1694,8 +1703,8 @@ class AssignLotToMagasinierWidget(QWidget):
             # Add some dummy data for demonstration if no real data is available
             # Ensure these dummy products have a corresponding entry in produits_db or handle "Unknown Product"
             dummy_product_id = 'P001' # Assuming P001 exists in produits_db
-            dummy_product_name = next((p[2] for p in produits_db if p[0] == dummy_product_id), "Sample Product A")
-            dummy_product_category = next((p[7] for p in produits_db if p[0] == dummy_product_id), "Electronics")
+            dummy_product_name = next((p[2] for p in self.produits_db if p[0] == dummy_product_id), "Sample Product A")
+            dummy_product_category = next((p[7] for p in self.produits_db if p[0] == dummy_product_id), "Electronics")
 
             self.accepted_products_for_assignment.extend([
                 {
@@ -1730,7 +1739,7 @@ class AssignLotToMagasinierWidget(QWidget):
             product_id_or_lot = product_item.get('idlot')
             product_name = "Unknown Product"
             product_category = "N/A"
-            product_details_from_db = next((p for p in produits_db if p[0] == product_id_or_lot), None)
+            product_details_from_db = next((p for p in self.produits_db if p[0] == product_id_or_lot), None)
             if product_details_from_db:
                 product_name = product_details_from_db[2]
                 product_category = product_details_from_db[7]
@@ -1963,7 +1972,7 @@ class AssignedTasksViewWidget(QWidget):
                         product_id_or_lot = product_item.get('idlot')
                         product_name = "Unknown Product"
                         product_category = "N/A"
-                        product_details_from_db = next((p for p in produits_db if p[0] == product_id_or_lot), None)
+                        product_details_from_db = next((p for p in self.produits_db if p[0] == product_id_or_lot), None)
                         if product_details_from_db:
                             product_name = product_details_from_db[2]
                             product_category = product_details_from_db[7]
