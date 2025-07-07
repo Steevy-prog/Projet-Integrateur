@@ -299,7 +299,7 @@ class AccountSettingsPage(QWidget):
             else:
                 cursor = self.db_connection.cursor()
                 insert_query = f"SELECT \"EMIR\".inscrire_utilisateur (%s, %s, %s, %s, %s, %s, %s);"
-                cursor.execute(insert_query, (id, username, first_name, last_name, email, password, access_level,))
+                cursor.execute(insert_query, (id, username, access_level, first_name, last_name, email, password,))
                 self.db_connection.commit()
                 self.state = True
                 cursor.close()
@@ -311,8 +311,7 @@ class AccountSettingsPage(QWidget):
             self.state = False
 
     
-    def update_employee_in_db(self, original_username, first_name, last_name, username, access_level, email):
-        password = first_name + last_name + "mmMM@@7777"
+    def update_employee_in_db(self, original_username, username, access_level, email):
         try:
             if not self.db_connection:
                 self.connection_info = Connection.connection()
@@ -320,16 +319,13 @@ class AccountSettingsPage(QWidget):
             else:
                 cursor = self.db_connection.cursor()
                 update_query = f"""
-                    CALL "EMIR".Modifier_utilisateur(
+                    CALL "EMIR".NModifier_utilisateur(
                 usernameanc    => %s,
                 usernamenouv   => %s,
-                nom            => %s,
-                prenom         => %s,
-                email          => %s,
+                _email          => %s,
                 _niveau_acces  => %s,
-                _mot_de_passe  => %s
                 """
-                cursor.execute(update_query, (original_username, username, first_name, last_name, email, access_level, password,))
+                cursor.execute(update_query, (original_username, username, email, access_level,))
                 self.db_connection.commit()
                 cursor.close()
                 QMessageBox.information(f"Employee {username} updated successfully.")
@@ -367,7 +363,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             else:
                 cursor = self.db_connection.cursor()
-                delete_query = f"SELECT \"EMIR\".supprimer_utilisateur({username});"
+                delete_query = f"SELECT \"EMIR\".Utilisateur_RET({username});"
                 cursor.execute(delete_query)
                 self.db_connection.commit()
                 cursor.close()
@@ -616,7 +612,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             else:
                 cursor = self.db_connection.cursor()
-                query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA WHERE setting_group = 'password_policy';"
+                query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE setting_group = 'password_policy';"
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 self.db_connection.commit()
@@ -661,16 +657,16 @@ class AccountSettingsPage(QWidget):
             QMessageBox.warning(self, "Selection Error", "No employee selected for editing.")
             return
         original_username = self.current_selected_employee['username']
-        new_first_name = self.edit_first_name_input.text().strip()
-        new_last_name = self.edit_last_name_input.text().strip()
+        # new_first_name = self.edit_first_name_input.text().strip()
+        # new_last_name = self.edit_last_name_input.text().strip()
         new_username = self.edit_username_input.text().strip()
         new_email = self.edit_email_input.text().strip()
         new_access_level = self.edit_access_level_combobox.currentText()
         
-        if not (new_first_name and new_last_name and new_username and  new_email):
+        if not (new_username and  new_email):
             QMessageBox.warning(self, "Input Error", "First Name, Last Name, and Username cannot be empty.")
             return
-        self.update_employee_in_db(original_username, new_first_name, new_last_name, new_username, new_access_level, new_email)
+        self.update_employee_in_db(original_username, new_username, new_access_level, new_email)
         QMessageBox.information(self, "Changes Saved", f"Changes for {new_username} saved successfully!")
         self._load_employee_data_from_db()
         self._clear_selection_and_forms()
@@ -1147,7 +1143,7 @@ class SecuritySettingPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             else:
                 cursor = self.db_connection.cursor()
-                query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
+                query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE setting_group = 'password_policy';"
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 self.db_connection.commit()
@@ -1196,10 +1192,7 @@ class SecuritySettingPage(QWidget):
                 for setting_name, value in self.password_policy_settings.items():
                     setting_value_str = str(value)
                     query = """
-                        INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group)
-                        VALUES (%s, %s, 'password_policy')
-                        ON CONFLICT (setting_name) DO UPDATE
-                        SET setting_value = EXCLUDED.setting_value;
+                        CALL "EMIR".PasswordPolicies_INS('password_policy', %s, %s)
                     """
                     cursor.execute(query, (setting_name, setting_value_str))
                 self.db_connection.commit()
