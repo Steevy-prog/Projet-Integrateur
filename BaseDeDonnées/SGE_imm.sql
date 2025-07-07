@@ -2056,7 +2056,7 @@ RETURNS TABLE (
     _setting_name VARCHAR,
     _setting_value VARCHAR,
     _setting_group VARCHAR,
-    description VARCHAR
+    _description VARCHAR
 ) AS $$
 BEGIN
     RETURN QUERY
