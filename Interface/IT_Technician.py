@@ -190,8 +190,8 @@ class AccountSettingsPage(QWidget):
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
         self.individual_combobox = QComboBox()
-        self.individual_combobox.addItem("My God")
-        self.individual_combobox.currentIndexChanged[int].connect(self.initial_create)
+        # self.individual_combobox.addItem("My God")
+        # self.individual_combobox.currentIndexChanged[int].connect(self.initial_create)
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
         
@@ -207,14 +207,14 @@ class AccountSettingsPage(QWidget):
         
         return frame
         
-    def initial_create(self):
-        text = self.individual_combobox.currentText().strip()
-        first_name = text.split(' ')[0]
-        last_name = text.split(' ')[1]
-        self.create_first_name_input.setText(first_name)
-        self.create_last_name_input.setText(last_name)
-        self.create_first_name_input.setReadOnly(True)
-        self.create_last_name_input.setReadOnly(True)
+    # def initial_create(self):
+    #     text = self.individual_combobox.currentText().strip()
+    #     first_name = text.split(' ')[0]
+    #     last_name = text.split(' ')[1]
+    #     self.create_first_name_input.setText(first_name)
+    #     self.create_last_name_input.setText(last_name)
+    #     self.create_first_name_input.setReadOnly(True)
+    #     self.create_last_name_input.setReadOnly(True)
 
 
     def _create_employee_list_section(self):

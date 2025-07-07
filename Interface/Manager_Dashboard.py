@@ -71,6 +71,7 @@ if not db_connection:
                 connection_info = Connection.connection()
                 db_connection = connection_info['db_connection']
 
+cur = db_connection.cursor()
 
 cur.execute("SELECT (p).* FROM \"EMIR\".colis_eva() AS p;")
 colis_db = cur.fetchall() # Existing packages from the database
@@ -89,9 +90,17 @@ class WarehouseData:
 
     def __init__(self):
         self.generate_sample_data()
-
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+        
+        
     def generate_sample_data(self):
         # Products data
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
+        cur = self.db_connection.cursor()
         cur.execute("SELECT (p).* FROM \"EMIR\".produit_eva() AS p;")
         products = cur.fetchall()
         self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','exp_date','receiving_org','statut'])
@@ -275,6 +284,9 @@ class RealtimeInventoryViewWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        
+        self.connection_info = Connection.connection()
+        self.db_connection = connection_info['db_connection']
         self.init_ui()
 
     def init_ui(self):
@@ -325,7 +337,11 @@ class RealtimeInventoryViewWidget(QWidget):
         # Metrics cards section
         metrics_layout = QHBoxLayout()
         metrics_layout.setSpacing(15)
-
+        
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute("SELECT \"EMIR\".total();")
             total_items = cur.fetchone()[0] or 0
@@ -1124,8 +1140,11 @@ class StorageSpaceManagementWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.init_ui()
-
+        
+        
     def init_ui(self):
         # Clear existing layout if init_ui is called multiple times
         if hasattr(self, '_main_layout') and self._main_layout is not None:
@@ -1141,6 +1160,9 @@ class StorageSpaceManagementWidget(QWidget):
         layout.addWidget(title)
 
         # Metric Card for Utilization
+        if not self.db_connection:
+            self.connection_info = Connection.connection()
+            self.db_connection = self.connection_info['db_connection']
         try:
             cur.execute('SELECT "EMIR".cellutilisation();')
             utilization = cur.fetchone()[0]
@@ -1174,6 +1196,8 @@ class ReportsWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.init_ui()
 
     def init_ui(self):
@@ -1409,6 +1433,9 @@ class OrdersWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
 
     def init_ui(self):
@@ -1446,6 +1473,10 @@ class OrdersWidget(QWidget):
                     self.clear_layout(item.layout())
 
     def create_reception_tab(self):
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0,0,0,0)
@@ -1458,6 +1489,7 @@ class OrdersWidget(QWidget):
         header_layout.addStretch()
 
         # Metrics
+        cur = self.db_connection.cursor()
         metrics_layout = QHBoxLayout()
         cur.execute("SELECT \"EMIR\".colis_entrants_jour_count();")
         today_rec = cur.fetchone()[0]
@@ -1503,6 +1535,10 @@ class OrdersWidget(QWidget):
         return widget
 
     def create_expedition_tab(self):
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0,0,0,0)
@@ -1835,6 +1871,9 @@ class MainDashboardWidget(QWidget):
         self.data = data
         self.current_widget = None
         self.is_menu_expanded = True
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
 
     def init_ui(self):
@@ -1965,6 +2004,10 @@ class MainDashboardWidget(QWidget):
         """)
         metrics_layout = QVBoxLayout(metrics_widget)
         metrics_layout.setContentsMargins(10, 10, 10, 10)
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
         try:
             cur.execute("SELECT \"EMIR\".total();")
             total_items = cur.fetchone()[0] or 0
