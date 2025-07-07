@@ -20,9 +20,9 @@ from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal, QDir, QObject, QThread
 from PyQt6.QtGui import QFont, QColor, QPalette
 
 from terminal import TerminalPage, AutomationPage
-from db_connection import db_connection
+from db_connection import ConnectionDB
 
-
+Connection = ConnectionDB()
 class AccountSettingsPage(QWidget):
     """
     A QWidget that encapsulates the entire Account Settings content,
@@ -41,7 +41,9 @@ class AccountSettingsPage(QWidget):
             "enforce_expiration": False,
             "password_expiration_days": 0
         }
-        # self.db_connection = db_connection
+        # Connection = ConnectionDB()
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.state = False
         self._setup_ui()
 
@@ -102,34 +104,38 @@ class AccountSettingsPage(QWidget):
         
     def extract_employee_data(self):
         try:
-            cursor = db_connection.cursor()
-            query = f"SELECT nom, prenom, username, email, niveau_acces, idutilisateur FROM \"EMIR\".lister_utilisateurs()"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            cursor.close()
-            db_connection.commit()
-            employee_data = []
-            for row in rows:
-                employee = {
-                    "first_name": row[0],
-                    "last_name": row[1],
-                    "username": row[2],
-                    "email": row[3],
-                    "access_level": row[4],
-                    "id": row[5]
-                }
-                employee_data.append(employee)
-            return employee_data
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                query = f"SELECT nom, prenom, username, email, niveau_acces, idutilisateur FROM \"EMIR\".lister_utilisateurs()"
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                cursor.close()
+                self.db_connection.commit()
+                employee_data = []
+                for row in rows:
+                    employee = {
+                        "first_name": row[0],
+                        "last_name": row[1],
+                        "username": row[2],
+                        "email": row[3],
+                        "access_level": row[4],
+                        "id": row[5]
+                    }
+                    employee_data.append(employee)
+                return employee_data
         except Error as e:
             QMessageBox.warning(self,"Error", f"Error extracting user data: {e}")
-            db_connection.rollback()
+            self.db_connection.rollback()
             if cursor:
                 cursor.close()
             return []
     
     def refresh_individual_list(self):
         self.combobox_refresh_button.setEnabled(False)
-        try: 
+        try:
             self.combobox_refresh_button.setText("Loading...")
             data_set  = self.get_individual_data()
             self.individual_combobox.clear()
@@ -148,8 +154,11 @@ class AccountSettingsPage(QWidget):
     
     def get_individual_data(self):
         try:
-            if db_connection:
-                cursor = db_connection.cursor()
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
                 query = "SELECT id, first_name, last_name FROM \"EMIR\".getnameandid()"
                 cursor.execute(query)
                 results = cursor.fetchall()
@@ -165,7 +174,7 @@ class AccountSettingsPage(QWidget):
                 else:
                     return []
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Fail to get Individuals' data from the database \n{e}")
@@ -260,19 +269,22 @@ class AccountSettingsPage(QWidget):
 
     def is_employee_present(self, username):
         try:
-
-            cursor = db_connection.cursor()
-            query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
-            cursor.execute(query, (username,))
-            result = cursor.fetchone()
-            db_connection.commit()
-            cursor.close()
-            if result:
-                return True
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
             else:
-                return False
+                cursor = self.db_connection.cursor()
+                query = f"SELECT * FROM \"EMIR\".lister_utilisateurs() WHERE username = %s"
+                cursor.execute(query, (username,))
+                result = cursor.fetchone()
+                self.db_connection.commit()
+                cursor.close()
+                if result:
+                    return True
+                else:
+                    return False
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Failed to check for existing employee in the database.\n {e}")
@@ -281,15 +293,18 @@ class AccountSettingsPage(QWidget):
 
     def add_employee_to_db(self, id, first_name, last_name, username, email, password, access_level):
         try:
-           
-            cursor = db_connection.cursor()
-            insert_query = f"SELECT \"EMIR\".inscrire_utilisateur (%s, %s, %s, %s, %s, %s, %s);"
-            cursor.execute(insert_query, (id, username, first_name, last_name, email, password, access_level,))
-            db_connection.commit()
-            self.state = True
-            cursor.close()
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                insert_query = f"SELECT \"EMIR\".inscrire_utilisateur (%s, %s, %s, %s, %s, %s, %s);"
+                cursor.execute(insert_query, (id, username, first_name, last_name, email, password, access_level,))
+                self.db_connection.commit()
+                self.state = True
+                cursor.close()
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.warning(self, "Database Error", f"Error adding employee: {e}")
@@ -299,23 +314,27 @@ class AccountSettingsPage(QWidget):
     def update_employee_in_db(self, original_username, first_name, last_name, username, access_level, email):
         password = first_name + last_name + "mmMM@@7777"
         try:
-            cursor = db_connection.cursor()
-            update_query = f"""
-                CALL "EMIR".Modifier_utilisateur(
-            usernameanc    => %s,
-            usernamenouv   => %s,
-            nom            => %s,
-            prenom         => %s,
-            email          => %s,
-            _niveau_acces  => %s,
-            _mot_de_passe  => %s
-            """
-            cursor.execute(update_query, (original_username, username, first_name, last_name, email, access_level, password,))
-            db_connection.commit()
-            cursor.close()
-            QMessageBox.information(f"Employee {username} updated successfully.")
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                update_query = f"""
+                    CALL "EMIR".Modifier_utilisateur(
+                usernameanc    => %s,
+                usernamenouv   => %s,
+                nom            => %s,
+                prenom         => %s,
+                email          => %s,
+                _niveau_acces  => %s,
+                _mot_de_passe  => %s
+                """
+                cursor.execute(update_query, (original_username, username, first_name, last_name, email, access_level, password,))
+                self.db_connection.commit()
+                cursor.close()
+                QMessageBox.information(f"Employee {username} updated successfully.")
         except Error as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.warning(self, "Database Error", f"Error updating employee: {e}")
@@ -343,14 +362,18 @@ class AccountSettingsPage(QWidget):
 
     def delete_employee_from_db(self, username):
         try:
-            cursor = db_connection.cursor()
-            delete_query = f"SELECT \"EMIR\".supprimer_utilisateur({username});"
-            cursor.execute(delete_query)
-            db_connection.commit()
-            cursor.close()
-            return True
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                delete_query = f"SELECT \"EMIR\".supprimer_utilisateur({username});"
+                cursor.execute(delete_query)
+                self.db_connection.commit()
+                cursor.close()
+                return True
         except Error as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             if cursor:
                 cursor.close()
             QMessageBox.critical(self, "Database Error", f"Error deleting employee: {e}")
@@ -588,28 +611,30 @@ class AccountSettingsPage(QWidget):
     def _load_password_policy(self):
         cursor = None
         try:
-            if db_connection is None or db_connection.closed:
-                raise Exception("Database connection is not open.")
-            cursor = self.db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA WHERE setting_group = 'password_policy';"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            db_connection.commit()
-            cursor.close()
-            loaded_settings = {row[0]: row[1] for row in rows}
-            self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
-            self.password_policy["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
-            self.password_policy["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
-            self.password_policy["require_number"] = (loaded_settings.get("require_number", "True") == "True")
-            self.password_policy["require_special"] = (loaded_settings.get("require_special", "True") == "True")
-            self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
-            self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                query = "SELECT setting_name, setting_value FROM \"EMIR\".PasswordPolicies_EVA WHERE setting_group = 'password_policy';"
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                self.db_connection.commit()
+                cursor.close()
+                loaded_settings = {row[0]: row[1] for row in rows}
+                self.password_policy["min_length"] = int(loaded_settings.get("min_length", 8))
+                self.password_policy["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+                self.password_policy["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+                self.password_policy["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+                self.password_policy["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+                self.password_policy["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+                self.password_policy["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
         except Error as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
                                 f"Could not load password policy. Using default settings. Error: {e}")
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             QMessageBox.warning(self, "Policy Load Error",
                                 f"An unexpected error occurred while loading password policy. Error: {e}")
         finally:
@@ -916,6 +941,8 @@ class DatabaseMaintenancePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("databaseMaintenancePage")
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self._setup_ui()
 
     def _setup_ui(self):
@@ -996,33 +1023,37 @@ class DatabaseMaintenancePage(QWidget):
         self.results_table.setColumnCount(0)
         self.results_message_text.clear()
         try:
-            cursor = db_connection.cursor()
-            cursor.execute(query)
-            if cursor.description:
-                column_names = [desc[0] for desc in cursor.description]
-                self.results_table.setColumnCount(len(column_names))
-                self.results_table.setHorizontalHeaderLabels(column_names)
-                rows = cursor.fetchall()
-                self.results_table.setRowCount(len(rows))
-                for row_idx, row_data in enumerate(rows):
-                    for col_idx, item in enumerate(row_data):
-                        self.results_table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
-                db_connection.commit()
-                self.results_message_text.setText(f"Query executed successfully. Fetched {len(rows)} rows.")
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
             else:
-                row_count = cursor.rowcount
-                db_connection.commit()
-                self.results_message_text.setText(f"Query executed successfully. Affected {row_count} rows.")
-            cursor.close()
+                cursor = self.db_connection.cursor()
+                cursor.execute(query)
+                if cursor.description:
+                    column_names = [desc[0] for desc in cursor.description]
+                    self.results_table.setColumnCount(len(column_names))
+                    self.results_table.setHorizontalHeaderLabels(column_names)
+                    rows = cursor.fetchall()
+                    self.results_table.setRowCount(len(rows))
+                    for row_idx, row_data in enumerate(rows):
+                        for col_idx, item in enumerate(row_data):
+                            self.results_table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+                    self.db_connection.commit()
+                    self.results_message_text.setText(f"Query executed successfully. Fetched {len(rows)} rows.")
+                else:
+                    row_count = cursor.rowcount
+                    self.db_connection.commit()
+                    self.results_message_text.setText(f"Query executed successfully. Affected {row_count} rows.")
+                cursor.close()
         except Error as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             error_message = f"Database Error: {e}"
             QMessageBox.critical(self, "Query Error", error_message)
             self.results_message_text.setText(error_message)
             if cursor:
                 cursor.close()
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             error_message = f"An unexpected error occurred: {e}"
             QMessageBox.critical(self, "Application Error", error_message)
             self.results_message_text.setText(error_message)
@@ -1036,6 +1067,10 @@ class SecuritySettingPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("securitySettingPage")
+        
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+            
         self._setup_ui()
         self.password_policy_settings = {
             "min_length": 8,
@@ -1107,34 +1142,36 @@ class SecuritySettingPage(QWidget):
         print("Loading password policy from database...")
         cursor = None
         try:
-            if db_connection is None or db_connection.closed:
-                raise Exception("Database connection is not open.")
-            cursor = db_connection.cursor()
-            query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            db_connection.commit()
-            loaded_settings = {row[0]: row[1] for row in rows}
-            self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
-            self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
-            self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
-            self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
-            self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
-            self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
-            self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
-            self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
-            self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
-            self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
-            self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
-            self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
-            self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
-            self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                query = "SELECT setting_name, setting_value FROM \"CREDENTIALS\".PasswordPolicies WHERE setting_group = 'password_policy';"
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                self.db_connection.commit()
+                loaded_settings = {row[0]: row[1] for row in rows}
+                self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
+                self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+                self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+                self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+                self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+                self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+                self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+                self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
+                self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
+                self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
+                self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
+                self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
+                self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
+                self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
         except Error as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
             print(f"Error loading password policy: {e}")
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while loading password policy: {e}")
             print(f"Unexpected error: {e}")
         finally:
@@ -1151,27 +1188,29 @@ class SecuritySettingPage(QWidget):
         self.password_policy_settings["password_expiration_days"] = self.expiration_days_spinbox.value() if self.enforce_expiration_checkbox.isChecked() else 0
         print("Attempting to save password policy to database...")
         try:
-            if db_connection is None or db_connection.closed:
-                raise Exception("Database connection is not open. Cannot save settings.")
-            cursor = db_connection.cursor()
-            for setting_name, value in self.password_policy_settings.items():
-                setting_value_str = str(value)
-                query = """
-                    INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group)
-                    VALUES (%s, %s, 'password_policy')
-                    ON CONFLICT (setting_name) DO UPDATE
-                    SET setting_value = EXCLUDED.setting_value;
-                """
-                cursor.execute(query, (setting_name, setting_value_str))
-            db_connection.commit()
-            QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
-            print("Password policy saved to database.")
+            if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+            else:
+                cursor = self.db_connection.cursor()
+                for setting_name, value in self.password_policy_settings.items():
+                    setting_value_str = str(value)
+                    query = """
+                        INSERT INTO "CREDENTIALS".PasswordPolicies (setting_name, setting_value, setting_group)
+                        VALUES (%s, %s, 'password_policy')
+                        ON CONFLICT (setting_name) DO UPDATE
+                        SET setting_value = EXCLUDED.setting_value;
+                    """
+                    cursor.execute(query, (setting_name, setting_value_str))
+                self.db_connection.commit()
+                QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
+                print("Password policy saved to database.")
         except Error as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")
             print(f"Error saving password policy: {e}")
         except Exception as e:
-            db_connection.rollback()
+            self.db_connection.rollback()
             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while saving password policy: {e}")
             print(f"Unexpected error: {e}")
         finally:
