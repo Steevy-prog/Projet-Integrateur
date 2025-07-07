@@ -1683,11 +1683,11 @@ end; $$ language plpgsql;
 -- 2. CELLULE
 create or replace function "EMIR".Cellule_EVA()
     returns table (
-                      idcellule "SCA".Idcellule,
-                      longueur "SCA".dims,
-                      largeur "SCA".dims,
-                      hauteur "SCA".dims,
-                      masse_maximale "SCA".dims
+                      _idcellule "SCA".Idcellule,
+                      _longueur "SCA".dims,
+                      _largeur "SCA".dims,
+                      _hauteur "SCA".dims,
+                      _masse_maximale "SCA".dims
                   ) as $$
 begin
     return query select idcellule, longueur, largeur, hauteur, masse_maximale from "SCA".Cellule;
@@ -1710,8 +1710,8 @@ $$ LANGUAGE plpgsql;
 -- 4. ZONE
 create or replace function "EMIR".Zone_EVA()
     returns table (
-                      idzone "SCA".Idzone,
-                      nom "SCA".Nom
+                      _idzone "SCA".Idzone,
+                      _nom "SCA".Nom
                   ) as $$
 begin
     return query select idzone, nom from "SCA".Zone;
@@ -1720,12 +1720,12 @@ end; $$ language plpgsql;
 -- 5. BONRECEPTION
 create or replace function "EMIR".Bonreception_EVA()
     returns table (
-                      idbonreception "SCA".Bonrecep,
-                      idcolis "SCA".Idcolis,
-                      date_creation date,
-                      idfournisseur "SCA".idOrg,
-                      statut "SCA".etat,
-                      remarques text
+                     _idbonreception "SCA".Bonrecep,
+                      _idcolis "SCA".Idcolis,
+                      _date_creation date,
+                      _idfournisseur "SCA".idOrg,
+                      _statut "SCA".etat,
+                      _remarques text
                   ) as $$
 begin
     return query select idbonreception, idcolis, date_creation, idfournisseur, statut, remarques from "SCA".Bonreception;
@@ -1750,11 +1750,11 @@ end; $$ language plpgsql;
 -- 7. INDIVIDU
 create or replace function "EMIR".Individu_EVA()
     returns table (
-                      idindividu "SCA".IDindividu,
-                      nom "SCA".Nom,
-                      prenom "SCA".Nom,
-                      adresse "SCA".Adresse,
-                      telephone "SCA".Numero
+                      _idindividu "SCA".IDindividu,
+                      _nom "SCA".Nom,
+                      _prenom "SCA".Nom,
+                      _adresse "SCA".Adresse,
+                      _telephone "SCA".Numero
                   ) as $$
 begin
     return query select idindividu, nom, prenom, adresse, telephone from "SCA".Individu;
@@ -1768,11 +1768,11 @@ end; $$ language plpgsql;
 -- 10. PRODUITMATERIEL
 create or replace function "EMIR".ProduitMateriel_EVA()
     returns table (
-                      idproduit "SCA".Idproduit,
-                      longueur "SCA".dims,
-                      largeur "SCA".dims,
-                      hauteur "SCA".dims,
-                      masse "SCA".dims
+                      _idproduit "SCA".Idproduit,
+                      _longueur "SCA".dims,
+                      _largeur "SCA".dims,
+                      _hauteur "SCA".dims,
+                      _masse "SCA".dims
                   ) as $$
 begin
     return query select idproduit, longueur, largeur, hauteur, masse from "SCA".ProduitMateriel;
@@ -1798,9 +1798,9 @@ end; $$ language plpgsql;
 -- 11. PRODUITLOGICIEL
 create or replace function "EMIR".ProduitLogiciel_EVA()
     returns table (
-                      idproduit "SCA".Idproduit,
-                      version "SCA".Nom,
-                      license "SCA".Nom
+                      _idproduit "SCA".Idproduit,
+                      _version "SCA".Nom,
+                      _license "SCA".Nom
                   ) as $$
 begin
     return query select idproduit, version, license from "SCA".ProduitLogiciel;
@@ -1809,10 +1809,10 @@ end; $$ language plpgsql;
 -- 12. LOT
 create or replace function "EMIR".Lot_EVA()
     returns table (
-                      idlot "SCA".idlot,
-                      idproduit "SCA".Idproduit,
-                      quantite "SCA".dims,
-                      date_creation date
+                      _idlot "SCA".idlot,
+                      _idproduit "SCA".Idproduit,
+                      _quantite "SCA".dims,
+                      _date_creation date
                   ) as $$
 begin
     return query select idlot, idproduit, quantite, date_creation from "SCA".Lot;
@@ -1844,12 +1844,12 @@ end; $$ language plpgsql;
 -- 16. RAPPORTEXCEPTION
 create or replace function "EMIR".RapportException_EVA()
     returns table (
-                      idrapport "SCA".Idrapport,
-                      idcolis "SCA".Idcolis,
-                      type "SCA".rapports,
-                      date_creation date,
-                      description text,
-                      statut "SCA".etat
+                      _idrapport "SCA".Idrapport,
+                      _idcolis "SCA".Idcolis,
+                      _type "SCA".rapports,
+                      _date_creation date,
+                      _description text,
+                      _statut "SCA".etat
                   ) as $$
 begin
     return query select idrapport, idcolis, type, date_creation, description, statut from "SCA".RapportException;
@@ -1858,10 +1858,10 @@ end; $$ language plpgsql;
 -- 17. INVENTAIREEMPLACEMENT
 CREATE OR REPLACE FUNCTION "EMIR".InventaireEmplacement_EVA()
 RETURNS TABLE (
-    idinventaire "SCA".idinventaire,
-    idcellule "SCA".Idcellule,
-    idlot "SCA".Idlot,
-    datemaj DATE
+    _idinventaire "SCA".idinventaire,
+    _idcellule "SCA".Idcellule,
+    _idlot "SCA".Idlot,
+    _datemaj DATE
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idinventaire, idcellule, idlot, datemaj FROM "SCA".InventaireEmplacement;
@@ -1874,19 +1874,19 @@ $$ LANGUAGE plpgsql;
 -- 19. VEHICULE
 CREATE OR REPLACE FUNCTION "EMIR".Vehicule_EVA()
 RETURNS TABLE (
-    idvehicule "SCA".idvehicule,
-    immatriculation "SCA".Nom,
-    idmodele "SCA".idmodele,
-    annee_fabrication INTEGER,
-    types "SCA".type_vehicule,
-    capacite_charge "SCA".dims,
-    capacite_volume "SCA".dims,
-    date_acquisition DATE,
-    statut "SCA".statut_vehicule,
-    kilometrage_actuel DECIMAL(10,2),
-    date_derniere_maintenance DATE,
-    prochaine_maintenance DATE,
-    carburant VARCHAR(20)
+    _idvehicule "SCA".idvehicule,
+    _immatriculation "SCA".Nom,
+    _idmodele "SCA".idmodele,
+    _annee_fabrication INTEGER,
+    _types "SCA".type_vehicule,
+    _capacite_charge "SCA".dims,
+    _capacite_volume "SCA".dims,
+    _date_acquisition DATE,
+    _statut "SCA".statut_vehicule,
+    _kilometrage_actuel DECIMAL(10,2),
+    _date_derniere_maintenance DATE,
+    _prochaine_maintenance DATE,
+    _carburant VARCHAR(20)
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idvehicule, immatriculation, idmodele, annee_fabrication, types, capacite_charge, capacite_volume, date_acquisition, statut, kilometrage_actuel, date_derniere_maintenance, prochaine_maintenance, carburant FROM "SCA".Vehicule;
@@ -1914,13 +1914,13 @@ end; $$ language plpgsql;
 -- 21. UTILISATEUR
 create or replace function "EMIR".Utilisateur_EVA()
     returns table (
-        idutilisateur "SCA".idutilisateur,
-        idindividu "SCA".IDindividu,
-        username "SCA".username,
-        date_inscription timestamp,
-        date_derniere_connexion timestamp,
-        statut "SCA".statut_utilisateur,
-        niveau_acces "SCA".niveau_acces
+        _idutilisateur "SCA".idutilisateur,
+        _idindividu "SCA".IDindividu,
+        _username "SCA".username,
+        _date_inscription timestamp,
+        _date_derniere_connexion timestamp,
+        _statut "SCA".statut_utilisateur,
+        _niveau_acces "SCA".niveau_acces
     ) as $$
 begin
     return query select idutilisateur, idindividu, username, date_inscription, date_derniere_connexion, statut, niveau_acces from "SCA".Utilisateur;
@@ -1929,10 +1929,10 @@ end; $$ language plpgsql;
 -- Fonction d'évaluation pour Credentials
 create or replace function "EMIR".Credentials_EVA()
     returns table (
-        email "SCA".email,
-        mot_de_passe_hash text,
-        idutilisateur "SCA".idutilisateur,
-        date_creation timestamp
+        _email "SCA".email,
+        _mot_de_passe_hash text,
+        _idutilisateur "SCA".idutilisateur,
+        _date_creation timestamp
     ) as $$
 begin
     return query select email, mot_de_passe_hash, idutilisateur, date_creation from "CREDENTIALS".Credentials;
@@ -1941,13 +1941,13 @@ end; $$ language plpgsql;
 -- 22. LOTEMBALLAGE
 create or replace function "EMIR".LotEmballage_EVA()
     returns table (
-        idlotemballage integer,
-        idproduit "SCA".Idproduit,
-        quantite "SCA".dims,
-        date_creation date,
-        statut "SCA".etat_lot,
-        nbuses int,
-        condition "SCA".condition_materiel
+        _idlotemballage integer,
+        _idproduit "SCA".Idproduit,
+        _quantite "SCA".dims,
+        _date_creation date,
+        _statut "SCA".etat_lot,
+        _nbuses int,
+        _condition "SCA".condition_materiel
     ) as $$
 begin
     return query select idlotemballage, idproduit, quantite, date_creation, statut, nbuses, condition from "SCA".LotEmballage;
@@ -1955,11 +1955,11 @@ end; $$ language plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".Bugreport_EVA()
 RETURNS TABLE (
-    id INTEGER,
-    idutilisateur "SCA".idutilisateur,
-    description TEXT,
-    date_creation TIMESTAMP,
-    statut "EXTERNE".etatinq
+    _id INTEGER,
+    _idutilisateur "SCA".idutilisateur,
+    _description TEXT,
+    _date_creation TIMESTAMP,
+    _statut "EXTERNE".etatinq
 ) AS $$
 BEGIN
     RETURN QUERY SELECT id, idutilisateur, description, date_creation, statut FROM "SCA".Bugreport;
@@ -2014,11 +2014,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".LivraisonConducteurColis_EVA()
 RETURNS TABLE (
-    idlivraison INTEGER,
-    idconducteur "SCA".idconducteur,
-    idbonexpedition "SCA".Bonexped,
-    date_affectation DATE,
-    statut "SCA".etatcolis
+    _idlivraison INTEGER,
+    _idconducteur "SCA".idconducteur,
+    _idbonexpedition "SCA".Bonexped,
+    _date_affectation DATE,
+    _statut "SCA".etatcolis
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -2031,15 +2031,15 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".LocalisationOrganisation_EVA()
 RETURNS TABLE (
-    idlocalisation INTEGER,
-    idorganisation "SCA".idOrg,
-    adresse "SCA".Adresse,
-    ville VARCHAR,
-    region VARCHAR,
-    pays VARCHAR,
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
-    date_ajout DATE
+    _idlocalisation INTEGER,
+    _idorganisation "SCA".idOrg,
+    _adresse "SCA".Adresse,
+    _ville VARCHAR,
+    _region VARCHAR,
+    _pays VARCHAR,
+    _latitude DOUBLE PRECISION,
+    _longitude DOUBLE PRECISION,
+    _date_ajout DATE
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -2064,8 +2064,8 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".CredentialsOrganisation_EVA()
 RETURNS TABLE (
-    idorganisation "SCA".idOrg,
-    mdpOrg TEXT
+    _idorganisation "SCA".idOrg,
+    _mdpOrg TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -2486,10 +2486,10 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".REF_Marque_EVA()
 RETURNS TABLE (
-    idmarque VARCHAR(50),
-    nom VARCHAR(100),
-    pays_origine VARCHAR(100),
-    date_creation TIMESTAMP
+    _idmarque VARCHAR(50),
+    _nom VARCHAR(100),
+    _pays_origine VARCHAR(100),
+    _date_creation TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idmarque, nom, pays_origine, date_creation FROM "SCA".REF_Marque;
@@ -2522,11 +2522,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".REF_Modele_EVA()
 RETURNS TABLE (
-    idmodele "SCA".idmodele,
-    idmarque VARCHAR(50),
-    nom VARCHAR(100),
-    type_produit VARCHAR(50),
-    date_creation TIMESTAMP
+    _idmodele "SCA".idmodele,
+    _idmarque VARCHAR(50),
+    _nom VARCHAR(100),
+    _type_produit VARCHAR(50),
+    _date_creation TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idmodele, idmarque, nom, type_produit, date_creation FROM "SCA".REF_Modele;
@@ -2558,10 +2558,10 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".REF_Specialite_EVA()
 RETURNS TABLE (
-    idspecialite VARCHAR(50),
-    nom VARCHAR(100),
-    description TEXT,
-    date_creation TIMESTAMP
+    _idspecialite VARCHAR(50),
+    _nom VARCHAR(100),
+    _description TEXT,
+    _date_creation TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idspecialite, nom, description, date_creation FROM "SCA".REF_Specialite;
@@ -2594,11 +2594,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".REF_Competence_EVA()
 RETURNS TABLE (
-    idcompetence VARCHAR(50),
-    nom VARCHAR(100),
-    description TEXT,
-    niveau_requis VARCHAR(50),
-    date_creation TIMESTAMP
+    _idcompetence VARCHAR(50),
+    _nom VARCHAR(100),
+    _description TEXT,
+    _niveau_requis VARCHAR(50),
+    _date_creation TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idcompetence, nom, description, niveau_requis, date_creation FROM "SCA".REF_Competence;
@@ -2636,12 +2636,12 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".ConducteurSpecialite_EVA()
 RETURNS TABLE (
-    idconducteur VARCHAR(50),
-    idspecialite VARCHAR(50),
-    date_obtention DATE,
-    niveau VARCHAR(50),
-    certifie BOOLEAN,
-    date_expiration DATE
+    _idconducteur VARCHAR(50),
+    _idspecialite VARCHAR(50),
+    _date_obtention DATE,
+    _niveau VARCHAR(50),
+    _certifie BOOLEAN,
+    _date_expiration DATE
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idconducteur, idspecialite, date_obtention, niveau, certifie, date_expiration FROM "SCA".ConducteurSpecialite;
@@ -2676,12 +2676,12 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".TravailleurCompetence_EVA()
 RETURNS TABLE (
-    idtravailleur VARCHAR(50),
-    idcompetence VARCHAR(50),
-    niveau_maitrise VARCHAR(50),
-    date_acquisition DATE,
-    certifie BOOLEAN,
-    date_derniere_evaluation DATE
+    _idtravailleur VARCHAR(50),
+    _idcompetence VARCHAR(50),
+    _niveau_maitrise VARCHAR(50),
+    _date_acquisition DATE,
+    _certifie BOOLEAN,
+    _date_derniere_evaluation DATE
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idtravailleur, idcompetence, niveau_maitrise, date_acquisition, certifie, date_derniere_evaluation FROM "SCA".TravailleurCompetence;
@@ -2720,16 +2720,16 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".ConsommationVehicule_EVA()
 RETURNS TABLE (
-    idconsommation VARCHAR(50),
-    idvehicule VARCHAR(50),
-    consommation_moyenne DECIMAL(5,2),
-    date_mesure DATE,
-    conditions_mesure TEXT,
-    kilometrage_debut DECIMAL(10,2),
-    kilometrage_fin DECIMAL(10,2),
-    litres_consommes DECIMAL(8,2),
-    type_trajet VARCHAR(50),
-    date_creation TIMESTAMP
+    _idconsommation VARCHAR(50),
+    _idvehicule VARCHAR(50),
+    _consommation_moyenne DECIMAL(5,2),
+    _date_mesure DATE,
+    _conditions_mesure TEXT,
+    _kilometrage_debut DECIMAL(10,2),
+    _kilometrage_fin DECIMAL(10,2),
+    _litres_consommes DECIMAL(8,2),
+    _type_trajet VARCHAR(50),
+    _date_creation TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idconsommation, idvehicule, consommation_moyenne, date_mesure, conditions_mesure, kilometrage_debut, kilometrage_fin, litres_consommes, type_trajet, date_creation FROM "SCA".ConsommationVehicule;
@@ -2761,11 +2761,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".LogsExtra_EVA()
 RETURNS TABLE (
-    id INTEGER,
-    log_id INTEGER,
-    cle VARCHAR(100),
-    valeur TEXT,
-    date_creation TIMESTAMP
+    _id INTEGER,
+    _log_id INTEGER,
+    _cle VARCHAR(100),
+    _valeur TEXT,
+    _date_creation TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY SELECT id, log_id, cle, valeur, date_creation FROM "SCA".LogsExtra;
@@ -2796,9 +2796,9 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION "EMIR".application_theme_EVA()
 RETURNS TABLE (
-    theme_name TEXT,
-    interface TEXT,
-    theme_qss TEXT
+    _theme_name TEXT,
+    _interface TEXT,
+    _theme_qss TEXT
 ) AS $$
 BEGIN
     RETURN QUERY SELECT theme_name, interface, theme_qss FROM "CREDENTIALS".application_theme;
@@ -2854,17 +2854,17 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Tache (manque priority)
 CREATE OR REPLACE FUNCTION "EMIR".Tache_EVA()
 RETURNS TABLE (
-    idtache "SCA".idtache,
-    idtravailleur "SCA".idtravailleur,
-    idcellule "SCA".Idcellule,
-    idcolis "SCA".Idcolis,
-    date_creation DATE,
-    date_echeance DATE,
-    duree_estimee INT,
-    description TEXT,
-    priority TEXT,
-    statut TEXT,
-    type TEXT
+    _idtache "SCA".idtache,
+    _idtravailleur "SCA".idtravailleur,
+    _idcellule "SCA".Idcellule,
+    _idcolis "SCA".Idcolis,
+    _date_creation DATE,
+    _date_echeance DATE,
+    _duree_estimee INT,
+    _description TEXT,
+    _priority TEXT,
+    _statut TEXT,
+    _type TEXT
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idtache, idtravailleur, idcellule, idcolis, date_creation, date_echeance, duree_estimee, description, priority, statut, type FROM "SCA".Tache;
@@ -2906,13 +2906,13 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour LotEmballage (correction des colonnes)
 CREATE OR REPLACE FUNCTION "EMIR".LotEmballage_EVA()
 RETURNS TABLE (
-    idlotemballage INTEGER,
-    idproduit "SCA".Idproduit,
-    quantite "SCA".dims,
-    date_creation DATE,
-    statut "SCA".etat_lot,
-    nbuses INT,
-    condition "SCA".condition_materiel
+    _idlotemballage INTEGER,
+    _idproduit "SCA".Idproduit,
+    _quantite "SCA".dims,
+    _date_creation DATE,
+    _statut "SCA".etat_lot,
+    _nbuses INT,
+    _condition "SCA".condition_materiel
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idlotemballage, idproduit, quantite, date_creation, statut, nbuses, condition FROM "SCA".LotEmballage;
@@ -2922,11 +2922,11 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Bugreport (correction du type statut)
 CREATE OR REPLACE FUNCTION "EMIR".Bugreport_EVA()
 RETURNS TABLE (
-    id INTEGER,
-    idutilisateur "SCA".idutilisateur,
-    description TEXT,
-    date_creation TIMESTAMP,
-    statut "EXTERNE".etatinq
+    _id INTEGER,
+    _idutilisateur "SCA".idutilisateur,
+    _description TEXT,
+    _date_creation TIMESTAMP,
+    _statut "EXTERNE".etatinq
 ) AS $$
 BEGIN
     RETURN QUERY SELECT id, idutilisateur, description, date_creation, statut FROM "SCA".Bugreport;
@@ -2964,12 +2964,12 @@ $$ LANGUAGE plpgsql;
 -- Correction de la routine EVA pour Repertoire
 CREATE OR REPLACE FUNCTION "EMIR".Repertoire_EVA()
 RETURNS TABLE (
-    idrepertoire "SCA".idrepertoire,
-    date_debut DATE,
-    date_fin DATE,
-    idindividu "SCA".IDindividu,
-    idorganisation "SCA".idOrg,
-    role "SCA".roles
+    _idrepertoire "SCA".idrepertoire,
+    _date_debut DATE,
+    _date_fin DATE,
+    _idindividu "SCA".IDindividu,
+    _idorganisation "SCA".idOrg,
+    _role "SCA".roles
 ) AS $$
 BEGIN
     RETURN QUERY SELECT idrepertoire, date_debut, date_fin, idindividu, idorganisation, role FROM "SCA".Repertoire;
