@@ -3118,7 +3118,7 @@ begin
     into _longueur, _largeur, _hauteur, _masse, _quantite
     from "EXTERNE".Lot l
     join "SCA".ProduitMateriel pm on l.idproduit = pm.idproduit
-    where l.idlot = _idlot;
+    where l.idplot = _idplot;
 
     _volume := _longueur * _largeur * _hauteur * _quantite;
     _masse_totale := _masse * _quantite;
