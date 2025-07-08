@@ -1,0 +1,149 @@
+-- Ensure the SCA schema exists
+CREATE SCHEMA IF NOT EXISTS "SCA";
+
+-- Drop tables if they already exist to ensure a clean slate for testing
+-- (Use with caution in production, but good for development testing)
+DROP TABLE IF EXISTS "SCA"."LivraisonConducteurColis" CASCADE;
+DROP TABLE IF EXISTS "SCA"."Conducteur" CASCADE;
+DROP TABLE IF EXISTS "SCA"."DriverLocations" CASCADE;
+DROP TABLE IF EXISTS "SCA"."entrepot" CASCADE;
+DROP TABLE IF EXISTS "SCA"."ConsommationVehicule" CASCADE;
+
+-- Re-create the Conducteur table
+CREATE TABLE IF NOT EXISTS "SCA"."Conducteur" (
+    idconducteur VARCHAR(50) PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    prenom VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20),
+    email VARCHAR(100) UNIQUE
+);
+
+-- Re-create LivraisonConducteurColis with new columns
+CREATE TABLE IF NOT EXISTS "SCA"."LivraisonConducteurColis" (
+    idbonexpedition VARCHAR(50) PRIMARY KEY,
+    idconducteur VARCHAR(50) NOT NULL,
+    nom_destinataire VARCHAR(255) NOT NULL,
+    adresse TEXT NOT NULL,
+    date_expedition DATE,
+    date_prevue DATE,
+    date_livree DATE,
+    poids VARCHAR(50),
+    volume VARCHAR(50),
+    type_colis VARCHAR(100),
+    instructions TEXT,
+    delivery_latitude NUMERIC,
+    delivery_longitude NUMERIC,
+    status VARCHAR(50) DEFAULT 'pending',
+    date_affectation TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (idconducteur) REFERENCES "SCA"."Conducteur"(idconducteur)
+);
+
+-- Create DriverLocations table
+CREATE TABLE IF NOT EXISTS "SCA"."DriverLocations" (
+    id SERIAL PRIMARY KEY,
+    idconducteur VARCHAR(50) UNIQUE NOT NULL,
+    current_latitude NUMERIC NOT NULL,
+    current_longitude NUMERIC NOT NULL,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (idconducteur) REFERENCES "SCA"."Conducteur"(idconducteur)
+);
+
+-- Tables from your original insert statements
+CREATE TABLE IF NOT EXISTS "SCA"."entrepot" (
+    idcellule VARCHAR(50) PRIMARY KEY,
+    position VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS "SCA"."ConsommationVehicule" (
+    idconsommation SERIAL PRIMARY KEY,
+    idvehicule VARCHAR(50),
+    consommation_moyenne NUMERIC,
+    date_mesure DATE,
+    conditions_mesure TEXT,
+    kilometrage_debut NUMERIC,
+    kilometrage_fin NUMERIC,
+    litres_consommes NUMERIC,
+    type_trajet VARCHAR(100),
+    date_creation TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- --- Sample Data Insertion ---
+
+-- Insert sample driver data (6 specific drivers with correct emails)
+INSERT INTO "SCA"."Conducteur" (idconducteur, nom, prenom, telephone, email) VALUES
+('TR1234', 'Karlone', 'Messie', '677111111', 'messie.karlone@example.com')
+ON CONFLICT (idconducteur) DO UPDATE SET nom = EXCLUDED.nom, prenom = EXCLUDED.prenom, telephone = EXCLUDED.telephone, email = EXCLUDED.email;
+
+INSERT INTO "SCA"."Conducteur" (idconducteur, nom, prenom, telephone, email) VALUES
+('TR1235', 'Thibaut', 'Ambiana', '677222222', 'ambiana.thibaut@example.com')
+ON CONFLICT (idconducteur) DO UPDATE SET nom = EXCLUDED.nom, prenom = EXCLUDED.prenom, telephone = EXCLUDED.telephone, email = EXCLUDED.email;
+
+INSERT INTO "SCA"."Conducteur" (idconducteur, nom, prenom, telephone, email) VALUES
+('TR1236', 'Valery', 'Steevy', '677333333', 'steevy.valery@example.com')
+ON CONFLICT (idconducteur) DO UPDATE SET nom = EXCLUDED.nom, prenom = EXCLUDED.prenom, telephone = EXCLUDED.telephone, email = EXCLUDED.email;
+
+INSERT INTO "SCA"."Conducteur" (idconducteur, nom, prenom, telephone, email) VALUES
+('TR1237', 'Emmanuel', 'Navou', '677444444', 'navou.emmanuel@example.com')
+ON CONFLICT (idconducteur) DO UPDATE SET nom = EXCLUDED.nom, prenom = EXCLUDED.prenom, telephone = EXCLUDED.telephone, email = EXCLUDED.email;
+
+INSERT INTO "SCA"."Conducteur" (idconducteur, nom, prenom, telephone, email) VALUES
+('TR1238', 'Viktor', 'Eric', '677555555', 'eric.viktor@example.com')
+ON CONFLICT (idconducteur) DO UPDATE SET nom = EXCLUDED.nom, prenom = EXCLUDED.prenom, telephone = EXCLUDED.telephone, email = EXCLUDED.email;
+
+INSERT INTO "SCA"."Conducteur" (idconducteur, nom, prenom, telephone, email) VALUES
+('TR1239', 'Landry', 'Marc', '677666666', 'marc.landry@example.com')
+ON CONFLICT (idconducteur) DO UPDATE SET nom = EXCLUDED.nom, prenom = EXCLUDED.prenom, telephone = EXCLUDED.telephone, email = EXCLUDED.email;
+
+
+-- Insert sample PENDING delivery data into LivraisonConducteurColis
+-- All deliveries are assigned to 'TR1234' (Messie Karlone) for simplicity
+INSERT INTO "SCA"."LivraisonConducteurColis" (
+    idbonexpedition, idconducteur, nom_destinataire, adresse,
+    date_expedition, date_prevue, poids, volume, type_colis, instructions,
+    delivery_latitude, delivery_longitude, status
+) VALUES
+('PKG001', 'TR1234', 'Alice Dubois', '10 Rue Principale, Yaoundé',
+    '2025-07-01', '2025-07-05', '2 kg', '0.01 m³', 'Document', 'Fragile, éviter l''humidité',
+    3.8619, 11.5217, 'pending'),
+
+('PKG002', 'TR1234', 'Bob Martin', '25 Avenue de la Liberté, Douala',
+    '2025-07-02', '2025-07-06', '10 kg', '0.05 m³', 'Électronique', 'Ne pas exposer au soleil',
+    4.0415, 9.7028, 'pending'),
+
+('PKG003', 'TR1234', 'Claire Nguyen', '15 Boulevard du 20 Mai, Bafoussam',
+    '2025-07-03', '2025-07-07', '5 kg', '0.02 m³', 'Vêtements', 'Livrer entre 9h et 17h',
+    5.4737, 10.4176, 'pending')
+ON CONFLICT (idbonexpedition) DO NOTHING;
+
+-- Insert sample COMPLETED delivery data into LivraisonConducteurColis (separate statement)
+INSERT INTO "SCA"."LivraisonConducteurColis" (
+    idbonexpedition, idconducteur, nom_destinataire, adresse,
+    date_expedition, date_prevue, poids, volume, type_colis, instructions,
+    delivery_latitude, delivery_longitude, status, date_livree -- Explicitly include date_livree
+) VALUES
+('PKG000', 'TR1234', 'David Kamga', '8 Rue de la Paix, Douala',
+    '2025-06-30', '2025-07-04', '3 kg', '0.015 m³', 'Livre', 'Appeler avant livraison',
+    4.0463, 9.7075, 'completed', '2025-07-04')
+ON CONFLICT (idbonexpedition) DO NOTHING;
+
+
+-- Insert a placeholder driver location for TR1234 (Messie Karlone)
+-- This location will be updated by the application's QTimer
+INSERT INTO "SCA"."DriverLocations" (idconducteur, current_latitude, current_longitude) VALUES
+('TR1234', 3.8480, 11.5021) -- Starting location near Yaounde
+ON CONFLICT (idconducteur) DO UPDATE SET
+    current_latitude = EXCLUDED.current_latitude,
+    current_longitude = EXCLUDED.current_longitude,
+    last_updated = CURRENT_TIMESTAMP;
+
+-- Insert sample entrepot data
+INSERT INTO "SCA"."entrepot" (idcellule, position) VALUES
+('E001', 'North Warehouse'),
+('E002', 'South Distribution Hub')
+ON CONFLICT (idcellule) DO NOTHING;
+
+-- Insert sample ConsommationVehicule data
+INSERT INTO "SCA"."ConsommationVehicule" (idconsommation, idvehicule, consommation_moyenne, date_mesure, conditions_mesure, kilometrage_debut, kilometrage_fin, litres_consommes, type_trajet, date_creation) VALUES
+(1, 'V001', 8.5, '2025-06-15', 'Urban', 10000, 10100, 8.5, 'City', '2025-06-15 10:00:00'),
+(2, 'V002', 7.2, '2025-06-20', 'Highway', 20000, 20200, 14.4, 'Long Haul', '2025-06-20 14:30:00')
+ON CONFLICT (idconsommation) DO NOTHING;

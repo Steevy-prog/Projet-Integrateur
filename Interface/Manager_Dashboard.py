@@ -37,9 +37,9 @@ elif it == '2':
     print("You have chosen the Steevy's database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="projet",
         user="postgres",
-        password="1234",
+        password="postgres",
         port=5432
     )
 
@@ -1054,11 +1054,22 @@ class ProductDetailDialog(QDialog):
         self.setWindowTitle(f"Product Details for Order: {order_data['Order_ID']}")
         self.setFixedSize(600, 700)
         self.init_ui()
+
+    def checkeligibility(self):
+        for i in self.order_data['Products']:
+            if self.Eligible(i['idlot']) == False:
+                return "Not Eligible"
+        return "Eligible"
+
     
-    def Eligible():
-        eligible = ""
+    def Eligible(self,idlot):
+        cur.execute("SELECT \"EMIR\".Attribuer_Cellule_Optimale(%s)",(idlot,))
+        eli = cur.fetchone()[0]
+        if eli is not None:
+            print(eli)
+            return True
         
-        return eligible
+        return False
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -1110,7 +1121,9 @@ class ProductDetailDialog(QDialog):
                 color: #555555;
             }
         """)
-        eligibilty = ProductDetailDialog.Eligible()
+        print(self.order_data['Order_ID'])
+        eligibilty = self.checkeligibility()
+        print(eligibilty)
         title_label = QLabel(f"Order: {self.order_data['Order_ID']} {eligibilty}")
         title_label.setProperty("class", "title")
         layout.addWidget(title_label)
@@ -2967,7 +2980,7 @@ class MainDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
-            import login as login
+            import logintravailleur as login
             self.loginpage = login.FlipCard()
             self.loginpage.show()
 
