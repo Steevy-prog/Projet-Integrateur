@@ -3099,7 +3099,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 create or replace function "EMIR".Attribuer_Cellule_Optimale(
-    _idlot "SCA".Idlot
+    _idplot "EXTERNE".Idplot
 )
 returns "SCA".Idcellule
 as $$
@@ -3116,7 +3116,7 @@ begin
     -- Récupération des données du lot et du produit associé
     select pm.longueur, pm.largeur, pm.hauteur, pm.masse, l.quantite
     into _longueur, _largeur, _hauteur, _masse, _quantite
-    from "SCA".Lot l
+    from "EXTERNE".Lot l
     join "SCA".ProduitMateriel pm on l.idproduit = pm.idproduit
     where l.idlot = _idlot;
 
