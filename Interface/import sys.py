@@ -23,11 +23,11 @@ class MinimalStorageTestWidget(QWidget):
         scroll_area.setWidgetResizable(True)
         
         # Main zones layout
-        self.main_zones_layout = QVBoxLayout()
+        self.zones_layout = QVBoxLayout()
         self.populate_test_zones()
         
         main_widget = QWidget()
-        main_widget.setLayout(self.main_zones_layout)
+        main_widget.setLayout(self.zones_layout)
         scroll_area.setWidget(main_widget)
         
         layout.addWidget(scroll_area)
@@ -90,7 +90,7 @@ class MinimalStorageTestWidget(QWidget):
                 print(f"Added cell {cell_id} to grid at ({row}, {col})")
             
             zone_group_box.setLayout(grid_layout)
-            self.main_zones_layout.addWidget(zone_group_box)
+            self.zones_layout.addWidget(zone_group_box)
             print(f"Added zone {zone_name} to main layout")
         
         print("populate_test_zones completed")

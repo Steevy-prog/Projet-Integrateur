@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+from datetime import date
 from PyQt6.QtGui import QIcon, QPixmap, QPen, QPainter, QColor, QPalette, QFont
 from PyQt6.QtCore import QRectF, Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QSequentialAnimationGroup, QDate, QTimer
 from PyQt6.QtWidgets import (
@@ -152,8 +153,6 @@ class LogisticsData:
                 try:
                     cur.execute('SELECT "EMIR".quantityproduct(%s);', (product['ID'],))
                     quantity = cur.fetchone()[0]
-                    if quantity is None:
-                        print("cul")
 
                     print(f"Fetched quantity for product {product['ID']}: {quantity}")
                     cur.execute('SELECT "EMIR".findzone(%s);', (product['ID'],))
@@ -989,14 +988,17 @@ class TransportManagementWidget(QWidget):
                     f"Le conducteur {selected['id']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
                     QMessageBox.StandardButton.Ok
                 )
+                cur.execute('SELECT * FROM "EMIR".getbonid(%s);', (datas.id,))
+                bonid = cur.fetchone()[0]
                 self.assignments.append({
                                          'package_id': datas.id,
-                                         'driver_id': selected['id'],
-                                         'driver_user_id': selected['idutil'],
-                                         'destination': datas.receiving_org,
-                                         'date_expedition': datas.date
+                                         'bonid': bonid,
+                                         'date': date.today().isoformat(),
+                                         'statut': 'Attente'
                                         })
-                
+                self.ass_df = pd.DataFrame(self.assignments)
+                cur.execute('CALL "EMIR".LivraisonConducteurColis_INS(%s,%s,%s,%s)',(selected['id'],bonid,date.today().isoformat(),'Attente'))
+                conn.commit()
                 print(datas.date)
                 internalmail.send_conducteur("SCA ASSIGNATION COLIS","thibaud.ambiana@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
                 internalmail.send_conducteur("SCA ASSIGNATION COLIS","steevy.tongoue@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
