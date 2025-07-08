@@ -1054,6 +1054,11 @@ class ProductDetailDialog(QDialog):
         self.setWindowTitle(f"Product Details for Order: {order_data['Order_ID']}")
         self.setFixedSize(600, 700)
         self.init_ui()
+    
+    def Eligible():
+        eligible = ""
+        
+        return eligible
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -1105,8 +1110,8 @@ class ProductDetailDialog(QDialog):
                 color: #555555;
             }
         """)
-
-        title_label = QLabel(f"Order: {self.order_data['Order_ID']}")
+        eligibilty = ProductDetailDialog.Eligible()
+        title_label = QLabel(f"Order: {self.order_data['Order_ID']} {eligibilty}")
         title_label.setProperty("class", "title")
         layout.addWidget(title_label)
 
