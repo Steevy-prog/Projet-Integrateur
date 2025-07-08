@@ -1120,13 +1120,36 @@ class ProductDetailDialog(QDialog):
                 font-weight: bold;
                 color: #555555;
             }
+            
+            
         """)
-        print(self.order_data['Order_ID'])
-        eligibilty = self.checkeligibility()
-        print(eligibilty)
-        title_label = QLabel(f"Order: {self.order_data['Order_ID']} {eligibilty}")
-        title_label.setProperty("class", "title")
+        print(self.order_data['Order_ID']) 
+        eligible_status = self.checkeligibility()
+        
+        
+        status_color = "#28A745" if eligible_status == "Eligible" else "#DC3545"
+        # Construct the HTML string for the title label
+        # The <span> tag with inline style will color only the eligibility part
+        title_html = (
+            f"<h1 style='font-size: 24px; font-weight: bold; color: #333333; "
+            f"margin-bottom: 20px; padding-bottom: 10px; "
+            f"border-bottom: 1px solid #E0E0E0;'>"
+            f"Order: {self.order_data['Order_ID']}"
+            f"&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp; "
+            f"<span style='color: {status_color}; margin-left: 60px; '>  {eligible_status}</span>"
+            f"</h1>"
+        )
+
+        title_label = QLabel()
+        title_label.setText(title_html)
+        # Crucially, set the text format to RichText to interpret HTML
+        title_label.setTextFormat(Qt.TextFormat.RichText)
+        # Remove the setProperty("class", "title") as styling is now inline HTML
+        # title_label.setProperty("class", "title") # No longer needed for color/bold
+
         layout.addWidget(title_label)
+        
+        
 
         form_layout = QFormLayout()
         form_layout.addRow("Supplier:", QLabel(self.order_data['Supplier']))
