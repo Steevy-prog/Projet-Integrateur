@@ -303,12 +303,13 @@ BEGIN
         WHERE idutilisateur = _idutilisateur;
 
         UPDATE "SCA".utilisateur
-        SET niveau_acces = _niveau_acces
+        SET niveau_acces = _niveau_acces::"SCA".niveau_acces,
+            username = usernamenouv::"SCA".username
         WHERE idutilisateur = _idutilisateur;
         -- Si ID utilisateur change, mise à jour des IDs liés
         IF usernameanc <> usernamenouv THEN
             UPDATE "SCA".Utilisateur
-            SET username = usernamenouv
+            SET username = usernamenouv::"SCA".username
             WHERE username = usernameanc;
         END IF;
 END;
