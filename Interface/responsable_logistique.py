@@ -19,13 +19,14 @@ from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
 from PyQt6.QtGui import QBrush
 #import login as login
 import internalmail
+from db_connection import ConnectionDB
+
 
 # Configuration de la base de données
 global conn
 print("1. online")
 print("2. offline")
 it = input("Enter the number of bd you want to use : ")
-
 if it == '1':
     print("You have chosen the online database.")
     conn = psycopg2.connect(
@@ -44,7 +45,34 @@ elif it == '2':
         password="steevy",
         port=5432
     )
+
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="postgres",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
+
+
+Connection = ConnectionDB()
+Connection_info = Connection.connection()
+
+db_connection = Connection_info['db_connection']
+
 cur = conn.cursor()
+
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
 conducteurs = cur.fetchall()
@@ -73,9 +101,11 @@ class LogisticsData:
     """Data generator and manager for logistics operations"""
     
     def __init__(self):
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
     def generate_sample_data(self):
-        self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva','spec'])
+        self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva'])
         self.colis_df = pd.DataFrame(colis,columns=['id','date_cre','exp_date','receiving_org','statut'])
         self.bonexp_df = pd.DataFrame(bonexp,columns=['id','idcol','idtrans','date_cre','iddest','statut','remarque'])
         self.contenu_df = pd.DataFrame(contenucolis,columns=['idcol','idlot','quantity','date_maj'])
@@ -91,6 +121,10 @@ class LogisticsData:
             'Order_Fulfillment_Rate': np.random.uniform(85, 99, len(dates))
         })
 
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
 
         #reports
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
@@ -106,7 +140,7 @@ class LogisticsData:
                 columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category']
             )
         else:
-            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'Brand', 'Model', 'Category'])
+            self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
         
         for product in self.products_df.itertuples():
             print(f"Product ID: {product.ID}, Name: {product.Name}")
@@ -226,6 +260,7 @@ class PerformanceWidget(QWidget):
 
     def __init__(self, data):
         super().__init__()
+
         self.data = data
         self.init_ui()
 
@@ -466,6 +501,9 @@ class LogisticsOverviewWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
     
     def init_ui(self):
@@ -505,6 +543,11 @@ class LogisticsOverviewWidget(QWidget):
         header_layout.addWidget(refresh_btn)
         
         # Metrics cards
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
+        cur = self.db_connection.cursor()
         metrics_layout = QHBoxLayout()
         cur.execute("SELECT \"EMIR\".entransit()")
         cmd_en_transit = cur.fetchone()[0]

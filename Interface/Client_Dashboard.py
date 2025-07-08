@@ -9,9 +9,9 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QSpacerItem, QGridLayout, QMessageBox, QComboBox, QStackedWidget,
     QTableWidgetItem, QTableWidget, QHeaderView, QTextEdit, QSplitter, QSpinBox,
     QAbstractItemView, QGroupBox, QListWidget, QListWidgetItem, QRadioButton, QDoubleSpinBox, QButtonGroup, QStyle,
-    QDialog
+    QDialog,QDateEdit
 )
-from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QDate
 from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
@@ -51,6 +51,17 @@ elif it == '2':
         port=5432
     )
 
+elif it == '3':
+    print("You have chosen the offline database.")
+    conn = psycopg2.connect(
+        host="localhost",
+        database="Projet",
+        user="postgres",
+        password="Lune.Hatik123",
+        port=5432
+    )
+
+
 cur = conn.cursor()
 
 # Fetch initial data for product, lot, and package IDs to ensure uniqueness
@@ -78,6 +89,7 @@ inq_db = cur.fetchall() # Existing products from the database
 productids = [l[0] for l in produits_db]
 lotids = [l[0] for l in lots_db] # Assuming colis_db contains lot IDs, this might need adjustment
 packageids = [c[0] for c in colis_db] # Assuming package IDs are in colis_db
+contenuids = [c[0] for c in contenu] # Assuming package IDs are in colis_db
 
 print(idgenerator.generate_id('^P[A-Z0-9]{5}$',productids))
 os.system("pause")
@@ -149,17 +161,7 @@ class ClientData:
     def generate_sample_data(self):
         """Generates or fetches sample data for client's view."""
         # Fetch products relevant to the client's organization
-        # For simplicity, assuming all products are relevant or fetching client-specific products
-        cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
-        products = cur.fetchall()
-        if not products:
-            print("No products loaded from the database. Generating dummy product data.")
-            # Dummy data if no products found (should ideally be handled by DB setup)
-            products = [
-                ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
-                ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
-            ]
-        self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category','Quantity'])
+        self.products_df = pd.DataFrame(produits_db, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
         self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','expected_date','receiving_org','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idcontenu','idcol','idlot','date_maj'])
         self.inq_df = pd.DataFrame(inq_db,columns=['id','type','period','status','description'])
@@ -188,11 +190,11 @@ class ClientData:
             })
         
 
-        # Product Movement History (tracking shipments for client's packages)
+        #Product Movement History (tracking shipments for client's packages)
         self.movement_history = []
         movement_types = ['Outbound', 'In Transit', 'Received', 'Return']
         for i in range(50):
-            product = random.choice(products)
+            product = random.choice(produits_db)
             # Simulate movements for this client's packages
             package_id_sim = f'PKG{random.randint(100, 999):03d}'
             if random.random() < 0.6: # More likely to be client's package
@@ -205,8 +207,8 @@ class ClientData:
                     'Location': random.choice(['Warehouse A', 'Transit Hub B', 'Client Dock', 'Supplier C']),
                     'Description': f"Package {package_id_sim} {random.choice(['departed', 'arrived at', 'in transit to'])} {random.choice(['destination', 'next hub'])}."
                 })
-        
-        # Exceptions/Inquiries
+    
+        #Exceptions/Inquiries
         self.inquiries = []
         inquiry_types = ['Missing Package', 'Damaged Item', 'Incorrect Order', 'Billing Issue', 'General Support']
         inquiry_statuses = ['Open', 'In Progress', 'Resolved', 'Closed']
@@ -1284,6 +1286,7 @@ class ClientLogisticsWidget(QWidget):
         self.clear_package_rows()
 
 
+
     def create_send_section(self, name):
         section = QFrame()
         section.setStyleSheet("""
@@ -1298,7 +1301,7 @@ class ClientLogisticsWidget(QWidget):
                 font-size: 16px;
                 color: #333;
             }
-            QLineEdit, QComboBox {
+            QLineEdit, QComboBox, QDateEdit { /* Ensure QDateEdit is styled */
                 padding: 15px;
                 border: 1px solid #CCCCCC;
                 border-radius: 5px;
@@ -1314,8 +1317,16 @@ class ClientLogisticsWidget(QWidget):
         layout.addWidget(title)
 
         form = QGridLayout()
-        self.transporting_org_combo = QComboBox()
+        # self.transporting_org_combo = QComboBox() # This combo box is declared but not used in the form layout
         self.receiving_org_combo = QComboBox()
+        
+        self.expedition_date_edit = QDateEdit()
+        # --- IMPORTANT: Configure QDateEdit for calendar popup ---
+        self.expedition_date_edit.setCalendarPopup(True) # This line enables the popup
+        self.expedition_date_edit.setDisplayFormat("yyyy-MM-dd") # Set your desired display format
+        self.expedition_date_edit.setDate(QDate.currentDate()) # Optional: Set initial date to today
+        # --------------------------------------------------------
+
         for org in orgs:
             if org[0] != client_org_id:
                 self.receiving_org_combo.addItem(org[1], org[0])
@@ -1329,11 +1340,14 @@ class ClientLogisticsWidget(QWidget):
         form.addWidget(self.receiving_org_combo, 0, 1)
         form.addWidget(QLabel("Choose a Package:"), 1, 0)
         form.addWidget(self.package_to_send_combo, 1, 1)
+        form.addWidget(QLabel("Expedition Date:"), 2, 0)
+        form.addWidget(self.expedition_date_edit, 2, 1) # <--- Ensure it's added to the layout
+        
         layout.addLayout(form)
 
-        # Apply styling to combos
+        # Apply styling to combos and QDateEdit
         combo_style = """
-            QComboBox {
+            QComboBox, QDateEdit {
                 background-color: #F0F2F5;
                 color: #333;
                 border: 1px solid #D0D0D0;
@@ -1346,14 +1360,45 @@ class ClientLogisticsWidget(QWidget):
                 width: 20px;
             }
             QComboBox::down-arrow {
-                image: url(icons/arrow_down.png);
+                /* If you don't want an image, you can remove this */
+                /* image: url(icons/arrow_down.png); */
                 width: 12px;
                 height: 12px;
             }
+
+            /* --- Specific Styling for QDateEdit Drop-down/Arrow WITHOUT IMAGE --- */
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 25px; /* Give enough width for the clickable area */
+                border-left: 1px solid #D0D0D0; /* Add a separator line */
+                border-top-right-radius: 6px;
+                border-bottom-right-radius: 6px;
+                background-color: #E0E2E5; /* Slightly darker background for the button part */
+            }
+
+            QDateEdit::down-arrow {
+                /* Remove the image line entirely */
+                /* image: url(icons/calendar_icon.png); */
+
+                /* Style to create a simple triangle arrow */
+                border: 4px solid transparent; /* Base for the triangle */
+                border-top-color: #555555; /* Color of the arrow itself */
+                width: 0px; /* Essential for border-based triangles */
+                height: 0px; /* Essential for border-based triangles */
+                margin-left: auto; /* Center the arrow horizontally */
+                margin-right: auto;
+            }
+            /* Optional: Hover effect for the drop-down area */
+            QDateEdit::drop-down:hover {
+                background-color: #D0D2D5;
+            }
         """
-        self.transporting_org_combo.setStyleSheet(combo_style)
+        self.expedition_date_edit.setStyleSheet(combo_style)
+        # self.transporting_org_combo.setStyleSheet(combo_style) # Not in layout
         self.receiving_org_combo.setStyleSheet(combo_style)
         self.package_to_send_combo.setStyleSheet(combo_style)
+        self.expedition_date_edit.setStyleSheet(combo_style) # Apply style to QDateEdit
 
         send_btn = QPushButton("Send Package")
         send_btn.setStyleSheet("""
@@ -1373,16 +1418,18 @@ class ClientLogisticsWidget(QWidget):
                 transform: translateY(-2px);
             }
         """)
-        send_btn.clicked.connect(self.send_package)
+        # Placeholder for send_package method
+        send_btn.clicked.connect(self.send_package) 
 
         layout.addWidget(send_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
         return section
 
-
     def send_package(self):
         receive_org_id = self.receiving_org_combo.currentData()
         package_id = self.package_to_send_combo.currentText()  # key from added_packages is the name, not the ID
+        selected_date = self.expedition_date_edit.date()  
+        date_str = selected_date.toString("yyyy-MM-dd")# returns QDate object
         lots = added_packages.get(package_id)
         idcolis = idgenerator.generate_id("^PCO[0-9]{5}$", packageids)
     
@@ -1391,10 +1438,12 @@ class ClientLogisticsWidget(QWidget):
             return
         
         try:
-            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s)',
+            cur.execute('CALL "EMIR".PColis_INS(%s, %s, %s, %s,%s,%s)',
                 (   client_org_id,
                     idcolis,  # Dummy ID for BonExpedition
                     str(datetime.date.today().isoformat()),
+                    str(date_str),
+                    receive_org_id,
                     'en attente'
                 )
             )
@@ -1405,6 +1454,7 @@ class ClientLogisticsWidget(QWidget):
     
         for lot in lots:
             nlotid = idgenerator.generate_id('^PL[A-Z0-9]{5}$', lotids)
+            ncontenuid = idgenerator.generate_id('^PCON[0-9]{3}$', contenuids)
             try:
                 cur.execute(
                     'CALL "EMIR".PLot_INS(%s,%s, %s, %s, %s, %s)',
@@ -1417,15 +1467,8 @@ class ClientLogisticsWidget(QWidget):
                     )
                 )
                 print("sucess")
-                cur.execute(
-                    'CALL "EMIR".PContenuColis_INS(%s, %s, %s, %s, %s)',
-                    (   client_org_id,
-                        idcolis,
-                        nlotid,                         # _idproduit
-                        str(len(lots)),              # _quantite
-                        str(datetime.date.today().isoformat()),  #                     # _statut
-                    )
-                )
+                print(ncontenuid)
+                cur.execute('CALL "EMIR".PContenuColis_INS(%s,%s, %s, %s, %s)',(ncontenuid, client_org_id,idcolis,nlotid,str(datetime.date.today().isoformat())))
                 print("sucess")
             except psycopg2.Error as e:
                 conn.rollback()
@@ -1435,11 +1478,12 @@ class ClientLogisticsWidget(QWidget):
             QMessageBox.information(
                 self,
                 "Success",
-                f"Package '{package_id}' sent successfully from {self.transporting_org_combo.currentText()} to {self.receiving_org_combo.currentText()}."
+                f"Package '{package_id}' sent successfully from {client_org_id} to {self.receiving_org_combo.currentText()}."
             )
             cur.execute('SELECT "EMIR".getorganisationname(%s);',(client_org_id,))
             name = cur.fetchone()[0]
             internalmail.send_email("Order Automaticnotification - SCA","steevyvalery7@gmail.com",client_org_id,name,idcolis,self.receiving_org_combo.currentText())
+            conn.commit()
 
 
 class ClientOrderManagementWidget(QWidget):
@@ -2791,3 +2835,4 @@ if __name__ == '__main__':
     client_main_window = ClientMainWindow()
     client_main_window.showMaximized()
     sys.exit(app.exec())
+#zz
