@@ -2835,6 +2835,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 -- Correction de la routine EVA pour Produit (manque idmodele)
 CREATE OR REPLACE FUNCTION "EMIR".Produit_EVA()
 RETURNS TABLE (
