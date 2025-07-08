@@ -974,10 +974,10 @@
       },
       {
         "idproduit": "PBOX06",
-        "longueur": 0.6,
-        "largeur": 0.4,
-        "hauteur": 0.35,
-        "masse": 1.2
+        "longueur": 14.6,
+        "largeur": 16.4,
+        "hauteur": 16.35,
+        "masse": 3000
       },
       {
         "idproduit": "PTAB07",
@@ -3335,37 +3335,37 @@
       },
       {
         "email": "a.bello@transport.com",
-        "mot_de_passe_hash": "a8135c5ad00535fa647128a31e6807702dc4fc41c294fd6d336345da73ed68f3",
+        "mot_de_passe_hash": "hashed_password_for_aisha",
         "idutilisateur": "U00003",
         "date_creation": "2023-03-20T12:00:00"
       },
       {
         "email": "f.zahra@sca.com",
-        "mot_de_passe_hash": "bf50fdb7e4d23e67020917b45345beea7cb6be2e9521a6e05af2b0d577cef4e9",
+        "mot_de_passe_hash": "hashed_password_for_fatima",
         "idutilisateur": "U00005",
         "date_creation": "2023-05-05T14:00:00"
       },
       {
         "email": "c.manga@sca.com",
-        "mot_de_passe_hash": "04b2ebb3113dbbf714159c53152bd739fee61bcab165ecae41cf4dba0b63c25b",
+        "mot_de_passe_hash": "hashed_password_for_charles",
         "idutilisateur": "U00006",
         "date_creation": "2023-06-12T15:00:00"
       },
       {
         "email": "manager.un@sca.com",
-        "mot_de_passe_hash": "ae07c9379982d843d4c8aadbb43496dfd3a005b1f746cd3796daf0e46d0f23a7",
+        "mot_de_passe_hash": "hashed_password_for_manager1",
         "idutilisateur": "U00002",
         "date_creation": "2023-02-15T10:00:00"
       },
       {
         "email": "vendeur.pro@desti.com",
-        "mot_de_passe_hash": "06197f653bb92e7e7de073008c2447a2eff7c4759aa2c21178c036fddda414c2",
+        "mot_de_passe_hash": "hashed_password_for_pro",
         "idutilisateur": "U00007",
         "date_creation": "2023-07-18T16:00:00"
       },
       {
         "email": "ouvrier.efficace@sca.com",
-        "mot_de_passe_hash": "9456bc2bb097a466b92ad4f73727074dce7897649ce1c090cf02e5574f2ce37c",
+        "mot_de_passe_hash": "hashed_password_for_worker1",
         "idutilisateur": "U00008",
         "date_creation": "2023-08-22T17:00:00"
       }
@@ -3578,7 +3578,7 @@
         "date_creation": "2024-08-05",
         "expected_date": "2024-08-19",
         "receiving_org": "OCLIEN",
-        "statut": "Refuse"
+        "statut": "en attente"
       },
       {
         "idorg": "OFIRST",
@@ -4012,7 +4012,7 @@
         "idpcontenu": "PCON025",
         "idorg": "OFRACT",
         "idpcolis": "PCO54321",
-        "idplot": "PLXTR02",
+        "idplot": "PLXTR03",
         "date_MAJ": "2024-08-05"
       },
       {
