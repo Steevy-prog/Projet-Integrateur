@@ -1508,7 +1508,8 @@ class EmballeurMainWindow(QMainWindow):
         )
         if response == QMessageBox.StandardButton.Yes:
             self.close()
-            #self.loginpage = login.FlipCard()
+            import logintravailleur as login
+            self.loginpage = login.FlipCard()
             self.loginpage.show()
 
     def create_content_area(self):

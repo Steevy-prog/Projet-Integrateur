@@ -1725,7 +1725,8 @@ class LogisticsDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
-            #self.loginpage = login.FlipCard()
+            import logintravailleur as login
+            self.loginpage = login.FlipCard()
             self.loginpage.show()
     
     def create_metric_label(self, text):
