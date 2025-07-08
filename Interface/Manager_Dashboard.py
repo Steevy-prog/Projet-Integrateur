@@ -37,9 +37,9 @@ elif it == '2':
     print("You have chosen the Steevy's database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="postgres",
+        database="projet",
         user="postgres",
-        password="1234",
+        password="postgres",
         port=5432
     )
 
