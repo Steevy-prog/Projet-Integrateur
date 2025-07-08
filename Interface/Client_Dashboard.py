@@ -45,9 +45,9 @@ elif it == '2':
     print("You have chosen the offline database.")
     conn = psycopg2.connect(
         host="localhost",
-        database="USER",
+        database="projet",
         user="postgres",
-        password="steevy",
+        password="postgres",
         port=5432
     )
 
@@ -159,7 +159,7 @@ class ClientData:
                 ('P001', 'SupplierA', 'Dummy Product 1', 'Desc 1', 10.0, 'BrandX', 'ModelA', 'Electronics'),
                 ('P002', 'SupplierB', 'Dummy Product 2', 'Desc 2', 20.0, 'BrandY', 'ModelB', 'Furniture')
             ]
-        self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category'])
+        self.products_df = pd.DataFrame(products, columns=['ID', 'Fourniseur', 'Name', 'Description', 'Prix Unitaire', 'idModel', 'Category','Quantity'])
         self.colis_df = pd.DataFrame(colis_db,columns=['id','date_cre','expected_date','receiving_org','statut'])
         self.contenu_df = pd.DataFrame(contenu,columns=['idcontenu','idcol','idlot','date_maj'])
         self.inq_df = pd.DataFrame(inq_db,columns=['id','type','period','status','description'])
@@ -226,7 +226,7 @@ class ClientData:
 class ClientTaskCard(QFrame):
     """Card widget for displaying individual client orders."""
 
-    order_selected = pyqtSignal(dict) # Renamed signal
+    order_selected = pyqtSignal(dict) 
 
     def __init__(self, order_data):
         super().__init__()
@@ -236,23 +236,20 @@ class ClientTaskCard(QFrame):
     def init_ui(self):
         self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setFixedHeight(120)
-        self.setContentsMargins(0, 0, 0, 0)
+        self.setContentsMargins(0, 0, 0, 0) 
 
-        color = self.get_status_color(self.order_data.get('Status', 'Pending'))
+        color = self.get_status_color(self.order_data.get('Status', 'Pending')) 
 
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
                 border-radius: 12px;
-                border: 1px solid #FFFFFF;
+                border: 1px solid #E0E0E0; /* Softer border */
                 margin: 5px 0;
                 padding: 0;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-                transition: all 0.2s ease-in-out;
             }}
             QFrame:hover {{
-                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-                transform: translateY(-2px);
+                border: 1px solid {color}; /* Subtle border highlight on hover */
             }}
         """)
 
@@ -266,31 +263,31 @@ class ClientTaskCard(QFrame):
         main_layout.addWidget(accent_bar)
 
         content_layout = QHBoxLayout()
-        content_layout.setContentsMargins(15, 10, 15, 10)
-        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(20, 15, 20, 15) 
+        content_layout.setSpacing(25) 
 
         info_layout = QVBoxLayout()
-        info_layout.setSpacing(5)
+        info_layout.setSpacing(8) 
 
         header_row = QHBoxLayout()
         order_label = QLabel(self.order_data['Order_ID'])
-        order_label.setStyleSheet("font-size: 16px; font-weight: 700; color: #333333;")
+        order_label.setStyleSheet("font-size: 18px; font-weight: 700; color: #333333;") 
         header_row.addWidget(order_label)
         header_row.addStretch()
 
         status_label = QLabel(self.order_data['Status'])
-        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 8px; font-size: 12px; font-weight: bold; padding: 1px 1px;")
+        status_label.setStyleSheet(f"background-color: {color}; color: #FFFFFF; border-radius: 10px; font-size: 13px; font-weight: bold; padding: 4px 10px;")
         header_row.addWidget(status_label)
         info_layout.addLayout(header_row)
 
-        details_text = f"Items: <b>{self.order_data['Items_Count']}</b> &nbsp; | &nbsp; Value: <b>${self.order_data['Total_Value']}</b>"
+        details_text = f"Items: <b>{self.order_data['Items_Count']}</b> &nbsp; | &nbsp; Value: <b>${self.order_data['Total_Value']:.2f}</b>" 
         due_text = f"Expected: <b>{self.order_data['Estimated_Delivery'].strftime('%Y-%m-%d')}</b>"
 
         details_label = QLabel(details_text)
-        details_label.setStyleSheet("font-size: 13px; color: #666666;")
+        details_label.setStyleSheet("font-size: 14px; color: #666666;") 
         details_label.setTextFormat(Qt.TextFormat.RichText)
         due_label = QLabel(due_text)
-        due_label.setStyleSheet("font-size: 13px; color: #888888;")
+        due_label.setStyleSheet("font-size: 14px; color: #888888;") 
         due_label.setTextFormat(Qt.TextFormat.RichText)
 
         info_layout.addWidget(details_label)
@@ -301,21 +298,22 @@ class ClientTaskCard(QFrame):
         action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         action_btn.setStyleSheet("""
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #6C63FF; 
                 border: none;
                 border-radius: 8px;
                 padding: 10px 18px;
                 font-size: 14px;
                 font-weight: 600;
                 color: #FFFFFF;
-                box-shadow: 0 2px 8px rgba(108, 99, 255, 0.2);
-                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
-                background-color: #5247D6;
+                background-color: #5247D6; 
+            }
+            QPushButton:pressed {
+                background-color: #4339B2; 
             }
         """)
-        action_btn.clicked.connect(self.on_action_clicked)
+        action_btn.clicked.connect(self.on_action_clicked) 
 
         content_layout.addLayout(info_layout, stretch=3)
         content_layout.addWidget(action_btn, stretch=1, alignment=Qt.AlignmentFlag.AlignVCenter)
@@ -324,18 +322,21 @@ class ClientTaskCard(QFrame):
         self.setLayout(main_layout)
 
     def get_status_color(self, status):
+        # Keep current colors for now, will be updated later
         colors = {
-            'Pending':"#6C63FF",
-            'Processing': "#6C63FF",    # Blue
-            'Shipped': "#6C63FF",
-            'Delivered': "#6C63FF",
-            'Cancelled': "#6C63FF",   # Red
+            'Pending': "#FFD700",  # Gold/Yellow
+            'Processing': "#1E90FF", # DodgerBlue
+            'Shipped': "#32CD32",   # LimeGreen
+            'Delivered': "#228B22", # ForestGreen (darker for delivered)
+            'Cancelled': "#DC143C", # Crimson
         }
-        return colors.get(status, '#666666') # Default color
+        return colors.get(status, '#666666') # Default color for unknown status
 
+    # CORRECTED: This method needs to be part of the class, not nested in init_ui
     def on_action_clicked(self):
-        self.order_selected.emit(self.order_data)
+        self.order_selected.emit(self.order_data) # This line was the problem
 
+    # Make sure mousePressEvent is also correctly placed
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.order_selected.emit(self.order_data)
@@ -351,12 +352,13 @@ class OrderDetailsDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setContentsMargins(30, 30, 30, 30) 
+        # Removed box-shadow and transition
         self.setStyleSheet("""
             QDialog {
                 background-color: #F8F9FA;
                 border-radius: 15px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+                border: 1px solid #D0D0D0; /* Add a subtle border to mimic shadow */
             }
             QLabel {
                 font-size: 15px;
@@ -364,39 +366,49 @@ class OrderDetailsDialog(QDialog):
                 margin-bottom: 7px;
             }
             QLabel.title {
-                font-size: 24px;
+                font-size: 26px; 
                 font-weight: bold;
-                color: #333333;
+                color: #222222; 
                 margin-bottom: 20px;
                 padding-bottom: 10px;
                 border-bottom: 1px solid #E0E0E0;
             }
             QPushButton {
-                background-color: #6C63FF;
+                background-color: #6C63FF; 
                 color: white;
                 border: none;
                 padding: 12px 25px;
                 border-radius: 8px;
                 font-weight: bold;
                 font-size: 15px;
-                transition: all 0.2s ease-in-out;
             }
             QPushButton:hover {
                 background-color: #5247D6;
             }
+            QPushButton:pressed {
+                background-color: #4339B2;
+            }
             QListWidget {
-                border: 1px solid #E0E0E0;
+                border: 1px solid #D0D0D0; 
                 border-radius: 8px;
                 padding: 10px;
                 background-color: white;
                 min-height: 150px;
             }
             QListWidget::item {
-                padding: 5px;
+                padding: 8px; 
+                border-bottom: 1px solid #F0F0F0; 
+            }
+            QListWidget::item:last {
+                border-bottom: none; 
             }
             QFormLayout QLabel {
-                font-weight: bold;
+                font-weight: 600; 
                 color: #555555;
+            }
+            QFormLayout QLabel:last-child { 
+                font-weight: normal;
+                color: #333333;
             }
         """)
 
@@ -405,27 +417,44 @@ class OrderDetailsDialog(QDialog):
         layout.addWidget(title_label)
 
         form_layout = QFormLayout()
-        form_layout.addRow("Status:", QLabel(self.order_data['Status']))
-        form_layout.addRow("Items Count:", QLabel(str(self.order_data['Items_Count'])))
-        form_layout.addRow("Total Value:", QLabel(f"${self.order_data['Total_Value']:.2f}"))
-        form_layout.addRow("Order Date:", QLabel(self.order_data['Order_Date'].strftime('%Y-%m-%d %H:%M')))
-        form_layout.addRow("Estimated Delivery:", QLabel(self.order_data['Estimated_Delivery'].strftime('%Y-%m-%d')))
-        form_layout.addRow("Customer Org ID:", QLabel(self.order_data['Customer_Org_ID']))
+        form_layout.addRow(QLabel("Status:"), QLabel(self.order_data['Status']))
+        form_layout.addRow(QLabel("Items Count:"), QLabel(str(self.order_data['Items_Count'])))
+        form_layout.addRow(QLabel("Total Value:"), QLabel(f"${self.order_data['Total_Value']:.2f}"))
+        form_layout.addRow(QLabel("Order Date:"), QLabel(self.order_data['Order_Date'].strftime('%Y-%m-%d %H:%M')))
+        form_layout.addRow(QLabel("Estimated Delivery:"), QLabel(self.order_data['Estimated_Delivery'].strftime('%Y-%m-%d')))
+        form_layout.addRow(QLabel("Customer Org ID:"), QLabel(self.order_data['Customer_Org_ID']))
         layout.addLayout(form_layout)
 
         items_list_label = QLabel("Items in Order:")
+        items_list_label.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;") 
         layout.addWidget(items_list_label)
         items_list = QListWidget()
         for item_data in self.order_data['Items']:
             lot_id = item_data.get("idlot", "N/A")
             quantity = item_data.get("quantity", "N/A")
-            # If you added extra fields like 'product_name' or 'price', use them here
-            items_list.addItem(f"- Lot: {lot_id}, Quantity: {quantity}")
+            items_list.addItem(f"• Lot: {lot_id}, Quantity: {quantity}") 
         layout.addWidget(items_list)
 
         button_layout = QHBoxLayout()
         close_button = QPushButton("Close")
-        close_button.setStyleSheet("background-color: #999999;")
+        # Removed transition
+        close_button.setStyleSheet("""
+            QPushButton {
+                background-color: #999999; 
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #777777;
+            }
+            QPushButton:pressed {
+                background-color: #555555;
+            }
+        """)
         close_button.clicked.connect(self.accept)
         button_layout.addStretch()
         button_layout.addWidget(close_button)
@@ -438,22 +467,95 @@ class ProductCreationPopup(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Create Product")
-        self.setFixedSize(900, 600)
+        self.setFixedSize(600, 700) 
         self.layout = QVBoxLayout(self)
         self.step = 1
         self.product_type = None
 
+        # Removed box-shadow and transition properties from the general stylesheet
         self.setStyleSheet("""
+            QDialog {
+                background-color: #F8F9FA;
+                border-radius: 15px;
+                border: 1px solid #D0D0D0; /* Add a subtle border to mimic shadow */
+            }
             QLabel {
-                color: black;
-                font-weight: bold;
-                font-size: 13px;
+                color: #333333; 
+                font-weight: 600; 
+                font-size: 14px;
             }
             QLineEdit, QDoubleSpinBox, QComboBox, QTextEdit {
-                color: black;
+                color: #333333;
+                background-color: #FFFFFF;
+                border: 1px solid #D0D0D0; 
+                border-radius: 6px; 
+                padding: 8px 10px; 
+                min-height: 35px; 
+            }
+            QTextEdit {
+                min-height: 80px; 
+            }
+            QLineEdit:focus, QDoubleSpinBox:focus, QComboBox:focus, QTextEdit:focus {
+                border: 1px solid #6C63FF; 
+            }
+            QComboBox::drop-down {
+                border-left: 1px solid #D0D0D0;
+                width: 25px;
+            }
+            /* QComboBox::down-arrow image property not typically supported directly in QSS for custom images,
+               often set via QIcon or QStyle customization in Python. Removed for now. */
+            QRadioButton {
+                spacing: 8px; 
+                color: #333333;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #6C63FF; 
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #5247D6;
+            }
+            QPushButton:pressed {
+                background-color: #4339B2;
+            }
+            QPushButton#submitButton { 
+                background-color: #4CAF50; 
+            }
+            QPushButton#submitButton:hover {
+                background-color: #388E3C;
+            }
+            QPushButton#submitButton:pressed {
+                background-color: #2E8B57;
+            }
+            QPushButton#nextButton {
+                background-color: #2196F3; 
+            }
+            QPushButton#nextButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton#nextButton:pressed {
+                background-color: #1565C0;
+            }
+            QGroupBox {
+                border: 1px solid #D0D0D0;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 15px;
                 background-color: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                background-color: #F8F9FA;
+                color: #555555;
+                font-weight: bold;
             }
         """)
 
@@ -461,35 +563,49 @@ class ProductCreationPopup(QDialog):
         self.scroll.setWidgetResizable(True)
         self.scroll_content = QWidget()
         self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll_layout.setContentsMargins(20, 20, 20, 20) 
+        self.scroll_layout.setSpacing(15) 
         self.scroll.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll)
 
         self.build_step_1()
 
+    def clear_layout(self):
+        while self.scroll_layout.count():
+            item = self.scroll_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self.clear_layout_recursive(item.layout())
+
+    def clear_layout_recursive(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self.clear_layout_recursive(item.layout())
+
     def build_step_1(self):
         self.clear_layout()
         label = QLabel("Choose product type:")
+        label.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 10px;") 
         self.physical_radio = QRadioButton("Physical Product")
         self.software_radio = QRadioButton("Software Product")
 
+        radio_group_box = QGroupBox("Select Type")
+        radio_layout = QVBoxLayout()
+        radio_layout.addWidget(self.physical_radio)
+        radio_layout.addWidget(self.software_radio)
+        radio_group_box.setLayout(radio_layout)
+        # GroupBox style is now in the main stylesheet to avoid repetition
+
         next_btn = QPushButton("Next")
-        next_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-        """)
+        next_btn.setObjectName("nextButton") 
         next_btn.clicked.connect(self.goto_step_2)
 
         self.scroll_layout.addWidget(label)
-        self.scroll_layout.addWidget(self.physical_radio)
-        self.scroll_layout.addWidget(self.software_radio)
+        self.scroll_layout.addWidget(radio_group_box)
         self.scroll_layout.addStretch()
         self.scroll_layout.addWidget(next_btn)
 
@@ -504,26 +620,20 @@ class ProductCreationPopup(QDialog):
 
         self.clear_layout()
         form_layout = QFormLayout()
-
-        # ...existing code...
+        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft) 
+        form_layout.setFormAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop) 
+        form_layout.setContentsMargins(0,0,0,0) 
+        form_layout.setHorizontalSpacing(20) 
+        form_layout.setVerticalSpacing(15) 
 
         self.name_input = QLineEdit()
-        self.name_input.setStyleSheet("color: #232946; background: #FFFFFF;height: 30px;")
         self.prix_unitaire = QDoubleSpinBox()
         self.prix_unitaire.setSuffix(" $")
-        self.prix_unitaire.setStyleSheet("color: #232946; background: #FFFFFF;")
-        self.prix_unitaire.setRange(0.0, 100000.0)
-
+        self.prix_unitaire.setRange(0.0, 1000000.0) 
         self.marque = QLineEdit()
         self.description = QTextEdit()
-        self.marque.setStyleSheet("color: #232946; background: #FFFFFF;")
-        self.description = QTextEdit()
-        self.description.setStyleSheet("color: #232946; background: #FFFFFF;")
         self.modele = QLineEdit()
-        self.modele.setStyleSheet("color: #232946; background: #FFFFFF;")
 
-# For radio buttons and combo box, you can also set styles if needed:
-        
         self.categorie_group = QButtonGroup(self)
         self.categorie1 = QRadioButton("Packaging")
         self.categorie2 = QRadioButton("Electronic")
@@ -531,19 +641,11 @@ class ProductCreationPopup(QDialog):
         self.categorie_group.addButton(self.categorie1)
         self.categorie_group.addButton(self.categorie2)
         self.categorie_group.addButton(self.categorie3)
-        self.categorie1.setChecked(True)
-        self.categorie1.setChecked(True) # Default selection
-        self.categorie1.setStyleSheet("color: #232946;")
-        self.categorie2.setStyleSheet("color: #232946;")
-        self.categorie3.setStyleSheet("color: #232946;")
+        self.categorie1.setChecked(True) 
         
-
-        
-
         self.fournisseur = QComboBox()
         for org in orgs:
-            self.fournisseur.addItem(org[1], org[0]) # Display name, store ID
-        self.fournisseur.setStyleSheet("color: #232946; background: #FFFFFF;")
+            self.fournisseur.addItem(org[1], org[0]) 
         
         if self.product_type == "physical":
             self.category_text = "Packaging"
@@ -573,6 +675,7 @@ class ProductCreationPopup(QDialog):
             ho.addWidget(self.categorie1)
             ho.addWidget(self.categorie2)
             ho.addWidget(self.categorie3)
+            ho.addStretch() 
 
             form_layout.addRow("Name:", self.name_input)
             form_layout.addRow("Supplier:", self.fournisseur)
@@ -600,21 +703,10 @@ class ProductCreationPopup(QDialog):
             self.category_text = "Software"
 
         self.produitid = idgenerator.generate_id("^P[A-Z0-9]{5}$", productids)
-        productids.append(self.produitid)
+        productids.append(self.produitid) 
 
         submit_btn = QPushButton("Create Product")
-        submit_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #388E3C;
-            }
-        """)
+        submit_btn.setObjectName("submitButton") 
         submit_btn.clicked.connect(self.submit_product)
 
         self.scroll_layout.addLayout(form_layout)
@@ -655,14 +747,6 @@ class ProductCreationPopup(QDialog):
         except psycopg2.Error as e:
             conn.rollback()
             QMessageBox.critical(self, "Database Error", f"Failed to create product: {e}")
-
-    def clear_layout(self):
-        while self.scroll_layout.count():
-            item = self.scroll_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-
 class ProductCreationPopup1(QDialog):
     """Dialog to create a new product (physical or software)."""
 
