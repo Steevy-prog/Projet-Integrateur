@@ -1934,7 +1934,7 @@
       {
         "idutilisateur": "U00002",
         "idindividu": "IMNGR1",
-        "username": "manager_un",
+        "username": "Steevy_prog",
         "date_inscription": "2023-02-15T10:00:00",
         "date_derniere_connexion": "2024-06-02T11:00:00",
         "statut": "actif",
@@ -1952,7 +1952,7 @@
       {
         "idutilisateur": "U00004",
         "idindividu": "IMAGA1",
-        "username": "jean_dupont",
+        "username": "Viktor",
         "date_inscription": "2023-04-10T09:30:00",
         "date_derniere_connexion": "2024-06-04T13:00:00",
         "statut": "actif",
@@ -1970,7 +1970,7 @@
       {
         "idutilisateur": "U00006",
         "idindividu": "ILOGI1",
-        "username": "charles_manga",
+        "username": "Mycompany",
         "date_inscription": "2023-06-12T15:00:00",
         "date_derniere_connexion": "2024-06-06T15:00:00",
         "statut": "actif",
@@ -1988,7 +1988,7 @@
       {
         "idutilisateur": "U00008",
         "idindividu": "IWRKR1",
-        "username": "ouvrier_efficace",
+        "username": "kara_flam",
         "date_inscription": "2023-08-22T17:00:00",
         "date_derniere_connexion": "2024-06-08T17:00:00",
         "statut": "actif",
@@ -2120,7 +2120,7 @@
         "idtravailleur": "TR0004",
         "idutilisateur": "U00005",
         "date_embauche": "2023-05-10",
-        "poste": "Acheteur",
+        "poste": "Emballeur",
         "departement": "Achats",
         "salaire_horaire": 2700.00,
         "statut": "actif",
@@ -2140,7 +2140,7 @@
         "idtravailleur": "TR0006",
         "idutilisateur": "U00007",
         "date_embauche": "2023-07-25",
-        "poste": "Vendeur",
+        "poste": "Client",
         "departement": "Ventes",
         "salaire_horaire": 2200.00,
         "statut": "actif",
@@ -3402,7 +3402,7 @@
         "date_creation": "2023-03-20T12:00:00"
       },
       {
-        "email": "f.zahra@desti.com",
+        "email": "f.zahra@sca.com",
         "mot_de_passe_hash": "hashed_password_for_fatima",
         "idutilisateur": "U00005",
         "date_creation": "2023-05-05T14:00:00"
