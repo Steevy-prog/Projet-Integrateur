@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QGridLayout, QLabel, QFrame, QPushButton,
                              QTableWidget, QTableWidgetItem, QTextEdit, QScrollArea,
-                             QSplitter, QTabWidget, QProgressBar, QSpacerItem, QSizePolicy)
+                             QSplitter, QTabWidget, QProgressBar, QSpacerItem, QSizePolicy, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer, QDateTime, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QLinearGradient
 import login as login

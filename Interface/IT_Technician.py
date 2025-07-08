@@ -125,7 +125,7 @@ class AccountSettingsPage(QWidget):
                     "id": row[5]
                 }
                 employee_data.append(employee)
-                return employee_data
+            return employee_data
         except Error as e:
             QMessageBox.warning(self,"Error", f"Error extracting user data: {e}")
             self.db_connection.rollback()
@@ -134,8 +134,8 @@ class AccountSettingsPage(QWidget):
             return []
     
     def refresh_individual_list(self):
-        self.combobox_refresh_button.setEnabled(False)
         try:
+            self.combobox_refresh_button.setEnabled(False)
             self.combobox_refresh_button.setText("Loading...")
             data_set  = self.get_individual_data()
             self.individual_combobox.clear()
@@ -159,7 +159,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             
             cursor = self.db_connection.cursor()
-            query = "SELECT id, first_name, last_name FROM \"EMIR\".getnameandid()"
+            query = "SELECT _idindividu,_nom, _prenom FROM \"EMIR\".IndividusNonUtilisateurs_EVA()"
             cursor.execute(query)
             results = cursor.fetchall()
             cursor.close()
@@ -374,7 +374,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             
             cursor = self.db_connection.cursor()
-            delete_query = f"SELECT \"EMIR\".Utilisateur_RET(%s);"
+            delete_query = f"CALL \"EMIR\".Utilisateur_RET(%s);"
             cursor.execute(delete_query, (username,))
             self.db_connection.commit()
             cursor.close()
@@ -625,7 +625,7 @@ class AccountSettingsPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             
             cursor = self.db_connection.cursor()
-            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'password_policy';"
+            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'Default-Strong';"
             cursor.execute(query)
             rows = cursor.fetchall()
             self.db_connection.commit()
@@ -1028,6 +1028,7 @@ class DatabaseMaintenancePage(QWidget):
             return
         
         
+
         self.results_table.clearContents()
         self.results_table.setRowCount(0)
         self.results_table.setColumnCount(0)
@@ -1157,7 +1158,7 @@ class SecuritySettingPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
         
             cursor = self.db_connection.cursor()
-            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'password_policy';"
+            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'Default-Strong';"
             cursor.execute(query)
             rows = cursor.fetchall()
             self.db_connection.commit()
@@ -1206,7 +1207,7 @@ class SecuritySettingPage(QWidget):
             for setting_name, value in self.password_policy_settings.items():
                 setting_value_str = str(value)
                 query = """
-                    CALL "EMIR".PasswordPolicies_INS('password_policy', %s, %s)
+                    CALL "EMIR".PasswordPolicies_INS('Default-Strong', %s, %s)
                 """
                 cursor.execute(query, (setting_name, setting_value_str))
             self.db_connection.commit()
