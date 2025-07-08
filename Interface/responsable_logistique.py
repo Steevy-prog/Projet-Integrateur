@@ -71,7 +71,7 @@ Connection_info = Connection.connection()
 
 db_connection = Connection_info['db_connection']
 
-cur = db_connection.cursor()
+cur = conn.cursor()
 
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
