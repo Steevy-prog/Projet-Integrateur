@@ -1636,7 +1636,7 @@ CREATE OR REPLACE PROCEDURE "EMIR".LivraisonConducteurColis_INS(
 )
 AS $$
 BEGIN
-    INSERT INTO "SCA".LivraisonConducteurColis(idconducteur, idbonexpedition, date_affectation, statut) VALUES ("SCA".idconducteur_CONV(_idconducteur),"SCA".Bonexped_CONV(_idbonexpedition),COALESCE(_date_affectation, CURRENT_DATE),COALESCE(_statut, 'Attente'));
+    INSERT INTO "SCA".LivraisonConducteurColis(idconducteur, idbonexpedition, date_affectation, statut) VALUES ("SCA".idconducteur_CONV(_idconducteur),"SCA".Bonexped_CONV(_idbonexpedition),COALESCE(_date_affectation, CURRENT_DATE),COALESCE(_statut, 'en attente')::"SCA".etatcolis);
 END;
 $$ LANGUAGE plpgsql;
 
