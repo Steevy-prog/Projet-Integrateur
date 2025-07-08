@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 #import login as login
 import sys,os
 import numpy as np
@@ -1565,6 +1567,7 @@ class ClientOrderManagementWidget(QWidget):
         dialog = OrderDetailsDialog(order_data, self)
         dialog.exec()
 
+>>>>>>> ed45ef42de1e5b88def8e78be2b5280a15312d11
 class ShipmentTrackingWidget(QWidget):
     """Widget for tracking client's shipments."""
 
@@ -2282,6 +2285,9 @@ class BugReportDialog(QDialog):
             QMessageBox.information(self, "Sent", "Your bug report has been sent to IT support. Thank you!")
             self.accept()
         except Exception as e:
+<<<<<<< HEAD
+            QMessageBox.critical(self, "Error", f"Failed to send bug report.\n\n{e}")
+=======
             QMessageBox.critical(self, "Error", f"Failed to send bug report.\n\n{e}")
 
 
@@ -2767,3 +2773,4 @@ if __name__ == '__main__':
     client_main_window = ClientMainWindow()
     client_main_window.showMaximized()
     sys.exit(app.exec())
+>>>>>>> ed45ef42de1e5b88def8e78be2b5280a15312d11
