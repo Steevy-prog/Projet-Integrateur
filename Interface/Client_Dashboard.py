@@ -1399,6 +1399,7 @@ class ClientLogisticsWidget(QWidget):
             cur.execute('SELECT "EMIR".getorganisationname(%s);',(client_org_id,))
             name = cur.fetchone()[0]
             internalmail.send_email("Order Automaticnotification - SCA","steevyvalery7@gmail.com",client_org_id,name,idcolis,self.receiving_org_combo.currentText())
+            conn.commit()
 
 
 class ClientOrderManagementWidget(QWidget):

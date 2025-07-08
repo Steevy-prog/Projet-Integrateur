@@ -3,6 +3,7 @@ import sys
 from Worker_Dashboard import MainWindow as window1
 from Emballeur_Dashboard import EmballeurMainWindow as window2
 from Manager_Dashboard import MainWindow as window3
+from responsable_logistique import LogisticsMainWindow as window4
 # ----------------------------
 # Abstract Definitions
 # ----------------------------
@@ -257,5 +258,7 @@ class interface:
             return window2()
         elif number == 3:
             return window3()
+        elif number == 4:
+            return window4()
         else:
             raise ValueError("Unknown interface number. Use 1 for Worker, 2 for Client, 3 for IT Technician.")

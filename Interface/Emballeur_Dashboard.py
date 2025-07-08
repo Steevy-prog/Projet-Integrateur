@@ -14,7 +14,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QPixmap, QPainter
 import datetime
 import random
 import psycopg2
-import login as login
+#import login as login
 from helpbot import ChatBot
 from db_connection import ConnectionDB
 # Assuming 'id.py' exists and contains idgenerator
@@ -118,7 +118,7 @@ try:
     cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
     produits_db = cur.fetchall() # Existing products from the database
 
-    cur.execute("SELECT (p).* FROM \"EMIR\".inquiries_eva(%s) AS p;",(client_org_id,))
+    cur.execute("SELECT (p).* FROM \"EMIR\".inquiries_eva(\"SCA\".idorg_conv(%s)) AS p;",(client_org_id,))
     inq_db = cur.fetchall() # Existing products from the database
 
 except psycopg2.Error as e:
@@ -1508,7 +1508,7 @@ class EmballeurMainWindow(QMainWindow):
         )
         if response == QMessageBox.StandardButton.Yes:
             self.close()
-            self.loginpage = login.FlipCard()
+            #self.loginpage = login.FlipCard()
             self.loginpage.show()
 
     def create_content_area(self):
