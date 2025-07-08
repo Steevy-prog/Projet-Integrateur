@@ -1135,7 +1135,7 @@ class ProductDetailDialog(QDialog):
             f"margin-bottom: 20px; padding-bottom: 10px; "
             f"border-bottom: 1px solid #E0E0E0;'>"
             f"Order: {self.order_data['Order_ID']}"
-            f"&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp; "
+            f"&nbsp;&nbsp;&nbsp;&nbsp&;nbsp;&nbsp;&nbsp;&nbsp; "
             f"<span style='color: {status_color}; margin-left: 60px; '>  {eligible_status}</span>"
             f"</h1>"
         )
