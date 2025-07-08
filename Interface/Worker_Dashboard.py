@@ -1937,7 +1937,7 @@ class DragDropStorageCellButton(QPushButton):
             if len(self.cell_data['products']) > 2:
                 product_lines.append(f"...+{len(self.cell_data['products']) - 2} more")
 
-            display_text = f"<b>{self.cell_id}</b><br>{'<br>'.join(product_lines)}<br><small>{utilization_percent:.0f}% filled</small>"
+            display_text = f"{self.cell_id}\n{'\n'.join(product_lines)}\n{utilization_percent:.0f}% filled"
 
             # Detailed tooltip with drag instructions
             tooltip_lines = [
@@ -1961,13 +1961,13 @@ class DragDropStorageCellButton(QPushButton):
         else:
             # Modified this section to remove the span if you don't like it,
             # or keep it if you want specific styling for 'Empty'
-            display_text = f"<b>{self.cell_id}</b><br><span style='color: #999;'>Empty</span><br><small>Drop products here</small>"
+            
             # OR, for simpler text:
             # display_text = f"<b>{self.cell_id}</b><br>Empty<br><small>Drop products here</small>"
 
             self.setToolTip(f"<b>{self.cell_id}</b><br>Empty cell<br>Capacity: {self.cell_data['capacity']}<br><br>💡 You can drop products here!")
 
-        self.setText(display_text)
+        #self.setText(display_text)
 #        print(f"DEBUG: Cell {self.cell_id} - Text set. Current text format is: {self.textFormat()}") # Debug print
 
     def _set_cell_styling(self, utilization_percent: float):
@@ -2064,7 +2064,7 @@ class DragDropStorageCellButton(QPushButton):
             self.drag_start_position = event.pos()
         elif event.button() == Qt.MouseButton.RightButton:
             # Right-click for product selection menu
-            self._show_product_menu(event.globalPos())
+            self._show_product_menu(event.globalPosition().toPoint())
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -2334,7 +2334,7 @@ class DragDropStorageWidget(QWidget):
 
         # Title
         title_layout = QHBoxLayout()
-        title = QLabel("🏭 Storage System - Drag & Drop Edition")
+        title = QLabel("Storage System")
         title.setStyleSheet("""
             font-size: 32px;
             font-weight: bold;
@@ -2345,7 +2345,7 @@ class DragDropStorageWidget(QWidget):
         title_layout.addStretch()
 
         # Instructions
-        instructions = QLabel("💡 <b>How to use:</b> Right-click cells to select products • Drag to move between cells • Left-click for details")
+        instructions = QLabel("💡 <b>How to use:</b> Right-click cells to select products • Left-click for details")
         instructions.setStyleSheet("""
             font-size: 14px;
             color: #666666;

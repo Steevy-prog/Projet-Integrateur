@@ -342,8 +342,8 @@ FICTITIOUS_DRIVERS = {
 
 # --- Database Management Classes (Dummy Version) ---
 
-class DatabaseType(Enum):
-    POSTGRES = "PostgreSQL" # Keep for type consistency, but not used
+# class DatabaseType(Enum):
+#     POSTGRES = "PostgreSQL" # Keep for type consistency, but not used
 
 class DatabaseConfig:
     """
