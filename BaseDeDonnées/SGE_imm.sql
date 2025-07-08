@@ -3165,7 +3165,7 @@ begin
 end;
 $$ language plpgsql;
 
-CREATE OR REPLACE FUNCTION "EMIR".ColisEtConducteur_EVA(_idcolis "SCA".Idcolis)
+CREATE OR REPLACE FUNCTION "EMIR".ColisEtConducteur_EVA()
 RETURNS TABLE (
     -- Colis
     idcolis "SCA".Idcolis,
@@ -3207,11 +3207,11 @@ BEGIN
         cond.experience_annees,
         cond.statut
     FROM "SCA".Colis c
-    LEFT JOIN "SCA".Bonexpedition be ON be.idcolis = c.idcolis
-    LEFT JOIN "SCA".LivraisonConducteurColis lcc ON lcc.idbonexpedition = be.idbonexpedition
-    LEFT JOIN "SCA".Conducteur cond ON cond.idconducteur = lcc.idconducteur
-    LEFT JOIN "SCA".Utilisateur u ON cond.idutilisateur = u.idutilisateur
-    LEFT JOIN "SCA".individu i ON u.idindividu = i.idindividu;
+    JOIN "SCA".Bonexpedition be ON be.idcolis = c.idcolis
+    JOIN "SCA".LivraisonConducteurColis lcc ON lcc.idbonexpedition = be.idbonexpedition
+    JOIN "SCA".Conducteur cond ON cond.idconducteur = lcc.idconducteur
+    JOIN "SCA".Utilisateur u ON cond.idutilisateur = u.idutilisateur
+    JOIN "SCA".individu i ON u.idindividu = i.idindividu;
 END;
 $$ LANGUAGE plpgsql;
 
