@@ -27,7 +27,7 @@ from functools import partial
 Connection = ConnectionDB()
 #import login as login
 
-worker_id = 'TR1234'
+worker_id = 'TR0002'
 global conn
 print("1. online")
 print("2. offline")
@@ -285,6 +285,8 @@ class WorkerData:
         self.exceptions = pd.concat([self.exceptions, pd.DataFrame([new_exception])], ignore_index=True)
         print(f"Added new exception: {new_exception}")
 
+
+
 class TaskCard(QFrame):
     """Card widget for displaying individual tasks with new design."""
 
@@ -355,20 +357,7 @@ class TaskCard(QFrame):
             info_layout.addLayout(header_row)
 
         # Details row
-            if not self.db_connection:
-                self.connection_info = Connection.connection()
-                self.db_connection = self.connection_info['db_connection']
-            
-            cur = self.db_connection.cursor()
-            cur.execute("SELECT (p).* FROM \"EMIR\".getlots(%s) AS p;", (self.task_data['Colis'],))
-            items_count = cur.fetchall()
-            details_text = f"Items: <b>{len(items_count)}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
-            #details_text = f"Items: <b>{0}</b> &nbsp; | &nbsp; Est: <b>{self.task_data['duree']} min</b>"
-            due_text = f"Due: <b>{self.task_data['date-ech']}</b>"
-        else: # For other card types, adjust details as needed
-            details_text = f"Customer: <b>{self.task_data.get('Customer', 'N/A')}</b>"
-            due_text = f"Status: <b>{self.task_data.get('status', 'Pending')}</b>"
-
+        details_text = f"<b>Product:</b> {self.task_data['Colis']}<br><b>Items Count:</b> {self.task_data.get('items_count', 0)}"
         details_label = QLabel(details_text)
         details_label.setStyleSheet("font-size: 13px; color: #666666;")
         details_label.setTextFormat(Qt.TextFormat.RichText)
@@ -1181,6 +1170,11 @@ class ExpeditionManagementWidget(QWidget):
 
         if tasks:
             for task in tasks:
+                cur = self.data.db_connection.cursor()
+                cur.execute('SELECT (p).* FROM "EMIR".getlots(%s) AS p;', (task['Colis'],))
+                items_count = cur.fetchall()
+                task['items_count'] = len(items_count)
+
                 task_card = TaskCard(task, "expedition")
                 task_card.task_selected.connect(self.on_task_selected)
                 task_layout.addWidget(task_card)
