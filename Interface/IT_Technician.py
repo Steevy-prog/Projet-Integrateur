@@ -144,6 +144,7 @@ class AccountSettingsPage(QWidget):
             if data_set:
                 self.create_account_button.setEnabled(True)
             self.combobox_refresh_button.setEnabled(True)
+            QMessageBox.information(self, 'Reload Finish', f'Reload Finish: {len(data_set)} loaded')
             self.combobox_refresh_button.setText("Reload Individual List")
             
         except Exception as e:
@@ -192,6 +193,7 @@ class AccountSettingsPage(QWidget):
         self.individual_combobox = QComboBox()
         # self.individual_combobox.addItem("My God")
         # self.individual_combobox.currentIndexChanged[int].connect(self.initial_create)
+        self.individual_combobox.activated[int].connect(self.initial_create)
         form_layout = QGridLayout()
         form_layout.setSpacing(10)
         
@@ -207,14 +209,16 @@ class AccountSettingsPage(QWidget):
         
         return frame
         
-    # def initial_create(self):
-    #     text = self.individual_combobox.currentText().strip()
-    #     first_name = text.split(' ')[0]
-    #     last_name = text.split(' ')[1]
-    #     self.create_first_name_input.setText(first_name)
-    #     self.create_last_name_input.setText(last_name)
-    #     self.create_first_name_input.setReadOnly(True)
-    #     self.create_last_name_input.setReadOnly(True)
+    def initial_create(self, index: int):
+        self.create_first_name_input.setReadOnly(False)
+        self.create_last_name_input.setReadOnly(False)
+        text = self.individual_combobox.itemText(index).strip()
+        first_name = text.split(' ')[0]
+        last_name = text.split(' ')[1]
+        self.create_first_name_input.setText(first_name)
+        self.create_last_name_input.setText(last_name)
+        self.create_first_name_input.setReadOnly(True)
+        self.create_last_name_input.setReadOnly(True)
 
 
     def _create_employee_list_section(self):

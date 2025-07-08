@@ -443,6 +443,7 @@ class TerminalPage(QWidget):
                 if logs:
                     for log in logs:
                         self.terminal_output.append(f"{log[0]} <b>[{log[1]}]</b>: {log[2]}")  # Adjust based on log structure
+                    self.terminal_output.append(f'Found {len(logs)} logs')
                 else:
                     self.terminal_output.append("No logs found.")
                 self.terminal_output.append("-------------------\n")
