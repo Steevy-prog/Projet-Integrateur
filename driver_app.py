@@ -12,67 +12,103 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 import random # For dummy location updates
 import threading # For chatbot hotkey, though not used in integrated version
 import google.generativeai as genai # For chatbot
+# import psycopg2 # Removed for dummy data
 
 # --- Fictitious Data for demonstration ---
 # Ensure dates are QDate objects for easier comparison and manipulation
 FICTITIOUS_PENDING_DELIVERIES = [
     {
-        "id_livraison": "L001",
-        "id_colis": "C001",
+        "idbonexpedition": "L001", # Changed to idbonexpedition
+        "idcolis": "C001",
         "nom_destinataire": "Alice Dupont",
         "adresse": "123 Rue Principale, Douala",
         "date_expedition": QDate(2025, 7, 1),
         "date_prevue": QDate(2025, 7, 8),
         "poids": "5 kg",
         "volume": "0.1 m³",
-        "type": "Colis Standard",
+        "type_colis": "Colis Standard", # Changed to type_colis
         "instructions": "Laisser chez le voisin si absent.",
-        "lat": 4.0456,
-        "lon": 9.7045,
+        "delivery_latitude": 4.0456, # Changed to delivery_latitude
+        "delivery_longitude": 9.7045, # Changed to delivery_longitude
         "status": "pending",
         "telephone_destinataire": "699123456",
         "idconducteur": "TR1234" # Assign to a dummy driver
     },
     {
-        "id_livraison": "L002",
-        "id_colis": "C002",
+        "idbonexpedition": "L002",
+        "idcolis": "C002",
         "nom_destinataire": "Bob Martin",
         "adresse": "456 Avenue des Fleurs, Yaoundé",
         "date_expedition": QDate(2025, 7, 2),
         "date_prevue": QDate(2025, 7, 9),
         "poids": "2.5 kg",
         "volume": "0.05 m³",
-        "type": "Document Urgent",
+        "type_colis": "Document Urgent",
         "instructions": "Remettre en main propre.",
-        "lat": 3.8480,
-        "lon": 11.5021,
+        "delivery_latitude": 3.8480,
+        "delivery_longitude": 11.5021,
         "status": "pending",
         "telephone_destinataire": "677987654",
         "idconducteur": "TR1234" # Assign to the main dummy driver
     },
     {
-        "id_livraison": "L003",
-        "id_colis": "C003",
+        "idbonexpedition": "L003",
+        "idcolis": "C003",
         "nom_destinataire": "Charlie Brown",
         "adresse": "789 Boulevard de la Liberté, Douala",
         "date_expedition": QDate(2025, 7, 3),
         "date_prevue": QDate(2025, 7, 10),
         "poids": "10 kg",
         "volume": "0.2 m³",
-        "type": "Grand Colis",
+        "type_colis": "Grand Colis",
         "instructions": "Appeler avant d'arriver.",
-        "lat": 4.0300,
-        "lon": 9.7100,
+        "delivery_latitude": 4.0300,
+        "delivery_longitude": 9.7100,
         "status": "pending",
         "telephone_destinataire": "688112233",
         "idconducteur": "TR1234" # Assign to the main dummy driver
+    },
+    # New pending deliveries added as requested
+    {
+        "idbonexpedition": "L014",
+        "idcolis": "C014",
+        "nom_destinataire": "Sophie Dubois",
+        "adresse": "333 Rue du Port, Douala",
+        "date_expedition": QDate(2025, 7, 7),
+        "date_prevue": QDate(2025, 7, 9),
+        "poids": "3.2 kg",
+        "volume": "0.06 m³",
+        "type_colis": "Colis Standard",
+        "instructions": "Laisser à la réception, si possible.",
+        "delivery_latitude": 4.0400,
+        "delivery_longitude": 9.7200,
+        "status": "pending",
+        "telephone_destinataire": "699112244",
+        "idconducteur": "TR1234"
+    },
+    {
+        "idbonexpedition": "L015",
+        "idcolis": "C015",
+        "nom_destinataire": "Paul Bernard",
+        "adresse": "444 Avenue des Palmiers, Douala",
+        "date_expedition": QDate(2025, 7, 8),
+        "date_prevue": QDate(2025, 7, 10),
+        "poids": "1.8 kg",
+        "volume": "0.03 m³",
+        "type_colis": "Document Important",
+        "instructions": "Remettre en main propre uniquement.",
+        "delivery_latitude": 4.0500,
+        "delivery_longitude": 9.7100,
+        "status": "pending",
+        "telephone_destinataire": "677556677",
+        "idconducteur": "TR1234"
     }
 ]
 
 FICTITIOUS_COMPLETED_DELIVERIES = [
     {
-        "id_livraison": "L000",
-        "id_colis": "C000",
+        "idbonexpedition": "L000",
+        "idcolis": "C000",
         "nom_destinataire": "Zoe White",
         "adresse": "101 Rue du Marché, Douala",
         "date_expedition": QDate(2025, 6, 28),
@@ -80,10 +116,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 1),
         "poids": "1 kg",
         "volume": "0.02 m³",
-        "type": "Petit Paquet",
+        "type_colis": "Petit Paquet",
         "instructions": "Aucune.",
-        "lat": 4.0400,
-        "lon": 9.7000,
+        "delivery_latitude": 4.0400,
+        "delivery_longitude": 9.7000,
         "status": "completed",
         "telephone_destinataire": "677000000",
         "delivery_time_seconds": 1800, # 30 minutes
@@ -92,8 +128,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1234"
     },
     {
-        "id_livraison": "L004",
-        "id_colis": "C004",
+        "idbonexpedition": "L004",
+        "idcolis": "C004",
         "nom_destinataire": "David Green",
         "adresse": "202 Rue du Port, Douala",
         "date_expedition": QDate(2025, 6, 29),
@@ -101,10 +137,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 2),
         "poids": "3 kg",
         "volume": "0.1 m³",
-        "type": "Colis Fragile",
+        "type_colis": "Colis Fragile",
         "instructions": "Manipuler avec soin.",
-        "lat": 4.0350,
-        "lon": 9.6950,
+        "delivery_latitude": 4.0350,
+        "delivery_longitude": 9.6950,
         "status": "completed",
         "telephone_destinataire": "677112233",
         "delivery_time_seconds": 2400, # 40 minutes
@@ -113,8 +149,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1234"
     },
     {
-        "id_livraison": "L005",
-        "id_colis": "C005",
+        "idbonexpedition": "L005",
+        "idcolis": "C005",
         "nom_destinataire": "Eve Black",
         "adresse": "303 Rue de la Gare, Yaoundé",
         "date_expedition": QDate(2025, 7, 1),
@@ -122,17 +158,17 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 4), # Late delivery
         "poids": "15 kg",
         "volume": "0.3 m³",
-        "type": "Équipement Lourd",
+        "type_colis": "Équipement Lourd",
         "instructions": "Utiliser le monte-charge.",
-        "lat": 3.8500,
-        "lon": 11.5100,
+        "delivery_latitude": 3.8500,
+        "delivery_longitude": 11.5100,
         "status": "completed",
         "telephone_destinataire": "699445566",
         "idconducteur": "TR1235"
     },
     {
-        "id_livraison": "L006",
-        "id_colis": "C006",
+        "idbonexpedition": "L006",
+        "idcolis": "C006",
         "nom_destinataire": "Frank White",
         "adresse": "404 Rue du Centre, Douala",
         "date_expedition": QDate(2025, 7, 4),
@@ -140,10 +176,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 5),
         "poids": "0.5 kg",
         "volume": "0.01 m³",
-        "type": "Lettre",
+        "type_colis": "Lettre",
         "instructions": "Déposer dans la boîte aux lettres.",
-        "lat": 4.0480,
-        "lon": 9.7080,
+        "delivery_latitude": 4.0480,
+        "delivery_longitude": 9.7080,
         "status": "completed",
         "telephone_destinataire": "677778899",
         "delivery_time_seconds": 1200, # 20 minutes
@@ -152,8 +188,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1234"
     },
     {
-        "id_livraison": "L007",
-        "id_colis": "C007",
+        "idbonexpedition": "L007",
+        "idcolis": "C007",
         "nom_destinataire": "Grace Hall",
         "adresse": "505 Rue de la Plage, Kribi",
         "date_expedition": QDate(2025, 7, 5),
@@ -161,10 +197,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 7),
         "poids": "8 kg",
         "volume": "0.15 m³",
-        "type": "Produit Frais",
+        "type_colis": "Produit Frais",
         "instructions": "Urgent, conserver au frais.",
-        "lat": 2.9500,
-        "lon": 9.9000,
+        "delivery_latitude": 2.9500,
+        "delivery_longitude": 9.9000,
         "status": "completed",
         "telephone_destinataire": "699001122",
         "delivery_time_seconds": 4800, # 80 minutes
@@ -173,8 +209,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1236"
     },
     {
-        "id_livraison": "L008",
-        "id_colis": "C008",
+        "idbonexpedition": "L008",
+        "idcolis": "C008",
         "nom_destinataire": "Henry King",
         "adresse": "606 Rue du Lac, Limbe",
         "date_expedition": QDate(2025, 7, 6),
@@ -182,10 +218,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 8),
         "poids": "6 kg",
         "volume": "0.1 m³",
-        "type": "Électronique",
+        "type_colis": "Électronique",
         "instructions": "Signer la réception.",
-        "lat": 4.0000,
-        "lon": 9.2000,
+        "delivery_latitude": 4.0000,
+        "delivery_longitude": 9.2000,
         "status": "completed",
         "telephone_destinataire": "677334455",
         "delivery_time_seconds": 3000, # 50 minutes
@@ -194,8 +230,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1234"
     },
     {
-        "id_livraison": "L009",
-        "id_colis": "C009",
+        "idbonexpedition": "L009",
+        "idcolis": "C009",
         "nom_destinataire": "Isabelle Lee",
         "adresse": "707 Rue de la Montagne, Bafoussam",
         "date_expedition": QDate(2025, 6, 20),
@@ -203,10 +239,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 6, 22),
         "poids": "7 kg",
         "volume": "0.12 m³",
-        "type": "Vêtements",
+        "type_colis": "Vêtements",
         "instructions": "Laisser à la réception.",
-        "lat": 5.4760,
-        "lon": 10.4180,
+        "delivery_latitude": 5.4760,
+        "delivery_longitude": 10.4180,
         "status": "completed",
         "telephone_destinataire": "699887766",
         "delivery_time_seconds": 2700, # 45 minutes
@@ -215,8 +251,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1236"
     },
     {
-        "id_livraison": "L010",
-        "id_colis": "C010",
+        "idbonexpedition": "L010",
+        "idcolis": "C010",
         "nom_destinataire": "Jack Wilson",
         "adresse": "808 Rue du Soleil, Garoua",
         "date_expedition": QDate(2025, 6, 25),
@@ -224,10 +260,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 6, 29), # Late delivery
         "poids": "4 kg",
         "volume": "0.08 m³",
-        "type": "Livres",
+        "type_colis": "Livres",
         "instructions": "Déposer devant la porte.",
-        "lat": 9.3000,
-        "lon": 13.4000,
+        "delivery_latitude": 9.3000,
+        "delivery_longitude": 13.4000,
         "status": "completed",
         "telephone_destinataire": "677665544",
         "delivery_time_seconds": 5400, # 90 minutes
@@ -237,8 +273,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
     },
     # Add more deliveries for July to show "This Month" stats
     {
-        "id_livraison": "L011",
-        "id_colis": "C011",
+        "idbonexpedition": "L011",
+        "idcolis": "C011",
         "nom_destinataire": "Kelly Green",
         "adresse": "909 Rue de la Paix, Douala",
         "date_expedition": QDate(2025, 7, 7),
@@ -246,10 +282,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 8),
         "poids": "2 kg",
         "volume": "0.03 m³",
-        "type": "Petit Paquet",
+        "type_colis": "Petit Paquet",
         "instructions": "Sonner deux fois.",
-        "lat": 4.0550,
-        "lon": 9.7150,
+        "delivery_latitude": 4.0550,
+        "delivery_longitude": 9.7150,
         "status": "completed",
         "telephone_destinataire": "699112233",
         "delivery_time_seconds": 1500, # 25 minutes
@@ -258,8 +294,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1234"
     },
     {
-        "id_livraison": "L012",
-        "id_colis": "C012",
+        "idbonexpedition": "L012",
+        "idcolis": "C012",
         "nom_destinataire": "Liam Brown",
         "adresse": "111 Rue du Parc, Douala",
         "date_expedition": QDate(2025, 7, 7),
@@ -267,10 +303,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 9),
         "poids": "1.5 kg",
         "volume": "0.04 m³",
-        "type": "Document",
+        "type_colis": "Document",
         "instructions": "Laisser à la réception.",
-        "lat": 4.0600,
-        "lon": 9.7200,
+        "delivery_latitude": 4.0600,
+        "delivery_longitude": 9.7200,
         "status": "completed",
         "telephone_destinataire": "677223344",
         "delivery_time_seconds": 2100, # 35 minutes
@@ -279,8 +315,8 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "idconducteur": "TR1234"
     },
     {
-        "id_livraison": "L013",
-        "id_colis": "C013",
+        "idbonexpedition": "L013",
+        "idcolis": "C013",
         "nom_destinataire": "Mia Davis",
         "adresse": "222 Rue des Écoles, Douala",
         "date_expedition": QDate(2025, 7, 7),
@@ -288,10 +324,10 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "date_livree": QDate(2025, 7, 11), # Late delivery
         "poids": "9 kg",
         "volume": "0.18 m³",
-        "type": "Colis Volumineux",
+        "type_colis": "Colis Volumineux",
         "instructions": "Appeler 30 min avant.",
-        "lat": 4.0500,
-        "lon": 9.7050,
+        "delivery_latitude": 4.0500,
+        "delivery_longitude": 9.7050,
         "status": "completed",
         "telephone_destinataire": "688556677",
         "delivery_time_seconds": 3900, # 65 minutes
@@ -347,28 +383,27 @@ class InternalDummyDBManager:
         self.pending_deliveries_dummy = [dict(d) for d in FICTITIOUS_PENDING_DELIVERIES]
         self.completed_deliveries_dummy = [dict(d) for d in FICTITIOUS_COMPLETED_DELIVERIES]
         self.driver_locations_dummy = dict(FICTITIOUS_DRIVER_LOCATIONS)
-        self.drivers_info_dummy = dict(FICTITIOUS_DRIVERS) # Corrected typo here
+        self.drivers_info_dummy = dict(FICTITIOUS_DRIVERS)
 
     def connect(self):
         print("Dummy DB: Connecté (simulé).")
         return True
 
-    def test_connection(self):
-        print("Dummy DB: Test de connexion réussi (simulé).")
-        return True
+    def close(self):
+        print("Dummy DB: Fermé (simulé).")
 
     def execute_query(self, query, params=None):
         print(f"Dummy DB: Exécution de la requête (simulée): {query} avec les paramètres {params}")
         # Simulate UPDATE for status change in "LivraisonConducteurColis"
         if "UPDATE" in query and "status = 'completed'" in query and "LivraisonConducteurColis" in query:
-            # Assuming params are (date_livree_str, id_livraison)
+            # Assuming params are (date_livree_str, idbonexpedition)
             date_livree_str = params[0]
             delivery_id_to_complete = params[1] 
             
             # Find and move the delivery from pending to completed
             found_index = -1
             for i, delivery in enumerate(self.pending_deliveries_dummy):
-                if delivery["id_livraison"] == delivery_id_to_complete:
+                if delivery["idbonexpedition"] == delivery_id_to_complete:
                     found_index = i
                     break
             
@@ -388,7 +423,8 @@ class InternalDummyDBManager:
 
                 self.completed_deliveries_dummy.append(delivery)
                 print(f"Dummy DB: Livraison {delivery_id_to_complete} marquée comme terminée et déplacée.")
-            return
+                return True # Indicate success
+            return False # Indicate failure if not found
         # Simulate UPDATE for DriverLocations
         if "DriverLocations" in query and "UPDATE" in query:
             driver_id = params[2]
@@ -396,8 +432,16 @@ class InternalDummyDBManager:
             lon = float(params[1])
             self.driver_locations_dummy[driver_id] = (lat, lon)
             print(f"Dummy DB: Localisation du conducteur {driver_id} mise à jour en mémoire à ({lat}, {lon}).")
-            return
+            return True
+        # Simulate UPDATE for Bonexpedition status
+        if "UPDATE" in query and "statut = 'terminé'" in query and "Bonexpedition" in query:
+            bonexpedition_id = params[0]
+            # In a real DB, you'd update the Bonexpedition table.
+            # Here, we just acknowledge the call.
+            print(f"Dummy DB: Statut Bonexpedition {bonexpedition_id} mis à jour en 'terminé' (simulé).")
+            return True
         pass
+        return False # Default to false for unhandled updates
 
     def fetch_one(self, query, params=None):
         print(f"Dummy DB: Récupération d'un élément (simulée): {query} avec les paramètres {params}")
@@ -410,8 +454,8 @@ class InternalDummyDBManager:
             email = params[0]
             driver_data = self.drivers_info_dummy.get(email)
             if driver_data:
-                # Return dict for consistency with how DriverApp expects data
-                return driver_data
+                # Return tuple for consistency with psycopg2 fetchone
+                return (driver_data["idconducteur"], driver_data["nom"], driver_data["prenom"], driver_data["telephone"], driver_data["email"])
         return None # Return None if no match or other query
 
     def fetch_all(self, query, params=None):
@@ -420,16 +464,37 @@ class InternalDummyDBManager:
 
         if "status = 'pending'" in query and "LivraisonConducteurColis" in query:
             filtered_data = [d for d in self.pending_deliveries_dummy if driver_id is None or d.get("idconducteur", "") == driver_id]
-            # Return list of dictionaries
-            return filtered_data
+            # Convert QDate objects back to string for consistency with real DB fetchall output
+            results_for_app = []
+            for d in filtered_data:
+                row = (
+                    d.get("idbonexpedition"), d.get("idcolis"), d.get("nom_destinataire"), d.get("adresse"),
+                    d.get("date_expedition").toString('yyyy-MM-dd') if d.get("date_expedition") else None,
+                    d.get("date_prevue").toString('yyyy-MM-dd') if d.get("date_prevue") else None,
+                    d.get("date_livree").toString('yyyy-MM-dd') if d.get("date_livree") else None, # Will be None for pending
+                    d.get("poids"), d.get("volume"), d.get("type_colis"), d.get("instructions"),
+                    d.get("delivery_latitude"), d.get("delivery_longitude"), d.get("status"),
+                    d.get("telephone_destinataire") # Added this
+                )
+                results_for_app.append(row)
+            return results_for_app
         elif "status = 'completed'" in query and "LivraisonConducteurColis" in query:
             filtered_data = [d for d in self.completed_deliveries_dummy if driver_id is None or d.get("idconducteur", "") == driver_id]
-            # Return list of dictionaries
-            return filtered_data
+            results_for_app = []
+            for d in filtered_data:
+                row = (
+                    d.get("idbonexpedition"), d.get("idcolis"), d.get("nom_destinataire"), d.get("adresse"),
+                    d.get("date_expedition").toString('yyyy-MM-dd') if d.get("date_expedition") else None,
+                    d.get("date_prevue").toString('yyyy-MM-dd') if d.get("date_prevue") else None,
+                    d.get("date_livree").toString('yyyy-MM-dd') if d.get("date_livree") else None,
+                    d.get("poids"), d.get("volume"), d.get("type_colis"), d.get("instructions"),
+                    d.get("delivery_latitude"), d.get("delivery_longitude"), d.get("status"),
+                    d.get("telephone_destinataire") # Added this
+                )
+                results_for_app.append(row)
+            return results_for_app
         return [] # Return an empty list for other queries
 
-    def close(self):
-        print("Dummy DB: Fermé (simulé).")
 
 # --- Définition de la palette de couleurs "Élégance Douce" ---
 COLOR_PRIMARY = "#5F7F80"  # Un vert-bleu sourd et élégant
@@ -449,14 +514,6 @@ COLOR_PRIMARY_DARK = "#4A6465" # Un vert-bleu plus foncé
 COLOR_PRIMARY_LIGHT = "#C0D1D2" # Un vert-bleu très pâle
 COLOR_TEXT_SECONDARY = "#757575" # Un gris moyen
 
-# --- Informations du conducteur par défaut (utilisé pour la recherche après login) ---
-placeholder_driver_info = {
-    "idconducteur": "TR1234",
-    "nom": "Karlone",
-    "prenom": "Messie",
-    "telephone": "677111111",
-    "email": "messie.karlone@example.com"
-}
 
 class AnimatedButton(QPushButton):
     """Bouton animé personnalisé avec effets de survol pour la navigation latérale."""
@@ -524,55 +581,6 @@ class AnimatedButton(QPushButton):
         else: # État étendu
             self.setStyleSheet(self.styleSheet() + "text-align: left;")
 
-class StatsCard(QFrame):
-    """Widget de carte de statistiques personnalisé pour le tableau de bord et les statistiques."""
-    def __init__(self, title, value, icon, color):
-        super().__init__()
-        self.setFrameStyle(QFrame.Shape.Box)
-        self.setMinimumHeight(120)
-        self.setMaximumHeight(120)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(5)
-
-        header_layout = QHBoxLayout()
-        icon_label = QLabel(icon)
-        icon_label.setFont(QFont("Segoe UI", 24))
-        icon_label.setStyleSheet(f"color: {color};")
-
-        title_label = QLabel(title)
-        title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Medium))
-        title_label.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
-
-        header_layout.addWidget(icon_label)
-        header_layout.addStretch()
-        header_layout.addWidget(title_label)
-
-        self.value_label = QLabel(str(value))
-        self.value_label.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
-        self.value_label.setStyleSheet(f"color: {color};")
-        self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        layout.addLayout(header_layout)
-        layout.addWidget(self.value_label)
-        layout.addStretch()
-
-        self.setStyleSheet(f"""
-            QFrame {{
-                background: white;
-                border: 1px solid {COLOR_BORDER_LIGHT};
-                border-radius: 16px;
-                padding: 15px;
-            }}
-            QFrame:hover {{
-                border: 1px solid {color};
-            }}
-        """)
-
-    def update_value(self, value):
-        self.value_label.setText(str(value))
-
-
 class SideBar(QFrame):
     """Barre latérale personnalisée avec boutons de navigation et fonctionnalité de bascule."""
     navigation_changed = pyqtSignal(int)
@@ -602,8 +610,8 @@ class SideBar(QFrame):
         nav_items = [
             ("Tableau de bord", "📋"),
             ("Livraisons terminées", "✅"), # Index 1
-            ("Carte interactive", "🗺️"),    # Index 2
-            ("Aide", "❓"),                 # Index 3
+            ("Carte interactive", "🗺️"),     # Index 2
+            ("Aide", "❓"),                  # Index 3
             ("Paramètres", "⚙️")             # Index 4
         ]
 
@@ -650,9 +658,9 @@ class SideBar(QFrame):
                 background: #C0392B; /* Darker red */
             }}
         """)
-        self.logout_btn.clicked.connect(self.logout_requested.emit)
+        self.logout_btn.clicked.connect(self.confirm_logout)
         self.layout.addWidget(self.logout_btn)
-
+        
         self.set_active_nav(0) # Set dashboard as default active
 
         self.setStyleSheet(f"""
@@ -709,6 +717,20 @@ class SideBar(QFrame):
             self.logout_btn.set_expanded_state(False)
 
         self.sidebar_state_changed.emit(self.is_expanded)
+
+    def confirm_logout(self):
+        from PyQt6.QtWidgets import QMessageBox
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setWindowTitle("Confirmation de déconnexion")
+        msg_box.setText("Voulez-vous vraiment vous déconnecter ?")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+
+        result = msg_box.exec()
+
+        if result == QMessageBox.StandardButton.Yes:
+            self.logout_requested.emit()
 
 
 class ReportIssueDialog(QDialog):
@@ -1095,20 +1117,21 @@ class DriverApp(QWidget):
             t.show()
             self.no_pending_dashboard_label.hide()
             for row_idx, delivery in enumerate(self.pending_deliveries_data):
-                t.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
-                t.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
+                # Use idbonexpedition for the first column
+                t.setItem(row_idx, 0, QTableWidgetItem(str(delivery["idbonexpedition"])))
+                t.setItem(row_idx, 1, QTableWidgetItem(delivery["idcolis"]))
                 t.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
                 t.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
                 t.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
                 t.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
                 t.setItem(row_idx, 6, QTableWidgetItem(delivery["poids"]))
                 t.setItem(row_idx, 7, QTableWidgetItem(delivery["volume"]))
-                t.setItem(row_idx, 8, QTableWidgetItem(delivery["type"]))
+                t.setItem(row_idx, 8, QTableWidgetItem(delivery["type_colis"])) # Changed from 'type' to 'type_colis'
                 t.setItem(row_idx, 9, QTableWidgetItem(delivery["instructions"]))
-                t.setItem(row_idx, 10, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
-                t.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
+                t.setItem(row_idx, 10, QTableWidgetItem(str(delivery["delivery_latitude"]) if delivery["delivery_latitude"] is not None else 'N/A')) # Changed from 'lat'
+                t.setItem(row_idx, 11, QTableWidgetItem(str(delivery["delivery_longitude"]) if delivery["delivery_longitude"] is not None else 'N/A')) # Changed from 'lon'
                 t.setItem(row_idx, 12, QTableWidgetItem(delivery["status"]))
-                t.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"]))
+                t.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"] if "telephone_destinataire" in delivery else 'N/A')) # Added check for key
 
                 details_button = QPushButton("Détails")
                 details_button.setStyleSheet(f"""
@@ -1210,7 +1233,7 @@ class DriverApp(QWidget):
             </ul>
             
             <h4 style='color: {COLOR_TEXT_DARK};'>Comment marquer une livraison comme terminée ?</h4>
-            <p>Dans la section "Tableau de bord", cliquez sur la carte "En cours" pour afficher la liste de vos livraisons en attente. Ensuite, cliquez sur le bouton "Détails" à côté de la livraison concernée. Une fenêtre s'ouvrira, vous y trouverez un bouton "Marquer comme livrée". Cliquez dessus pour confirmer la fin de la livraison.</p>
+            <p>Dans la section "Tableau de bord", cliquez sur le bouton "Détails" à côté de la livraison concernée. Une fenêtre s'ouvrira, vous y trouverez un bouton "Marquer comme livrée". Cliquez dessus pour confirmer la fin de la livraison.</p>
             
             <h4 style='color: {COLOR_TEXT_DARK};'>Que faire en cas de problème ?</h4>
             <p>Si vous rencontrez un problème avec une livraison (adresse introuvable, destinataire absent, colis endommagé, etc.), vous pouvez le signaler depuis la fenêtre des détails de la livraison en cliquant sur "Signaler un problème". Notre équipe de support vous contactera.</p>
@@ -1328,10 +1351,10 @@ class DriverApp(QWidget):
     def setup_modern_table(self, table_widget, table_type):
         """Configure le style et les propriétés des QTableWidget."""
         if table_type == "pending":
-            headers = ["ID Livraison", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Action"]
+            headers = ["ID Bon Exp.", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Action"]
             table_widget.setColumnCount(len(headers))
         else: # table_type == "done"
-            headers = ["ID Livraison", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Date Livrée", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Temps (s)", "Distance (km)", "À l'heure"]
+            headers = ["ID Bon Exp.", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Date Livrée", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Temps (s)", "Distance (km)", "À l'heure"]
             table_widget.setColumnCount(len(headers))
 
         table_widget.setHorizontalHeaderLabels(headers)
@@ -1353,7 +1376,7 @@ class DriverApp(QWidget):
                 border-radius: 12px;
                 background-color: white;
                 gridline-color: {COLOR_BORDER_LIGHT};
-                font-size: 14px;
+                font-size: 14px; /* Increased font size for better readability */
                 selection-background-color: {COLOR_PRIMARY_LIGHT};
                 selection-color: {COLOR_TEXT_DARK};
             }}
@@ -1372,8 +1395,14 @@ class DriverApp(QWidget):
         table_widget.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table_widget.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        
+        # Set resize mode for columns
         table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Make the "Action" column resize to content to ensure button visibility
+        if table_type == "pending":
+            table_widget.horizontalHeader().setSectionResizeMode(len(headers) - 1, QHeaderView.ResizeMode.ResizeToContents)
         table_widget.horizontalHeader().setStretchLastSection(True)
+
 
     def load_all_deliveries_from_db(self):
         self.loading_label.show()
@@ -1382,26 +1411,63 @@ class DriverApp(QWidget):
         try:
             driver_id = self.driver_info["idconducteur"]
             print(f"Fetching deliveries for driver ID: {driver_id}")
-            # Fetching pending deliveries (still needed for dashboard and dialog)
-            self.pending_deliveries_data = self.db_manager.fetch_all(
+            
+            # Fetching pending deliveries (from dummy data)
+            # The dummy DBManager now returns data in the same tuple format as psycopg2
+            pending_results = self.db_manager.fetch_all(
                 "SELECT * FROM LivraisonConducteurColis WHERE status = 'pending' AND idconducteur = %s;",
                 (driver_id,)
             )
-            # Convert QDate objects for pending deliveries
-            for d in self.pending_deliveries_data:
-                d["date_expedition"] = QDate.fromString(str(d["date_expedition"]), 'yyyy-MM-dd') if d.get("date_expedition") else None
-                d["date_prevue"] = QDate.fromString(str(d["date_prevue"]), 'yyyy-MM-dd') if d.get("date_prevue") else None
+            self.pending_deliveries_data = []
+            for row in pending_results:
+                delivery = {
+                    "idbonexpedition": row[0],
+                    "idcolis": row[1],
+                    "nom_destinataire": row[2],
+                    "adresse": row[3],
+                    "date_expedition": QDate.fromString(str(row[4]), 'yyyy-MM-dd') if row[4] else None,
+                    "date_prevue": QDate.fromString(str(row[5]), 'yyyy-MM-dd') if row[5] else None,
+                    "date_livree": QDate.fromString(str(row[6]), 'yyyy-MM-dd') if row[6] else None,
+                    "poids": row[7],
+                    "volume": row[8],
+                    "type_colis": row[9],
+                    "instructions": row[10],
+                    "delivery_latitude": float(row[11]) if row[11] is not None else None,
+                    "delivery_longitude": float(row[12]) if row[12] is not None else None,
+                    "status": row[13],
+                    "telephone_destinataire": row[14] # Corrected index
+                }
+                self.pending_deliveries_data.append(delivery)
 
-            # Fetching completed deliveries
-            self.completed_deliveries_data = self.db_manager.fetch_all(
+
+            # Fetching completed deliveries (from dummy data)
+            completed_results = self.db_manager.fetch_all(
                 "SELECT * FROM LivraisonConducteurColis WHERE status = 'completed' AND idconducteur = %s;",
                 (driver_id,)
             )
-            # Convert QDate objects for completed deliveries
-            for d in self.completed_deliveries_data:
-                d["date_expedition"] = QDate.fromString(str(d["date_expedition"]), 'yyyy-MM-dd') if d.get("date_expedition") else None
-                d["date_prevue"] = QDate.fromString(str(d["date_prevue"]), 'yyyy-MM-dd') if d.get("date_prevue") else None
-                d["date_livree"] = QDate.fromString(str(d["date_livree"]), 'yyyy-MM-dd') if d.get("date_livree") else None
+            self.completed_deliveries_data = []
+            for row in completed_results:
+                delivery = {
+                    "idbonexpedition": row[0],
+                    "idcolis": row[1],
+                    "nom_destinataire": row[2],
+                    "adresse": row[3],
+                    "date_expedition": QDate.fromString(str(row[4]), 'yyyy-MM-dd') if row[4] else None,
+                    "date_prevue": QDate.fromString(str(row[5]), 'yyyy-MM-dd') if row[5] else None,
+                    "date_livree": QDate.fromString(str(row[6]), 'yyyy-MM-dd') if row[6] else None,
+                    "poids": row[7],
+                    "volume": row[8],
+                    "type_colis": row[9],
+                    "instructions": row[10],
+                    "delivery_latitude": float(row[11]) if row[11] is not None else None,
+                    "delivery_longitude": float(row[12]) if row[12] is not None else None,
+                    "status": row[13],
+                    "delivery_time_seconds": random.randint(1000, 5000), # Fictitious
+                    "distance_km": round(random.uniform(3.0, 20.0), 1), # Fictitious
+                    "on_time": (QDate.fromString(str(row[6]), 'yyyy-MM-dd') <= QDate.fromString(str(row[5]), 'yyyy-MM-dd')) if row[6] and row[5] else False,
+                    "telephone_destinataire": row[14] # Corrected index
+                }
+                self.completed_deliveries_data.append(delivery)
 
 
             print(f"Pending deliveries fetched: {len(self.pending_deliveries_data)}")
@@ -1414,7 +1480,6 @@ class DriverApp(QWidget):
         
         self.populate_dashboard_pending_table() # Populate the new dashboard table
         self.load_completed_table_data() # Only update completed table directly
-        # self.update_dashboard_stats() # Removed as per user request
         self.update_driver_location_on_map()
 
         self.loading_label.hide()
@@ -1435,8 +1500,8 @@ class DriverApp(QWidget):
             t.show()
             self.no_completed_label.hide()
             for row_idx, delivery in enumerate(self.completed_deliveries_data):
-                t.setItem(row_idx, 0, QTableWidgetItem(str(delivery.get("id_livraison", 'N/A'))))
-                t.setItem(row_idx, 1, QTableWidgetItem(delivery.get("id_colis", 'N/A')))
+                t.setItem(row_idx, 0, QTableWidgetItem(str(delivery.get("idbonexpedition", 'N/A'))))
+                t.setItem(row_idx, 1, QTableWidgetItem(delivery.get("idcolis", 'N/A')))
                 t.setItem(row_idx, 2, QTableWidgetItem(delivery.get("nom_destinataire", 'N/A')))
                 t.setItem(row_idx, 3, QTableWidgetItem(delivery.get("adresse", 'N/A')))
                 t.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery.get("date_expedition") else 'N/A'))
@@ -1444,10 +1509,10 @@ class DriverApp(QWidget):
                 t.setItem(row_idx, 6, QTableWidgetItem(delivery["date_livree"].toString('yyyy-MM-dd') if delivery.get("date_livree") else 'N/A'))
                 t.setItem(row_idx, 7, QTableWidgetItem(delivery.get("poids", 'N/A')))
                 t.setItem(row_idx, 8, QTableWidgetItem(delivery.get("volume", 'N/A')))
-                t.setItem(row_idx, 9, QTableWidgetItem(delivery.get("type", 'N/A')))
+                t.setItem(row_idx, 9, QTableWidgetItem(delivery.get("type_colis", 'N/A')))
                 t.setItem(row_idx, 10, QTableWidgetItem(delivery.get("instructions", 'N/A')))
-                t.setItem(row_idx, 11, QTableWidgetItem(str(delivery.get("lat", 'N/A'))))
-                t.setItem(row_idx, 12, QTableWidgetItem(str(delivery.get("lon", 'N/A'))))
+                t.setItem(row_idx, 11, QTableWidgetItem(str(delivery.get("delivery_latitude", 'N/A'))))
+                t.setItem(row_idx, 12, QTableWidgetItem(str(delivery.get("delivery_longitude", 'N/A'))))
                 t.setItem(row_idx, 13, QTableWidgetItem(delivery.get("status", 'N/A')))
                 t.setItem(row_idx, 14, QTableWidgetItem(delivery.get("telephone_destinataire", 'N/A')))
                 t.setItem(row_idx, 15, QTableWidgetItem(f"{delivery.get('delivery_time_seconds', 0) / 60:.0f} min"))
@@ -1456,31 +1521,13 @@ class DriverApp(QWidget):
 
 
     def update_dashboard_stats(self):
-        # Removed "Performances du jour" stats from the dashboard as per user request.
-        # The following lines are commented out:
-        # today = QDate.currentDate()
-        # completed_data_dicts = self.completed_deliveries_data
-        # completed_today = [
-        #     d for d in completed_data_dicts
-        #     if d.get("date_livree") and d["date_livree"] == today
-        # ]
-        # completed_today_count = len(completed_today)
-        # total_delivery_time_seconds_today = sum(d.get("delivery_time_seconds", 0) for d in completed_today)
-        # avg_time_minutes_today = (total_delivery_time_seconds_today / completed_today_count / 60) if completed_today_count > 0 else 0
-        # total_distance_km_today = sum(d.get("distance_km", 0) for d in completed_today)
-        # fuel_consumption_today = (total_distance_km_today / 10) if total_distance_km_today > 0 else 0 # Dummy calc
-        # on_time_deliveries_count_today = sum(1 for d in completed_today if d.get("on_time", False))
-        # on_time_rate_today = (on_time_deliveries_count_today / completed_today_count * 100) if completed_today_count > 0 else 0
-        # self.avg_time_value_label.setText(f"{avg_time_minutes_today:.0f} min")
-        # self.total_distance_value_label.setText(f"{total_distance_km_today:.1f} km")
-        # self.fuel_consumption_value_label.setText(f"{fuel_consumption_today:.1f} L")
-        # self.on_time_rate_value_label.setText(f"{on_time_rate_today:.1f}%")
-        pass # No longer updating these stats on the dashboard
+        # This function is now empty as requested, no stats cards on dashboard
+        pass
 
 
     def show_delivery_popup(self, delivery):
         msg = QMessageBox()
-        msg.setWindowTitle(f"📦 Détails - Livraison {delivery['id_livraison']}")
+        msg.setWindowTitle(f"📦 Détails - Livraison {delivery['idbonexpedition']}")
         msg.setStyleSheet(f"""
             QMessageBox {{
                 background: white;
@@ -1506,15 +1553,16 @@ class DriverApp(QWidget):
 
         info = f"""
         <div style='font-family: Segoe UI; line-height: 1.6;'>
-            <h3 style='color: {COLOR_TEXT_DARK}; margin-top: 0;'>📦 {delivery['id_colis']}</h3>
+            <h3 style='color: {COLOR_TEXT_DARK}; margin-top: 0;'>📦 {delivery['idcolis']}</h3>
             <p><strong>👤 Destinataire:</strong> {delivery['nom_destinataire']}</p>
             <p><strong>📍 Adresse:</strong> {delivery['adresse']}</p>
             <p><strong>⚖️ Poids:</strong> {delivery['poids']}</p>
             <p><strong>📏 Volume:</strong> {delivery['volume']}</p>
-            <p><strong>📦 Type:</strong> {delivery['type']}</p>
+            <p><strong>📦 Type:</strong> {delivery['type_colis']}</p>
             <p><strong>📝 Instructions:</strong> {delivery['instructions']}</p>
             <p><strong>🗓️ Date d'expédition:</strong> {delivery['date_expedition'].toString("dd/MM/yyyy") if delivery.get('date_expedition') else 'N/A'}</p>
             <p><strong>🗓️ Date prévue:</strong> {delivery['date_prevue'].toString("dd/MM/yyyy") if delivery.get('date_prevue') else 'N/A'}</p>
+            <p><strong>📞 Téléphone:</strong> {delivery['telephone_destinataire']}</p>
         </div>
         """
 
@@ -1597,42 +1645,51 @@ class DriverApp(QWidget):
 
     def complete_delivery(self, delivery):
         reply = QMessageBox.question(self, 'Confirmer la livraison',
-                                     f"Voulez-vous marquer la livraison {delivery['id_livraison']} comme terminée ?",
+                                     f"Voulez-vous marquer la livraison {delivery['idbonexpedition']} comme terminée ?",
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                                      QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                query = """
-                UPDATE "SCA"."LivraisonConducteurColis"
-                SET status = 'completed', date_livree = %s
-                WHERE id_livraison = %s;
-                """
+                # Update status in the in-memory pending_deliveries_dummy list
+                # and move it to completed_deliveries_dummy
                 current_date = QDate.currentDate().toString("yyyy-MM-dd")
-                self.db_manager.execute_query(query, (current_date, delivery["id_livraison"]))
+                
+                # The execute_query in InternalDummyDBManager now handles the move
+                if self.db_manager.execute_query(
+                    "UPDATE LivraisonConducteurColis SET status = 'completed', date_livree = %s WHERE idbonexpedition = %s;",
+                    (current_date, delivery["idbonexpedition"])
+                ):
+                    # Simulate updating Bonexpedition status (no actual effect in dummy)
+                    self.db_manager.execute_query(
+                        "UPDATE Bonexpedition SET statut = 'terminé' WHERE idbonexpedition = %s;",
+                        (delivery["idbonexpedition"],)
+                    )
 
-                success_msg = QMessageBox()
-                success_msg.setIcon(QMessageBox.Icon.Information)
-                success_msg.setWindowTitle("✅ Livraison terminée")
-                success_msg.setText("🎉 Livraison marquée comme terminée avec succès !")
-                success_msg.setStyleSheet(f"""
-                    QMessageBox {{
-                        background: white;
-                        border-radius: 12px;
-                    }}
-                    QMessageBox QPushButton {{
-                        background: {COLOR_SUCCESS};
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        padding: 8px 16px;
-                        font-weight: 500;
-                    }}
-                """)
-                success_msg.exec()
+                    success_msg = QMessageBox()
+                    success_msg.setIcon(QMessageBox.Icon.Information)
+                    success_msg.setWindowTitle("✅ Livraison terminée")
+                    success_msg.setText("🎉 Livraison marquée comme terminée avec succès !")
+                    success_msg.setStyleSheet(f"""
+                        QMessageBox {{
+                            background: white;
+                            border-radius: 12px;
+                        }}
+                        QMessageBox QPushButton {{
+                            background: {COLOR_SUCCESS};
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            padding: 8px 16px;
+                            font-weight: 500;
+                        }}
+                    """)
+                    success_msg.exec()
 
-                self.load_all_deliveries_from_db() # Reload data to reflect changes
+                    self.load_all_deliveries_from_db() # Reload data to reflect changes in both tables
+                else:
+                    QMessageBox.critical(self, "Erreur de mise à jour", "Échec de la mise à jour de la livraison dans les données fictives.")
             except Exception as e:
-                QMessageBox.critical(self, "Erreur de base de données", f"Échec de la mise à jour de la livraison : {e}")
+                QMessageBox.critical(self, "Erreur interne", f"Échec de la mise à jour de la livraison : {e}")
 
     def update_counters(self):
         pass
@@ -1647,31 +1704,38 @@ class DriverApp(QWidget):
         QApplication.processEvents()
 
         try:
-            location_query = """
-            SELECT current_latitude, current_longitude
-            FROM "SCA"."DriverLocations"
-            WHERE idconducteur = %s;
-            """
-            location_data = self.db_manager.fetch_one(location_query, (self.driver_info["idconducteur"],))
+            # Fetch location from dummy data (which is a dict of (lat, lon) tuples)
+            location_data = self.db_manager.fetch_one(
+                "SELECT current_latitude, current_longitude FROM DriverLocations WHERE idconducteur = %s;",
+                (self.driver_info["idconducteur"],)
+            )
             if location_data:
-                # Corrected access to tuple elements
                 self.driver_current_location = (float(location_data[0]), float(location_data[1]))
             else:
-                self.driver_current_location = (4.05, 9.77) # Default to Douala, Cameroon
+                # If no location found, set a default one
+                default_lat, default_lon = 4.05, 9.77 # Douala, Cameroon
+                self.db_manager.execute_query(
+                    "INSERT INTO DriverLocations (idconducteur, current_latitude, current_longitude) VALUES (%s, %s, %s);",
+                    (self.driver_info["idconducteur"], default_lat, default_lon)
+                )
+                self.driver_current_location = (default_lat, default_lon)
 
-            # Simulate location movement for the driver in dummy data
+
+            # Simulate location movement for the driver
             current_lat, current_lon = self.driver_current_location
             new_lat = current_lat + (random.uniform(-0.005, 0.005))
             new_lon = current_lon + (random.uniform(-0.005, 0.005))
-            self.driver_current_location = (new_lat, new_lon)
+            
+            # Update the dummy DB with the new simulated location
             self.db_manager.execute_query(
-                "UPDATE \"SCA\".\"DriverLocations\" SET current_latitude = %s, current_longitude = %s WHERE idconducteur = %s;",
+                "UPDATE DriverLocations SET current_latitude = %s, current_longitude = %s WHERE idconducteur = %s;",
                 (new_lat, new_lon, self.driver_info["idconducteur"])
             )
+            self.driver_current_location = (new_lat, new_lon) # Update in-memory for next cycle
 
         except Exception as e:
-            QMessageBox.warning(self, "Erreur de localisation", f"Impossible de charger la position du conducteur : {e}. Utilisation d'une position par défaut.")
-            self.driver_current_location = (4.05, 9.77)
+            QMessageBox.warning(self, "Erreur de localisation", f"Impossible de charger/mettre à jour la position du conducteur : {e}. Utilisation d'une position par défaut.")
+            self.driver_current_location = (4.05, 9.77) # Fallback to default if any error
 
         map_html = f"""
         <!DOCTYPE html>
@@ -1708,9 +1772,9 @@ class DriverApp(QWidget):
 
                 // Add markers for pending deliveries
                 var pendingDeliveries = {json.dumps([
-                    {"lat": d["lat"], "lon": d["lon"], "id": d["id_livraison"], "name": d["nom_destinataire"], "address": d["adresse"]}
+                    {"lat": d["delivery_latitude"], "lon": d["delivery_longitude"], "id": d["idbonexpedition"], "name": d["nom_destinataire"], "address": d["adresse"]}
                     for d in self.pending_deliveries_data
-                    if d.get("lat") is not None and d.get("lon") is not None
+                    if d.get("delivery_latitude") is not None and d.get("delivery_longitude") is not None
                 ])};
                 pendingDeliveries.forEach(function(delivery) {{
                     var marker = L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_WARNING}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">🕒</div>', iconSize: [24, 24], iconAnchor: [12, 24]}})}})
@@ -1721,9 +1785,9 @@ class DriverApp(QWidget):
 
                 // Add markers for completed deliveries
                 var completedDeliveries = {json.dumps([
-                    {"lat": d["lat"], "lon": d["lon"], "id": d["id_livraison"], "name": d["nom_destinataire"], "address": d["adresse"]}
+                    {"lat": d["delivery_latitude"], "lon": d["delivery_longitude"], "id": d["idbonexpedition"], "name": d["nom_destinataire"], "address": d["adresse"]}
                     for d in self.completed_deliveries_data
-                    if d.get("lat") is not None and d.get("lon") is not None
+                    if d.get("delivery_latitude") is not None and d.get("delivery_longitude") is not None
                 ])};
                 completedDeliveries.forEach(function(delivery) {{
                     var marker = L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_SUCCESS}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">✅</div>', iconSize: [24, 24], iconAnchor: [12, 24]}})}})
@@ -1819,7 +1883,7 @@ class LoginScreen(QWidget):
     def __init__(self, db_manager_instance):
         super().__init__()
         self.db_manager = db_manager_instance
-        self.setWindowTitle("SAC DeliveryPro- Connexion")
+        self.setWindowTitle("DeliveryPro - Connexion")
         self.setGeometry(500, 300, 400, 350)
         self.init_ui()
         self.apply_login_styles()
@@ -1902,38 +1966,52 @@ class LoginScreen(QWidget):
         entered_email = self.username_input.text()
         entered_password = self.password_input.text()
 
-        self.login_loading_label.show()
-        QApplication.processEvents()
+        # Confirmation pop-up before attempting login
+        reply = QMessageBox.question(self, 'Confirmer la connexion',
+                                     f"Voulez-vous vous connecter en tant que '{entered_email}' ?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
 
-        if entered_password == "password": # Universal password for dummy login
-            try:
-                driver_info = None
-                # Try to fetch driver info from the dummy data using the entered email
-                driver_info = self.db_manager.fetch_one(
-                    "SELECT idconducteur, nom, prenom, telephone, email FROM Conducteur WHERE email = %s;",
-                    (entered_email,)
-                )
-                
-                if driver_info:
+        if reply == QMessageBox.StandardButton.Yes:
+            self.login_loading_label.show()
+            QApplication.processEvents()
+
+            if entered_password == "password": # Universal password for dummy login
+                try:
+                    # Fetch driver info from the dummy database
+                    query = "SELECT idconducteur, nom, prenom, telephone, email FROM Conducteur WHERE email = %s;"
+                    result = self.db_manager.fetch_one(query, (entered_email,))
+                    
+                    if result:
+                        # Map tuple result to dictionary
+                        driver_info = {
+                            "idconducteur": result[0],
+                            "nom": result[1],
+                            "prenom": result[2],
+                            "telephone": result[3],
+                            "email": result[4]
+                        }
+                        self.login_loading_label.hide()
+                        QMessageBox.information(self, "Connexion Réussie", f"Bienvenue, {driver_info['prenom']}!")
+                        self.login_successful.emit(driver_info)
+                    else:
+                        self.login_loading_label.hide()
+                        QMessageBox.warning(self, "Erreur de Connexion", "Conducteur non trouvé avec cet e-mail. Veuillez vérifier.")
+                except Exception as e:
                     self.login_loading_label.hide()
-                    QMessageBox.information(self, "Connexion Réussie", f"Bienvenue, {driver_info['prenom']}!")
-                    self.login_successful.emit(driver_info)
-                else:
-                    self.login_loading_label.hide()
-                    QMessageBox.warning(self, "Erreur de Connexion", "Conducteur non trouvé avec cet e-mail. Veuillez vérifier.")
-            except Exception as e:
+                    QMessageBox.critical(self, "Erreur de base de données", f"Échec de la récupération des informations du conducteur : {e}")
+            else:
                 self.login_loading_label.hide()
-                QMessageBox.critical(self, "Erreur de base de données", f"Échec de la récupération des informations du conducteur : {e}")
+                QMessageBox.warning(self, "Erreur de Connexion", "Mot de passe incorrect.")
         else:
-            self.login_loading_label.hide()
-            QMessageBox.warning(self, "Erreur de Connexion", "Mot de passe incorrect.")
+            QMessageBox.information(self, "Connexion annulée", "La tentative de connexion a été annulée.")
 
 
 # --- Logique principale de l'application (Point d'entrée) ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # Directly initialize the InternalDummyDBManager
+    # Initialize the InternalDummyDBManager
     db_manager = InternalDummyDBManager()
     
     # No need for connection test or dialog as it's always dummy and always connected
@@ -1953,5 +2031,8 @@ if __name__ == "__main__":
         main_window.show()
 
     login_screen.login_successful.connect(show_main_app)
+
+    # Ensure DB connection is closed when the application exits
+    app.aboutToQuit.connect(db_manager.close)
 
     sys.exit(app.exec())
