@@ -3098,3 +3098,55 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+create or replace function "EMIR".Attribuer_Cellule_Optimale(
+    _longueur "SCA".dims,
+    _largeur "SCA".dims,
+    _hauteur "SCA".dims,
+    _masse "SCA".dims,
+    _quantite int
+)
+returns "SCA".Idcellule
+as $$
+declare
+    cellule_trouvee "SCA".Idcellule;
+    _volume numeric := _longueur * _largeur * _hauteur * _quantite;
+    _masse_totale numeric := _masse * _quantite;
+begin
+    select c.idcellule
+    into cellule_trouvee
+    from "SCA".Cellule c
+    join "SCA".entrepot e on c.idcellule = e.idcellule
+    join "SCA".Zone z on e.position = z.idzone
+    left join (
+        select ie.idcellule,
+               sum(pm.longueur * pm.largeur * pm.hauteur * l.quantite) as volume_occupe,
+               sum(pm.masse * l.quantite) as masse_occupee
+        from "SCA".InventaireEmplacement ie
+        join "SCA".Lot l on ie.idlot = l.idlot
+        join "SCA".ProduitMateriel pm on l.idproduit = pm.idproduit
+        group by ie.idcellule
+    ) as occ on c.idcellule = occ.idcellule
+    where
+        c.longueur >= _longueur and
+        c.largeur >= _largeur and
+        c.hauteur >= _hauteur and
+        (c.masse_maximale - coalesce(occ.masse_occupee, 0)) >= _masse_totale and
+        ((c.longueur * c.largeur * c.hauteur) - coalesce(occ.volume_occupe, 0)) >= _volume
+    order by
+        case z.nom
+            when 'E0' then 1
+            when 'E1' then 2
+            when 'E2' then 3
+            when 'E3' then 4
+            else 5
+        end,
+        ((c.longueur * c.largeur * c.hauteur) - coalesce(occ.volume_occupe, 0)) asc
+    limit 1;
+
+    if cellule_trouvee is null then
+        raise exception 'Aucune cellule compatible disponible.';
+    end if;
+
+    return cellule_trouvee;
+end;
+$$ language plpgsql;

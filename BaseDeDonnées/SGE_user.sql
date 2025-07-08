@@ -41,9 +41,8 @@ BEGIN
     );
 
     -- Log de l'inscription
-    INSERT INTO "SCA".Logs (level, message, extra)
-    VALUES ('INFO', 'Nouvel utilisateur inscrit',
-            jsonb_build_object('username', _username, 'email', _email, 'idutilisateur', _idutilisateur, 'nom', _nom, 'prenom', _prenom));
+        INSERT INTO "SCA".Logs (level, message)
+        VALUES ('INFO', 'Nouvel utilisateur inscrit');
 
     RETURN _idutilisateur;
 END;
