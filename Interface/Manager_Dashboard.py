@@ -2636,7 +2636,6 @@ class PerformanceWidget(QWidget):
         header_layout.addLayout(date_layout)
 
         # KPI Cards
-        k
 
         # KPI Cards
         kpi_layout = QHBoxLayout()

@@ -3099,19 +3099,31 @@ END;
 $$ LANGUAGE plpgsql;
 
 create or replace function "EMIR".Attribuer_Cellule_Optimale(
-    _longueur "SCA".dims,
-    _largeur "SCA".dims,
-    _hauteur "SCA".dims,
-    _masse "SCA".dims,
-    _quantite int
+    _idlot "SCA".Idlot
 )
 returns "SCA".Idcellule
 as $$
 declare
     cellule_trouvee "SCA".Idcellule;
-    _volume numeric := _longueur * _largeur * _hauteur * _quantite;
-    _masse_totale numeric := _masse * _quantite;
+    _longueur "SCA".dims;
+    _largeur "SCA".dims;
+    _hauteur "SCA".dims;
+    _masse "SCA".dims;
+    _quantite int;
+    _volume numeric;
+    _masse_totale numeric;
 begin
+    -- Récupération des données du lot et du produit associé
+    select pm.longueur, pm.largeur, pm.hauteur, pm.masse, l.quantite
+    into _longueur, _largeur, _hauteur, _masse, _quantite
+    from "SCA".Lot l
+    join "SCA".ProduitMateriel pm on l.idproduit = pm.idproduit
+    where l.idlot = _idlot;
+
+    _volume := _longueur * _largeur * _hauteur * _quantite;
+    _masse_totale := _masse * _quantite;
+
+    -- Recherche de la cellule optimale
     select c.idcellule
     into cellule_trouvee
     from "SCA".Cellule c
@@ -3134,19 +3146,20 @@ begin
         ((c.longueur * c.largeur * c.hauteur) - coalesce(occ.volume_occupe, 0)) >= _volume
     order by
         case z.nom
-            when 'E0' then 1
-            when 'E1' then 2
-            when 'E2' then 3
-            when 'E3' then 4
+            when 'Zone de Stockage A' then 1
+            when 'Zone de Stockage B' then 2
+            when 'Zone de Stockage C' then 3
+            when 'Zone de Stockage D' then 4
             else 5
         end,
         ((c.longueur * c.largeur * c.hauteur) - coalesce(occ.volume_occupe, 0)) asc
     limit 1;
 
     if cellule_trouvee is null then
-        raise exception 'Aucune cellule compatible disponible.';
+        raise exception 'Aucune cellule compatible disponible pour le lot %', _idlot;
     end if;
 
     return cellule_trouvee;
 end;
 $$ language plpgsql;
+
