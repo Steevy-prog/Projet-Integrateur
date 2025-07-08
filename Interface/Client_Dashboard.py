@@ -1537,7 +1537,7 @@ class ClientOrderManagementWidget(QWidget):
 
         stats_layout.addWidget(self.create_stat_card("Pending Orders", pending_orders, "#FFC107"))
         stats_layout.addWidget(self.create_stat_card("In Transit", in_transit_orders, "#2196F3"))
-        stats_layout.addWidget(self.create_stat_card("Refused", refused_orders, "#4CAF50"))
+        stats_layout.addWidget(self.create_stat_card("Refused", refused_orders, COLOR_SUCCESS))
         layout.addLayout(stats_layout)
 
         sections_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -2043,9 +2043,9 @@ class ClientInquiriesWidget(QWidget):
         in_progress_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'In Progress'])
         resolved_inquiries = len([i for i in self.data.inquiries if i['Status'] == 'Resolved' or i['Status'] == 'Closed'])
 
-        stats_layout.addWidget(self.create_inquiry_stat_card("Open Inquiries", open_inquiries, "#F44336"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Open Inquiries", open_inquiries, COLOR_ERROR))
         stats_layout.addWidget(self.create_inquiry_stat_card("In Progress", in_progress_inquiries, "#FFC107"))
-        stats_layout.addWidget(self.create_inquiry_stat_card("Resolved/Closed", resolved_inquiries, "#4CAF50"))
+        stats_layout.addWidget(self.create_inquiry_stat_card("Resolved/Closed", resolved_inquiries, COLOR_SUCCESS))
         layout.addLayout(stats_layout)
         self.inquiries_table = self.create_inquiries_table()
         layout.addWidget(self.inquiries_table)
@@ -2405,8 +2405,8 @@ class ClientMainDashboard(QWidget):
 
         dashboard_stats_layout.addWidget(self.create_dashboard_card("Total Orders", total_orders, "#FFC107", "All orders placed"))
         dashboard_stats_layout.addWidget(self.create_dashboard_card("In Transit", in_transit, "#2196F3", "Orders currently in shipment"))
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("Pending", pending, "#4CAF50", "Not yet proccessed"))
-        dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Inquiries", open_inquiries, "#F44336", "Issues requiring attention"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Pending", pending, COLOR_SUCCESS, "Not yet proccessed"))
+        dashboard_stats_layout.addWidget(self.create_dashboard_card("Open Inquiries", open_inquiries, COLOR_ERROR, "Issues requiring attention"))
 
         hero_layout.addLayout(dashboard_stats_layout)
         layout.addWidget(hero_frame)
@@ -2807,14 +2807,14 @@ if __name__ == '__main__':
     # High-contrast, accessible palette
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#f5f5f5"))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(COLOR_TEXT_DARK))
     palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
     palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#f0f0f0"))
     palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
     palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.black)
-    palette.setColor(QPalette.ColorRole.Text, QColor("#333333"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Text, QColor(COLOR_TEXT_DARK))
+    palette.setColor(QPalette.ColorRole.Button, QColor(COLOR_BORDER_LIGHT))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(COLOR_TEXT_DARK))
     palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
     palette.setColor(QPalette.ColorRole.Link, QColor("#2196F3"))
     palette.setColor(QPalette.ColorRole.Highlight, QColor("#2196F3"))
