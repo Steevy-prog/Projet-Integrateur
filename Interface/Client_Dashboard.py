@@ -30,8 +30,9 @@ client_org_id = 'OFIRST' # Example client organization ID
 global conn
 print("1. online")
 print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# it = input("Enter the number of bd you want to use : ")
 
+it = '1'
 if it == '1':
     print("You have chosen the online database.")
     conn = psycopg2.connect(
@@ -2803,6 +2804,12 @@ if __name__ == '__main__':
 # Set QMessageBox text color to black
     
 # ...existing code...
+
+    # Define missing color constants
+    COLOR_TEXT_DARK = "#232946"
+    COLOR_BORDER_LIGHT = "#E0E0E0"
+    COLOR_SUCCESS = "#4CAF50"
+    COLOR_ERROR = "#F44336"
 
     # High-contrast, accessible palette
     palette = QPalette()

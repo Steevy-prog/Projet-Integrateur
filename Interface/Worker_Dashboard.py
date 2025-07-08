@@ -31,7 +31,8 @@ worker_id = 'TR1234'
 global conn
 print("1. online")
 print("2. offline")
-it = input("Enter the number of bd you want to use : ")
+# it = input("Enter the number of bd you want to use : ")
+it = '1'
 
 if it == '1':
      print("You have chosen the online database.")
