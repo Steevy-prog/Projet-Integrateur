@@ -161,7 +161,7 @@ class AccountSettingsPage(QWidget):
             
             cursor = self.db_connection.cursor()
             query = "SELECT _idindividu,_nom, _prenom FROM \"EMIR\".IndividusNonUtilisateurs_EVA()"
-            cursor.execute(query)
+            cursor.execute(query)  
             results = cursor.fetchall()
             cursor.close()
             data = []
@@ -338,12 +338,13 @@ class AccountSettingsPage(QWidget):
             usernameanc    => %s,
             usernamenouv   => %s,
             _email          => %s,
-            _niveau_acces  => %s,
+            _niveau_acces  => %s
+            );
             """
             cursor.execute(update_query, (original_username, username, email, access_level,))
             self.db_connection.commit()
             cursor.close()
-            QMessageBox.information(f"Employee {username} updated successfully.")
+            QMessageBox.information(self, "Update Successful", f"Employee {username} updated successfully.")
         except Error as e:
             self.db_connection.rollback()
             if cursor:
@@ -557,7 +558,9 @@ class AccountSettingsPage(QWidget):
         clicked_card.setProperty("selected", True)
         clicked_card.style().polish(clicked_card)
         self.edit_first_name_input.setText(employee_data['first_name'])
+        self.edit_first_name_input.setReadOnly(True)
         self.edit_last_name_input.setText(employee_data['last_name'])
+        self.edit_last_name_input.setReadOnly(True)
         self.edit_username_input.setText(employee_data['username'])
         self.edit_email_input.setText(employee_data['email'])
         self.edit_access_level_combobox.setCurrentText(employee_data['access_level'])
@@ -1229,6 +1232,21 @@ class SecuritySettingPage(QWidget):
             if cursor:
                 cursor.close()
 
+class HelpButton(QPushButton):
+    def __init__(self, parent=None):
+        super().__init__("Help", parent)
+        self.setObjectName("helpButton")
+        self.clicked.connect(self.show_help)
+
+    def show_help(self):
+        QMessageBox.information(self, "Help", 
+            "Bienvenue dans l'aide de l'application !\n\n"
+            "• Naviguez avec le menu à gauche.\n"
+            "• Cliquez sur un employé pour éditer ou supprimer.\n"
+            "• Utilisez 'Create Account' pour ajouter un nouvel utilisateur.\n"
+            "• Pour toute question, contactez l'administrateur."
+        )
+        
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -1289,6 +1307,8 @@ class MainWindow(QMainWindow):
         self.main_title_label.setText(initial_nav_button_text)
         self.main_layout.addWidget(self.sidebar_frame)
         self.main_layout.addWidget(self.content_area_container)
+        self.help_button = HelpButton(self.sidebar_frame)
+        self.sidebar_layout.addWidget(self.help_button)
 
     def _on_nav_button_clicked(self, index, clicked_button):
         self.main_title_label.setText(clicked_button.text())
@@ -1315,6 +1335,17 @@ class MainWindow(QMainWindow):
                 font-size: 16px;
                 padding-bottom: 10px;
                 border-bottom: 1px solid #34495e;
+            }
+            #helpButton {
+                background-color: #f1c40f;
+                color: #2c3e50;
+                font-weight: bold;
+                border-radius: 5px;
+                margin-top: 20px;
+                padding: 10px 15px;
+            }
+            #helpButton:hover {
+                background-color: #f39c12;
             }
             QPushButton {
                 background-color: #3498db;

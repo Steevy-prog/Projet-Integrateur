@@ -30,7 +30,7 @@ BEGIN
         statut, niveau_acces
     ) VALUES (
         _idutilisateur, _idindividu, _username,
-        'en attente_validation', COALESCE(_niveau_acces,'employee')
+        'en attente_validation', COALESCE(_niveau_acces,'employee')::"SCA".niveau_acces
     );
 
     -- Insérer les credentials (données d'authentification)
@@ -88,9 +88,8 @@ BEGIN
             WHERE idutilisateur = _utilisateur_record.idutilisateur;
 
             -- Log de la connexion
-            INSERT INTO "SCA".Logs (level, message, extra)
-            VALUES ('INFO', 'Utilisateur connecté',
-                    jsonb_build_object('username', _utilisateur_record.username, 'idutilisateur', _utilisateur_record.idutilisateur));
+            INSERT INTO "SCA".Logs (level, message)
+            VALUES ('INFO', 'Utilisateur connecté');
 
             -- Retourner les informations de l'utilisateur via la vue
             RETURN QUERY
@@ -304,12 +303,13 @@ BEGIN
         WHERE idutilisateur = _idutilisateur;
 
         UPDATE "SCA".utilisateur
-        SET niveau_acces = _niveau_acces
+        SET niveau_acces = _niveau_acces::"SCA".niveau_acces,
+            username = usernamenouv::"SCA".username
         WHERE idutilisateur = _idutilisateur;
         -- Si ID utilisateur change, mise à jour des IDs liés
         IF usernameanc <> usernamenouv THEN
             UPDATE "SCA".Utilisateur
-            SET username = usernamenouv
+            SET username = usernamenouv::"SCA".username
             WHERE username = usernameanc;
         END IF;
 END;
