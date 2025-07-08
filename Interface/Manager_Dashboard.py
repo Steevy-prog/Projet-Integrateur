@@ -1055,7 +1055,7 @@ class ProductDetailDialog(QDialog):
         self.setFixedSize(600, 700)
         self.init_ui()
 
-    def checkeligibility(self,idcolis):
+    def checkeligibility(self):
         for i in self.order_data['Products']:
             if self.Eligible(i['idlot']) == False:
                 return "Not Eligible"
@@ -1122,7 +1122,7 @@ class ProductDetailDialog(QDialog):
             }
         """)
         print(self.order_data['Order_ID'])
-        eligibilty = ProductDetailDialog.checkeligibility(self.order_data['Order_ID'])
+        eligibilty = self.checkeligibility()
         print(eligibilty)
         title_label = QLabel(f"Order: {self.order_data['Order_ID']} {eligibilty}")
         title_label.setProperty("class", "title")
