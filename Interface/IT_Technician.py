@@ -161,7 +161,7 @@ class AccountSettingsPage(QWidget):
             
             cursor = self.db_connection.cursor()
             query = "SELECT _idindividu,_nom, _prenom FROM \"EMIR\".IndividusNonUtilisateurs_EVA()"
-            cursor.execute(query)
+            cursor.execute(query)  
             results = cursor.fetchall()
             cursor.close()
             data = []
