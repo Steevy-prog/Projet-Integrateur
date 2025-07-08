@@ -809,6 +809,7 @@ class TransportManagementWidget(QWidget):
         super().__init__()
         self.data = data
         self.init_ui()
+        self.assignments = []
     
     def init_ui(self):
         if hasattr(self, '_main_layout') and self._main_layout is not None:
@@ -988,6 +989,14 @@ class TransportManagementWidget(QWidget):
                     f"Le conducteur {selected['id']} a été assigné au colis {self.data.expeditions_df.at[colis_index, 'id_commande']}",
                     QMessageBox.StandardButton.Ok
                 )
+                self.assignments.append({
+                                         'package_id': datas.id,
+                                         'driver_id': selected['id'],
+                                         'driver_user_id': selected['idutil'],
+                                         'destination': datas.receiving_org,
+                                         'date_expedition': datas.date
+                                        })
+                
                 print(datas.date)
                 internalmail.send_conducteur("SCA ASSIGNATION COLIS","thibaud.ambiana@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
                 internalmail.send_conducteur("SCA ASSIGNATION COLIS","steevy.tongoue@2029.ucac-icam.com",datas.date,datas.id,datas.receiving_org)
@@ -1725,7 +1734,8 @@ class LogisticsDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
-            #self.loginpage = login.FlipCard()
+            import logintravailleur as login
+            self.loginpage = login.FlipCard()
             self.loginpage.show()
     
     def create_metric_label(self, text):

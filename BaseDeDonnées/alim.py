@@ -60,6 +60,76 @@ elif it == '3':
     )
 
 cur = conn.cursor()
+
+# 🔄 Fonction pour tronquer toutes les tables avant insertion
+def truncate_all_tables():
+    """Tronque toutes les tables dans l'ordre pour respecter les contraintes de clés étrangères"""
+    print("🗑️  Troncature des tables en cours...")
+    
+    # Liste des tables dans l'ordre inverse des dépendances (tables enfants en premier)
+    tables_to_truncate = [
+        # Tables EXTERNE
+        '"EXTERNE".ContenuColis',
+        '"EXTERNE".Lot',
+        '"EXTERNE".Colis',
+        
+        # Tables CREDENTIALS
+        '"CREDENTIALS".organisation',
+        '"CREDENTIALS".Credentials',
+        '"CREDENTIALS".PasswordPolicies',
+        
+        # Tables SCA (tables enfants en premier)
+        '"SCA".LivraisonConducteurColis',
+        '"SCA".ConsommationVehicule',
+        '"SCA".entrepot',
+        '"SCA".RapportException',
+        '"SCA".Bonexpedition',
+        '"SCA".Bonreception',
+        '"SCA".Tache',
+        '"SCA".InventaireEmplacement',
+        '"SCA".ContenuColis',
+        '"SCA".LotEmballage',
+        '"SCA".Lot',
+        '"SCA".ProduitLogiciel',
+        '"SCA".ProduitMateriel',
+        '"SCA".Produit',
+        '"SCA".Repertoire',
+        '"SCA".ConducteurSpecialite',
+        '"SCA".Conducteur',
+        '"SCA".Vehicule',
+        '"SCA".TravailleurCompetence',
+        '"SCA".Travailleur',
+        '"SCA".Utilisateur',
+        '"SCA".individu',
+        '"SCA".Zone',
+        '"SCA".Colis',
+        '"SCA".Cellule',
+        '"SCA".LocalisationOrganisation',
+        '"SCA".Organisation',
+        '"SCA".REF_Competence',
+        '"SCA".REF_Specialite',
+        '"SCA".REF_Modele',
+        '"SCA".REF_Marque',
+    ]
+    
+    try:
+        for table in tables_to_truncate:
+            try:
+                # Utiliser DELETE au lieu de TRUNCATE pour éviter les problèmes de privilèges
+                cur.execute(f"DELETE FROM {table};")
+                print(f"✅ Table {table} vidée")
+            except Exception as e:
+                print(f"⚠️  Erreur lors du vidage de {table}: {e}")
+    except Exception as e:
+        print(f"❌ Erreur générale lors de la troncature: {e}")
+    finally:
+        conn.commit()
+    
+    print("✅ Troncature terminée")
+
+# Exécuter la troncature
+truncate_all_tables()
+
 # Schéma cible
 schema = 'SCA'
 

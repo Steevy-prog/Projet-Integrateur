@@ -2835,6 +2835,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 -- Correction de la routine EVA pour Produit (manque idmodele)
 CREATE OR REPLACE FUNCTION "EMIR".Produit_EVA()
 RETURNS TABLE (
@@ -3163,3 +3165,59 @@ begin
 end;
 $$ language plpgsql;
 
+CREATE OR REPLACE FUNCTION "EMIR".ColisEtConducteur_EVA(_idcolis "SCA".Idcolis)
+RETURNS TABLE (
+    -- Colis
+    idcolis "SCA".Idcolis,
+    date_creation DATE,
+    expected_date DATE,
+    receiving_org "SCA".idOrg,
+    statut_colis "SCA".etatcolis,
+    -- Bonexpedition
+    idbonexpedition "SCA".Bonexped,
+    date_bonexpedition DATE,
+    iddestinataire "SCA".idOrg,
+    -- Conducteur
+    idconducteur "SCA".idconducteur,
+    username "SCA".username,
+    nom "SCA".Nom,
+    prenom "SCA".Nom,
+    numero_permis "SCA".Nom,
+    type_permis VARCHAR(10),
+    experience_annees INTEGER,
+    statut_conducteur "SCA".statut_conducteur
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        c.idcolis,
+        c.date_creation,
+        c.expected_date,
+        c.receiving_org,
+        c.statut,
+        be.idbonexpedition,
+        be.date_creation,
+        be.iddestinataire,
+        lcc.idconducteur,
+        u.username,
+        i.nom,
+        i.prenom,
+        cond.numero_permis,
+        cond.type_permis,
+        cond.experience_annees,
+        cond.statut
+    FROM "SCA".Colis c
+    LEFT JOIN "SCA".Bonexpedition be ON be.idcolis = c.idcolis
+    LEFT JOIN "SCA".LivraisonConducteurColis lcc ON lcc.idbonexpedition = be.idbonexpedition
+    LEFT JOIN "SCA".Conducteur cond ON cond.idconducteur = lcc.idconducteur
+    LEFT JOIN "SCA".Utilisateur u ON cond.idutilisateur = u.idutilisateur
+    LEFT JOIN "SCA".individu i ON u.idindividu = i.idindividu;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function "EMIR".getbonid(colis "SCA".idcolis)
+returns "SCA".idbonexpedition as $$
+begin
+   return select idbonexpedition from "SCA".Bonexpedition where idcolis = colis;
+end;
+$$ language plpgsql;

@@ -1,5 +1,3 @@
-
-
 import sys
 import threading
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QFrame
@@ -15,35 +13,52 @@ MODEL_NAME = "models/gemini-2.5-pro"
 model = genai.GenerativeModel(MODEL_NAME)
 
 HELP_TEXT = """
-This interface define the limit of oprations that the IT technician can perform
-It principally consist of 5 pages for strong management.
+Guide d'utilisation de l'application conducteur SCA Delivery
+Cette application est conçue pour aider les conducteurs à gérer efficacement leurs livraisons. Elle offre une interface intuitive pour suivre les colis, consulter les détails des livraisons et signaler les problèmes.
 
-From the Account Setting page the IT technician can perform the following;
-- Create users accounts from individuals
-- View the different individuals in the system
-- View the different users in the system
-- Perform account Deletion to remove a user.
-- Edit the user information such as email an username.
+Fonctionnalités principales :
+Tableau de bord : Fournit un aperçu rapide des livraisons en cours et terminées pour la journée.
 
-From the Database Maintenace page the IT technician can perform the following any tasks
-that relates to databse interaction;
-From basic select queries to complex queries that involve multiple tables.
- 
-From the Security Settings page the IT technician can define security policies presently for just the password policy. thus enforcing the following;
-- Password minimum length
-- Presence of special characters
-- Presence of numbers
-- Presence of uppercase and lowercase characters
-- Password expiration time
+Mots-clés : tableau de bord, aperçu, livraisons du jour
 
-From the Terminal page, the IT technician have access to a built-in terminal that allows them to run
-any command that is available on the system. This is useful for running scripts, checking system status via logs, and performing other administrative tasks.
-The terminal is a powerful tool that can be used to manage the system effectively.
-Despite the fact that it includes commands for generating logs report, the IT technician can also lunch the database backup service.
+Livraisons en cours : Affiche une liste détaillée de toutes les livraisons qui vous sont assignées et qui n'ont pas encore été complétées.
 
-From the Automation page, the IT technician can set up automated tasks that can be run at specific intervals or triggered by specific events.
-This allows the IT technician to automate repetitive tasks and ensure that the system is always up-to-date and running smoothly.
-The automation page is a powerful tool that can be used to manage the system effectively.
+Mots-clés : livraisons en cours, colis en attente, mes livraisons
+
+Livraisons terminées : Présente l'historique de toutes les livraisons que vous avez complétées.
+
+Mots-clés : livraisons terminées, historique colis, colis livrés
+
+Carte interactive : Permet de visualiser votre position actuelle ainsi que les lieux de livraison en cours et terminées sur une carte.
+
+Mots-clés : carte, localisation, itinéraire, position
+
+Aide : Cette section fournit des informations essentielles sur l'utilisation de l'application.
+
+Mots-clés : aide, support, questions, informations
+
+Paramètres : Accédez à vos informations de profil.
+
+Mots-clés : paramètres, profil, mon compte, informations conducteur
+
+Comment ça marche ?
+Connexion : Connectez-vous avec votre nom d'utilisateur (email du conducteur) et votre mot de passe fourni.
+
+Tableau de bord : Après la connexion, vous accédez à votre tableau de bord qui résume votre activité du jour.
+
+Gestion des livraisons en cours :
+
+Dans la section "Livraisons en cours", vous verrez la liste des colis à livrer.
+
+Cliquez sur le bouton "Détails" à côté de chaque livraison pour afficher des informations complètes sur le colis (destinataire, adresse, poids, volume, instructions, etc.).
+
+Marquer une livraison comme terminée : Une fois la livraison effectuée, cliquez sur le bouton "Marquer comme livrée" dans la fenêtre des détails. Confirmez l'action pour mettre à jour le statut du colis.
+
+Visualisation sur la carte : La section "Carte interactive" vous permet de voir votre position en temps réel (mise à jour toutes les 60 secondes) ainsi que les emplacements de vos livraisons en cours et terminées. Cela vous aide à planifier vos itinéraires.
+
+Signaler un problème : Si vous rencontrez un problème lors d'une livraison (par exemple, adresse introuvable, destinataire absent, colis endommagé), vous pouvez le signaler directement depuis la fenêtre des détails de la livraison en cliquant sur "Signaler un problème". L'équipe de support sera informée.
+
+Déconnexion : Pour quitter l'application, utilisez le bouton "Déconnexion" situé en bas de la barre latérale.
 """
 
 class WorkerThread(QThread):
@@ -161,7 +176,7 @@ Answer only based on the HELP DOCUMENT above.
 def listen_for_hotkey(app, chatbot):
     def on_press(key):
         try:
-            if key == keyboard.Key.space and current_keys.get('alt'):
+            if key == keyboard.Key.space and current_keys.get('ctrl'):
                 if chatbot.isVisible():
                     chatbot.hide()
                 else:
@@ -173,13 +188,13 @@ def listen_for_hotkey(app, chatbot):
 
     def on_release(key):
         if key == keyboard.Key.alt_l:
-            current_keys['alt'] = False
+            current_keys['ctrl'] = False
 
     def on_key_down(key):
         if key == keyboard.Key.alt_l:
-            current_keys['alt'] = True
+            current_keys['ctrl'] = True
 
-    current_keys = {'alt': False}
+    current_keys = {'ctrl': False}
     with keyboard.Listener(on_press=on_key_down, on_release=on_release) as listener:
         listener2 = keyboard.Listener(on_press=on_press)
         listener2.start()
@@ -189,9 +204,6 @@ def listen_for_hotkey(app, chatbot):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     chatbot = ChatBot()
-
-    # Start the hotkey listener in a separate thread
-    hotkey_thread = threading.Thread(target=listen_for_hotkey, args=(app, chatbot), daemon=True)
-    hotkey_thread.start()
+    chatbot.showMaximized()
 
     sys.exit(app.exec())

@@ -55,7 +55,7 @@ elif it == '3':
          password="Lune.Hatik123",
          port=5432
      )
-cur = con.cursor()
+cur = conn.cursor()
 
 class WorkerData:
     """Data generator and manager for warehouse worker operations"""
@@ -1776,146 +1776,641 @@ class MoveProductDialog(QDialog):
         else:
             QMessageBox.warning(self, "Move Failed", message)
             
-class StorageCellWidget(QWidget):
-    """Widget for viewing and managing storage cells in a 2D grid."""
-    cell_clicked = pyqtSignal(str) # Signal to emit the cell ID when clicked
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, 
+                             QLabel, QPushButton, QScrollArea, QGroupBox, 
+                             QDialog, QFrame, QApplication, QMenu, QMessageBox)
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QMimeData, QPoint
+from PyQt6.QtGui import QFont, QDrag, QPainter, QPixmap, QPen, QColor, QCursor
+import json
+import logging
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
-        self.init_ui()
 
-    def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(25)
+class CellStatus(Enum):
+    """Enum for cell status types"""
+    EMPTY = "empty"
+    LOW_FILL = "low_fill"
+    MEDIUM_FILL = "medium_fill"
+    HIGH_FILL = "high_fill"
+    CRITICAL_FILL = "critical_fill"
 
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel("Storage Zones Overview")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #333333;")
 
-        move_product_btn = QPushButton("Move Product")
-        move_product_btn.setStyleSheet("""
-            QPushButton {
+class DragDropStorageCellButton(QPushButton):
+    """Storage cell button with drag and drop capabilities"""
+    
+    # Custom signals for drag and drop operations
+    product_dropped = pyqtSignal(str, str, str, int)  # from_cell, to_cell, product_id, quantity
+    cell_hovered = pyqtSignal(str, bool)  # cell_id, is_hovered
+    
+    def __init__(self, cell_id: str, cell_data: Dict, parent=None):
+        super().__init__(parent)
+        self.cell_id = cell_id
+        self.cell_data = cell_data
+        self.parent_widget = parent
+        self.drag_start_position = QPoint()
+        self.is_drop_target = False
+        self.is_dragging = False
+        
+        # Enable drag and drop
+        self.setAcceptDrops(True)
+        self.setMouseTracking(True)
+        
+        self._setup_cell()
+        
+    def _setup_cell(self):
+        """Setup cell appearance and behavior"""
+        self.setFixedSize(140, 110)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setTextFormat(Qt.TextFormat.RichText)
+        
+        # Calculate utilization
+        current_fill = sum(self.cell_data['products'].values())
+        utilization_percent = (current_fill / self.cell_data['capacity']) * 100 if self.cell_data['capacity'] > 0 else 0
+        
+        # Set cell content and styling
+        self._update_cell_display(utilization_percent)
+        self._set_cell_styling(utilization_percent)
+        
+    def _update_cell_display(self, utilization_percent: float):
+        """Update cell display text and tooltip"""
+        current_fill = sum(self.cell_data['products'].values())
+        
+        if current_fill > 0:
+            # Create product summary
+            product_lines = []
+            for prod_id, qty in list(self.cell_data['products'].items())[:2]:
+                product_lines.append(f"{qty}x P{prod_id}")
+            
+            if len(self.cell_data['products']) > 2:
+                product_lines.append(f"...+{len(self.cell_data['products']) - 2} more")
+            
+            display_text = f"<b>{self.cell_id}</b><br>{'<br>'.join(product_lines)}<br><small>{utilization_percent:.0f}% filled</small>"
+            
+            # Detailed tooltip with drag instructions
+            tooltip_lines = [
+                f"<b>{self.cell_id}</b>", 
+                f"Capacity: {self.cell_data['capacity']}", 
+                f"Current fill: {current_fill}", 
+                "",
+                "<b>🖱️ Drag & Drop:</b>",
+                "• Right-click to select products to move",
+                "• Drag to another cell to move products",
+                "• Left-click for detailed view",
+                ""
+            ]
+            for prod_id, qty in self.cell_data['products'].items():
+                tooltip_lines.append(f"• {qty}x Product {prod_id}")
+            tooltip_lines.append(f"<br>Utilization: {utilization_percent:.1f}%")
+            
+            self.setToolTip("<br>".join(tooltip_lines))
+        else:
+            display_text = f"<b>{self.cell_id}</b><br><span style='color: #999;'>Empty</span><br><small>Drop products here</small>"
+            self.setToolTip(f"<b>{self.cell_id}</b><br>Empty cell<br>Capacity: {self.cell_data['capacity']}<br><br>💡 You can drop products here!")
+        
+        self.setText(display_text)
+    
+    def _set_cell_styling(self, utilization_percent: float):
+        """Set cell styling based on utilization"""
+        status = self._get_cell_status(utilization_percent)
+        colors = self._get_status_colors(status)
+        
+        # Add drop target styling if needed
+        border_color = "#00BCD4" if self.is_drop_target else colors['border']
+        border_width = "3px" if self.is_drop_target else "2px"
+        
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 {colors['bg_light']}, stop: 1 {colors['bg_dark']});
+                border: {border_width} solid {border_color};
+                border-radius: 12px;
+                font-size: 12px;
+                color: {colors['text']};
+                padding: 8px;
+                text-align: center;
+                {"box-shadow: 0 0 15px rgba(0, 188, 212, 0.5);" if self.is_drop_target else ""}
+            }}
+            QPushButton:hover {{
+                border: {border_width} solid {"#00BCD4" if self.is_drop_target else "#6C63FF"};
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 {colors['hover_light']}, stop: 1 {colors['hover_dark']});
+            }}
+            QPushButton:pressed {{
+                background: {colors['pressed']};
+            }}
+        """)
+    
+    def _get_cell_status(self, utilization_percent: float) -> CellStatus:
+        """Determine cell status based on utilization"""
+        if utilization_percent == 0:
+            return CellStatus.EMPTY
+        elif utilization_percent < 30:
+            return CellStatus.LOW_FILL
+        elif utilization_percent < 70:
+            return CellStatus.MEDIUM_FILL
+        elif utilization_percent < 90:
+            return CellStatus.HIGH_FILL
+        else:
+            return CellStatus.CRITICAL_FILL
+    
+    def _get_status_colors(self, status: CellStatus) -> Dict[str, str]:
+        """Get colors for cell status"""
+        color_schemes = {
+            CellStatus.EMPTY: {
+                'bg_light': '#F5F5F5', 'bg_dark': '#E0E0E0',
+                'hover_light': '#EEEEEE', 'hover_dark': '#D5D5D5',
+                'pressed': '#CCCCCC', 'border': '#BDBDBD', 'text': '#666666'
+            },
+            CellStatus.LOW_FILL: {
+                'bg_light': '#E8F5E8', 'bg_dark': '#C8E6C9',
+                'hover_light': '#DCEDC8', 'hover_dark': '#AED581',
+                'pressed': '#9CCC65', 'border': '#81C784', 'text': '#2E7D32'
+            },
+            CellStatus.MEDIUM_FILL: {
+                'bg_light': '#FFF3E0', 'bg_dark': '#FFCC02',
+                'hover_light': '#FFE0B2', 'hover_dark': '#FFB74D',
+                'pressed': '#FFA726', 'border': '#FF9800', 'text': '#E65100'
+            },
+            CellStatus.HIGH_FILL: {
+                'bg_light': '#FFF3E0', 'bg_dark': '#FFAB91',
+                'hover_light': '#FFCCBC', 'hover_dark': '#FF8A65',
+                'pressed': '#FF7043', 'border': '#FF5722', 'text': '#BF360C'
+            },
+            CellStatus.CRITICAL_FILL: {
+                'bg_light': '#FFEBEE', 'bg_dark': '#FFCDD2',
+                'hover_light': '#FFCDD2', 'hover_dark': '#EF9A9A',
+                'pressed': '#E57373', 'border': '#F44336', 'text': '#C62828'
+            }
+        }
+        return color_schemes[status]
+    
+    def mousePressEvent(self, event):
+        """Handle mouse press events for drag initiation"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_start_position = event.pos()
+        elif event.button() == Qt.MouseButton.RightButton:
+            # Right-click for product selection menu
+            self._show_product_menu(event.globalPos())
+        super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        """Handle mouse move events for drag operations"""
+        if not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+        
+        if ((event.pos() - self.drag_start_position).manhattanLength() < 
+            QApplication.startDragDistance()):
+            return
+        
+        # Only start drag if cell has products
+        if sum(self.cell_data['products'].values()) > 0:
+            self._start_drag()
+    
+    def _show_product_menu(self, global_pos):
+        """Show context menu for product selection"""
+        if not self.cell_data['products']:
+            return
+        
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #FFFFFF;
+                border: 1px solid #CCCCCC;
+                border-radius: 8px;
+                padding: 5px;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
                 background-color: #6C63FF;
                 color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 15px;
-                box-shadow: 0 4px 10px rgba(108, 99, 255, 0.2);
-                transition: all 0.2s ease-in-out;
-            }
-            QPushButton:hover {
-                background-color: #5247D6;
-                transform: translateY(-2px);
             }
         """)
-        move_product_btn.clicked.connect(self.open_move_product_dialog)
-
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        header_layout.addWidget(move_product_btn)
-        layout.addLayout(header_layout)
-
-        # Storage grid area
-        grid_scroll_area = QScrollArea()
-        grid_scroll_area.setWidgetResizable(True)
-        grid_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        self.main_zones_layout = QVBoxLayout() # Main layout to hold zone group boxes
-        self.main_zones_layout.setSpacing(30) # Spacing between zones
+        # Add menu items for each product
+        for prod_id, qty in self.cell_data['products'].items():
+            action = menu.addAction(f"📦 Move {qty}x Product {prod_id}")
+            action.triggered.connect(lambda checked, pid=prod_id: self._prepare_product_drag(pid))
+        
+        menu.addSeparator()
+        move_all_action = menu.addAction("📦 Move All Products")
+        move_all_action.triggered.connect(self._prepare_all_products_drag)
+        
+        menu.exec(global_pos)
+    
+    def _prepare_product_drag(self, product_id: str):
+        """Prepare to drag a specific product"""
+        self.selected_products = {product_id: self.cell_data['products'][product_id]}
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        
+    def _prepare_all_products_drag(self):
+        """Prepare to drag all products"""
+        self.selected_products = self.cell_data['products'].copy()
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+    
+    def _start_drag(self):
+        """Start the drag operation"""
+        # Get products to drag (either selected or all)
+        products_to_drag = getattr(self, 'selected_products', self.cell_data['products'].copy())
+        
+        if not products_to_drag:
+            return
+        
+        # Create drag object
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        
+        # Create drag data
+        drag_data = {
+            'source_cell': self.cell_id,
+            'products': products_to_drag
+        }
+        mime_data.setText(json.dumps(drag_data))
+        drag.setMimeData(mime_data)
+        
+        # Create drag pixmap
+        pixmap = self._create_drag_pixmap(products_to_drag)
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
+        
+        # Set visual feedback
+        self.is_dragging = True
+        self.setStyleSheet(self.styleSheet() + """
+            QPushButton {
+                opacity: 0.7;
+                border: 2px dashed #6C63FF;
+            }
+        """)
+        
+        # Execute drag
+        drop_action = drag.exec(Qt.DropAction.MoveAction)
+        
+        # Reset after drag
+        self.is_dragging = False
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        if hasattr(self, 'selected_products'):
+            delattr(self, 'selected_products')
+        self._setup_cell()  # Reset styling
+    
+    def _create_drag_pixmap(self, products: Dict[str, int]) -> QPixmap:
+        """Create visual representation for drag operation"""
+        pixmap = QPixmap(100, 80)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Draw background
+        painter.fillRect(0, 0, 100, 80, QColor(108, 99, 255, 180))
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        painter.drawRoundedRect(2, 2, 96, 76, 8, 8)
+        
+        # Draw text
+        painter.setPen(QColor(255, 255, 255))
+        painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        
+        y_offset = 20
+        total_items = sum(products.values())
+        painter.drawText(10, y_offset, f"📦 {total_items} items")
+        
+        y_offset += 20
+        for prod_id, qty in list(products.items())[:2]:  # Show max 2 products
+            painter.drawText(10, y_offset, f"{qty}x P{prod_id}")
+            y_offset += 15
+        
+        if len(products) > 2:
+            painter.drawText(10, y_offset, f"...+{len(products) - 2} more")
+        
+        painter.end()
+        return pixmap
+    
+    def dragEnterEvent(self, event):
+        """Handle drag enter events"""
+        if event.mimeData().hasText():
+            try:
+                drag_data = json.loads(event.mimeData().text())
+                if drag_data['source_cell'] != self.cell_id:
+                    self.is_drop_target = True
+                    self._set_cell_styling(sum(self.cell_data['products'].values()) / self.cell_data['capacity'] * 100)
+                    event.acceptProposedAction()
+                    self.cell_hovered.emit(self.cell_id, True)
+            except (json.JSONDecodeError, KeyError):
+                event.ignore()
+        else:
+            event.ignore()
+    
+    def dragMoveEvent(self, event):
+        """Handle drag move events"""
+        if self.is_drop_target:
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+    
+    def dragLeaveEvent(self, event):
+        """Handle drag leave events"""
+        self.is_drop_target = False
+        self._set_cell_styling(sum(self.cell_data['products'].values()) / self.cell_data['capacity'] * 100)
+        self.cell_hovered.emit(self.cell_id, False)
+    
+    def dropEvent(self, event):
+        """Handle drop events"""
+        if event.mimeData().hasText():
+            try:
+                drag_data = json.loads(event.mimeData().text())
+                source_cell = drag_data['source_cell']
+                products = drag_data['products']
+                
+                if source_cell != self.cell_id:
+                    # Check if drop is possible
+                    total_incoming = sum(products.values())
+                    current_fill = sum(self.cell_data['products'].values())
+                    
+                    if current_fill + total_incoming <= self.cell_data['capacity']:
+                        # Emit signal for each product
+                        for prod_id, qty in products.items():
+                            self.product_dropped.emit(source_cell, self.cell_id, prod_id, qty)
+                        event.acceptProposedAction()
+                        
+                        # Show success feedback
+                        self._show_drop_success_feedback()
+                    else:
+                        # Show capacity exceeded message
+                        self._show_capacity_error(total_incoming, current_fill)
+                        event.ignore()
+                else:
+                    event.ignore()
+            except (json.JSONDecodeError, KeyError):
+                event.ignore()
+        
+        # Reset drop target state
+        self.is_drop_target = False
+        self._set_cell_styling(sum(self.cell_data['products'].values()) / self.cell_data['capacity'] * 100)
+        self.cell_hovered.emit(self.cell_id, False)
+    
+    def _show_drop_success_feedback(self):
+        """Show visual feedback for successful drop"""
+        # Temporary green glow effect
+        self.setStyleSheet(self.styleSheet() + """
+            QPushButton {
+                border: 3px solid #4CAF50;
+                box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+            }
+        """)
+        
+        # Reset after a short delay
+        QTimer.singleShot(1000, lambda: self._setup_cell())
+    
+    def _show_capacity_error(self, incoming: int, current: int):
+        """Show capacity exceeded error"""
+        QMessageBox.warning(
+            self,
+            "Capacity Exceeded",
+            f"Cannot drop {incoming} items in {self.cell_id}.\n"
+            f"Current: {current}/{self.cell_data['capacity']}\n"
+            f"Available space: {self.cell_data['capacity'] - current}"
+        )
 
+
+class DragDropStorageWidget(QWidget):
+    """Enhanced storage widget with drag and drop capabilities"""
+    
+    cell_clicked = pyqtSignal(str)
+    product_moved = pyqtSignal(str, str, str, int)  # from_cell, to_cell, product_id, quantity
+    
+    def __init__(self, data=None):
+        super().__init__()
+        self.data = data
+    
+    # Quick test: create minimal data if none provided
+        if self.data is None:
+            print("Creating test data...")
+            class TestData:
+                def __init__(self):
+                    self.storage_cells = {}
+                    self.products_df = None
+                # Create some test cells
+                    for zone in ['Zone A', 'Zone B', 'Zone C', 'Zone D']:
+                        for i in range(1, 11):
+                            cell_id = f"{zone}-{i}"
+                            self.storage_cells[cell_id] = {
+                            'capacity': 100,
+                            'products': {'P001': 25} if i % 3 == 0 else {}
+                        }
+            
+                def get_cell_contents(self, cell_id):
+                    return self.storage_cells.get(cell_id, {'capacity': 100, 'products': {}})
+        
+            self.data = TestData()
+            print(f"Created test data with {len(self.data.storage_cells)} cells")
+    
+        self._setup_ui()
+
+        
+    def _setup_ui(self):
+        """Initialize the user interface"""
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(25, 25, 25, 25)
+        main_layout.setSpacing(20)
+        
+        # Header with drag & drop instructions
+        header_widget = self._create_header()
+        main_layout.addWidget(header_widget)
+        
+        # Storage grid area
+        grid_scroll_area = self._create_scroll_area()
+        main_layout.addWidget(grid_scroll_area)
+        
+        # Footer with drag & drop tips
+        footer_widget = self._create_footer()
+        main_layout.addWidget(footer_widget)
+        
+        self.setLayout(main_layout)
+    
+    def _create_header(self) -> QWidget:
+        """Create header with drag & drop instructions"""
+        header_widget = QWidget()
+        header_layout = QVBoxLayout(header_widget)
+        
+        # Title
+        title_layout = QHBoxLayout()
+        title = QLabel("🏭 Storage System - Drag & Drop Edition")
+        title.setStyleSheet("""
+            font-size: 32px; 
+            font-weight: bold; 
+            color: #232946;
+            padding: 10px 0;
+        """)
+        title_layout.addWidget(title)
+        title_layout.addStretch()
+        
+        # Instructions
+        instructions = QLabel("💡 <b>How to use:</b> Right-click cells to select products • Drag to move between cells • Left-click for details")
+        instructions.setStyleSheet("""
+            font-size: 14px;
+            color: #666666;
+            padding: 5px 0;
+            background-color: #F0F8FF;
+            border-radius: 5px;
+            padding: 10px;
+        """)
+        instructions.setWordWrap(True)
+        
+        header_layout.addLayout(title_layout)
+        header_layout.addWidget(instructions)
+        
+        return header_widget
+    
+    def _create_scroll_area(self) -> QScrollArea:
+        """Create scrollable area for storage zones"""
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color: #F8F9FA;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+            }
+        """)
+        
+        # Main zones container
+        self.zones_container = QWidget()
+        self.zones_layout = QVBoxLayout(self.zones_container)
+        self.zones_layout.setSpacing(25)
+        self.zones_layout.setContentsMargins(20, 20, 20, 20)
+        
         self.populate_zones_and_cells()
-
-        main_zones_widget = QWidget()
-        main_zones_widget.setLayout(self.main_zones_layout)
-        grid_scroll_area.setWidget(main_zones_widget)
-        layout.addWidget(grid_scroll_area)
-
-        self.setLayout(layout)
-
+        
+        scroll_area.setWidget(self.zones_container)
+        return scroll_area
+    
+    def _create_footer(self) -> QWidget:
+        """Create footer with drag & drop tips"""
+        footer_widget = QFrame()
+        footer_widget.setFrameStyle(QFrame.Shape.Box)
+        footer_widget.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        
+        footer_layout = QVBoxLayout(footer_widget)
+        
+        # Drag & drop tips
+        tips_label = QLabel("🎯 <b>Pro Tips:</b> • Use right-click for precise product selection • Drag multiple products at once • Visual feedback shows drop zones • Capacity limits are enforced")
+        tips_label.setStyleSheet("font-size: 12px; color: #666666;")
+        tips_label.setWordWrap(True)
+        
+        footer_layout.addWidget(tips_label)
+        
+        return footer_widget
+    
     def populate_zones_and_cells(self):
-        # Clear existing widgets if repopulating
-        while self.main_zones_layout.count():
-            item = self.main_zones_layout.takeAt(0)
+    # Clear existing widgets if repopulating
+        while self.zones_layout.count():
+            item = self.zones_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
             elif item.layout():
-                # Recursively clear layout
+            # Recursively clear layout
                 self.clear_layout(item.layout())
 
         zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D']
         cells_per_zone = 10 # Hardcoded as per requirement
 
+    # DEBUG: Check if storage_cells exists and has data
+        print(f"DEBUG: self.data.storage_cells exists: {hasattr(self.data, 'storage_cells')}")
+        if hasattr(self.data, 'storage_cells'):
+            print(f"DEBUG: storage_cells keys: {list(self.data.storage_cells.keys())}")
+            print(f"DEBUG: storage_cells count: {len(self.data.storage_cells)}")
+
         for zone_name in zones:
+            print(f"DEBUG: Creating zone {zone_name}")
             zone_group_box = QGroupBox(zone_name)
             zone_group_box.setStyleSheet("""
-                QGroupBox {
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #232946;
-                    margin-top: 20px;
-                    border: 1px solid #D0D0D0;
-                    border-radius: 12px;
-                    padding-top: 25px;
-                    background-color: #FFFFFF;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    subcontrol-position: top center;
-                    padding: 0 10px;
-                    margin-left: 10px;
-                    color: #6C63FF;
-                }
-            """)
+            QGroupBox {
+                font-size: 20px;
+                font-weight: bold;
+                color: #232946;
+                margin-top: 20px;
+                border: 1px solid #D0D0D0;
+                border-radius: 12px;
+                padding-top: 25px;
+                background-color: #FFFFFF;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                margin-left: 10px;
+                color: #6C63FF;
+            }
+        """)
             zone_grid_layout = QGridLayout()
             zone_grid_layout.setSpacing(10)
             zone_grid_layout.setContentsMargins(20, 20, 20, 20)
 
-            # Populate cells within each zone
+            cells_created = 0
+        # Populate cells within each zone
             for i in range(cells_per_zone):
                 cell_num = i + 1
                 cell_id = f"{zone_name}-{cell_num}"
-                
-                if cell_id in self.data.storage_cells:
-                    cell_data = self.data.get_cell_contents(cell_id)
-                    cell_button = QPushButton(cell_id)
-                    cell_button.setFixedSize(120, 100) # Slightly larger cells
-                    cell_button.setCursor(Qt.CursorShape.PointingHandCursor)
-                    cell_button.setToolTip(f"Click to see details for {cell_id}") # Tooltip
+            
+                print(f"DEBUG: Checking cell {cell_id}")
+            
+            # Check if storage_cells exists before accessing it
+                if hasattr(self.data, 'storage_cells') and cell_id in self.data.storage_cells:
+                    print(f"DEBUG: Cell {cell_id} found in storage_cells")
+                    try:
+                        cell_data = self.data.get_cell_contents(cell_id)
+                        print(f"DEBUG: Got cell data for {cell_id}: {cell_data}")
+                    
+                        cell_button = QPushButton(cell_id)
+                        cell_button.setFixedSize(120, 100)
+                        cell_button.setCursor(Qt.CursorShape.PointingHandCursor)
+                        cell_button.setToolTip(f"Click to see details for {cell_id}")
 
                     # Determine color and text for cell
-                    current_fill = sum(cell_data['products'].values())
-                    utilization_percent = (current_fill / cell_data['capacity']) * 100 if cell_data['capacity'] > 0 else 0
+                        current_fill = sum(cell_data['products'].values()) if 'products' in cell_data else 0
+                        capacity = cell_data.get('capacity', 100)
+                        utilization_percent = (current_fill / capacity) * 100 if capacity > 0 else 0
 
-                    if current_fill > 0:
-                        if utilization_percent >= 90:
-                            bg_color = "#FFCDD2"  # Light Red for nearly full
-                            text_color = "#D32F2F"
-                        elif utilization_percent >= 50:
-                            bg_color = "#FFECB3"  # Light Orange for half full
-                            text_color = "#FF9800"
-                        else:
-                            bg_color = "#C8E6C9"  # Light Green for less than half
-                            text_color = "#4CAF50"
+                        if current_fill > 0:
+                            if utilization_percent >= 90:
+                                bg_color = "#FFCDD2"  # Light Red for nearly full
+                                text_color = "#D32F2F"
+                            elif utilization_percent >= 50:
+                                bg_color = "#FFECB3"  # Light Orange for half full
+                                text_color = "#FF9800"
+                            else:
+                                bg_color = "#C8E6C9"  # Light Green for less than half
+                                text_color = "#4CAF50"
                         
                         # Show product count and utilization
-                        product_summary = []
-                        for prod_id, qty in cell_data['products'].items():
-                            product_info = self.data.products_df[self.data.products_df['ID'] == prod_id]
-                            prod_name = product_info['Name'].iloc[0] if not product_info.empty else "Product"
-                            product_summary.append(f"{qty}x {prod_name}")
+                            product_summary = []
+                            if 'products' in cell_data:
+                                for prod_id, qty in cell_data['products'].items():
+                                    if hasattr(self.data, 'products_df') and not self.data.products_df.empty:
+                                        product_info = self.data.products_df[self.data.products_df['ID'] == prod_id]
+                                        prod_name = product_info['Name'].iloc[0] if not product_info.empty else f"Product {prod_id}"
+                                    else:
+                                        prod_name = f"Product {prod_id}"
+                                    product_summary.append(f"{qty}x {prod_name}")
                         
-                        cell_button.setText(f"<b>{cell_id}</b><br>{'<br>'.join(product_summary)}<br><span style='font-size:10px;'>{utilization_percent:.0f}% Util.</span>")
-                    else:
-                        bg_color = "#E0E0E0"  # Default grey for empty
-                        text_color = "#666666"
-                        cell_button.setText(f"<b>{cell_id}</b><br>Empty<br><span style='font-size:10px;'>0% Util.</span>")
+                            cell_button.setText(f"<b>{cell_id}</b><br>{'<br>'.join(product_summary)}<br><span style='font-size:10px;'>{utilization_percent:.0f}% Util.</span>")
+                        else:
+                            bg_color = "#E0E0E0"  # Default grey for empty
+                            text_color = "#666666"
+                            cell_button.setText(f"<b>{cell_id}</b><br>Empty<br><span style='font-size:10px;'>0% Util.</span>")
 
-                    cell_button.setStyleSheet(f"""
+                        cell_button.setStyleSheet(f"""
                         QPushButton {{
                             background-color: {bg_color};
                             border: 1px solid #A0A0A0;
@@ -1933,39 +2428,80 @@ class StorageCellWidget(QWidget):
                         QPushButton b {{
                             font-weight: bold;
                             font-size: 14px;
-                            color: #232946; /* Darker color for cell ID */
+                            color: #232946;
                         }}
                     """)
-                    cell_button.setTextFormat(Qt.TextFormat.RichText)
-                    cell_button.clicked.connect(lambda checked, cid=cell_id: self.on_cell_clicked(cid))
+                        cell_button.setTextFormat(Qt.TextFormat.RichText)
+                        cell_button.clicked.connect(lambda checked, cid=cell_id: self.on_cell_clicked(cid))
                     
                     # Arrange cells in a 2x5 grid within each zone
-                    row = i // 5 # 0 for first 5 cells, 1 for next 5
-                    col = i % 5  # 0 to 4
-                    zone_grid_layout.addWidget(cell_button, row, col)
-            
-            zone_group_box.setLayout(zone_grid_layout)
-            self.main_zones_layout.addWidget(zone_group_box)
-        
-        self.main_zones_layout.addStretch() # Push zones to top
-
-    def clear_layout(self, layout):
-        if layout is not None:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
+                        row = i // 5 # 0 for first 5 cells, 1 for next 5
+                        col = i % 5  # 0 to 4
+                        zone_grid_layout.addWidget(cell_button, row, col)
+                        cells_created += 1
+                        print(f"DEBUG: Created cell button for {cell_id} at row {row}, col {col}")
+                    
+                    except Exception as e:
+                        print(f"DEBUG: Error creating cell {cell_id}: {e}")
                 else:
-                    self.clear_layout(item.layout())
-
-    def on_cell_clicked(self, cell_id):
-        """Emit the cell_clicked signal with the cell ID and open detail dialog."""
+                    print(f"DEBUG: Cell {cell_id} NOT found in storage_cells")
+        
+            print(f"DEBUG: Created {cells_created} cells for {zone_name}")
+            zone_group_box.setLayout(zone_grid_layout)
+            self.zones_layout.addWidget(zone_group_box)
+    
+        self.zones_layout.addStretch() # Push zones to top
+        print("DEBUG: populate_zones_and_cells completed")
+    
+    def _clear_zones(self):
+        """Clear existing zone widgets"""
+        while self.zones_layout.count():
+            child = self.zones_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        
+        self.cell_buttons.clear()
+    
+    def on_cell_clicked(self, cell_id: str):
+        """Handle cell click events"""
         self.cell_clicked.emit(cell_id)
-        cell_data = self.data.get_cell_contents(cell_id)
-        dialog = CellDetailDialog(cell_id, cell_data, self)
-        dialog.exec()
-
+        # You can add cell detail dialog here
+    
+    def on_product_dropped(self, from_cell: str, to_cell: str, product_id: str, quantity: int):
+        """Handle product drop events"""
+        try:
+            # Update data model
+            self.data.move_product(from_cell, to_cell, product_id, quantity)
+            
+            # Update UI
+            self.update_cell_display(from_cell)
+            self.update_cell_display(to_cell)
+            
+            # Emit signal for external handling
+            self.product_moved.emit(from_cell, to_cell, product_id, quantity)
+            
+            self.logger.info(f"Moved {quantity}x {product_id} from {from_cell} to {to_cell}")
+            
+        except Exception as e:
+            self.logger.error(f"Error moving product: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to move product: {e}")
+    
+    def on_cell_hovered(self, cell_id: str, is_hovered: bool):
+        """Handle cell hover events during drag operations"""
+        # You can add additional visual feedback here
+        pass
+    
+    def update_cell_display(self, cell_id: str):
+        """Update specific cell display"""
+        if cell_id in self.cell_buttons:
+            cell_data = self.data.get_cell_contents(cell_id)
+            self.cell_buttons[cell_id].cell_data = cell_data
+            self.cell_buttons[cell_id]._setup_cell()
+    
+    def refresh_all_cells(self):
+        """Refresh all cell displays"""
+        for cell_id in self.cell_buttons:
+            self.update_cell_display(cell_id)
     def open_move_product_dialog(self):
         dialog = MoveProductDialog(self.data, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -2160,7 +2696,7 @@ class MainWindow(QMainWindow):
         self.expedition_widget = scrollable(ExpeditionManagementWidget(self.data))
         self.movement_widget = scrollable(ProductMovementTrackingWidget(self.data))
         self.exception_widget = scrollable(ExceptionReportsWidget(self.data))
-        self.storage_cell_widget = scrollable(StorageCellWidget(self.data)) # Instantiate new widget
+        self.storage_cell_widget = scrollable(DragDropStorageWidget(self.data)) # Instantiate new widget
 
         self.content_stack.addWidget(self.dashboard_widget)
         self.content_stack.addWidget(self.expedition_widget)

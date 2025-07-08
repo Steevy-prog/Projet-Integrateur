@@ -1054,11 +1054,22 @@ class ProductDetailDialog(QDialog):
         self.setWindowTitle(f"Product Details for Order: {order_data['Order_ID']}")
         self.setFixedSize(600, 700)
         self.init_ui()
+
+    def checkeligibility(self):
+        for i in self.order_data['Products']:
+            if self.Eligible(i['idlot']) == False:
+                return "Not Eligible"
+        return "Eligible"
+
     
-    def Eligible():
-        eligible = ""
+    def Eligible(self,idlot):
+        cur.execute("SELECT \"EMIR\".Attribuer_Cellule_Optimale(%s)",(idlot,))
+        eli = cur.fetchone()[0]
+        if eli is not None:
+            print(eli)
+            return True
         
-        return eligible
+        return False
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -1109,11 +1120,36 @@ class ProductDetailDialog(QDialog):
                 font-weight: bold;
                 color: #555555;
             }
+            
+            
         """)
-        eligibilty = ProductDetailDialog.Eligible()
-        title_label = QLabel(f"Order: {self.order_data['Order_ID']} {eligibilty}")
-        title_label.setProperty("class", "title")
+        print(self.order_data['Order_ID']) 
+        eligible_status = self.checkeligibility()
+        
+        
+        status_color = "#28A745" if eligible_status == "Eligible" else "#DC3545"
+        # Construct the HTML string for the title label
+        # The <span> tag with inline style will color only the eligibility part
+        title_html = (
+            f"<h1 style='font-size: 24px; font-weight: bold; color: #333333; "
+            f"margin-bottom: 20px; padding-bottom: 10px; "
+            f"border-bottom: 1px solid #E0E0E0;'>"
+            f"Order: {self.order_data['Order_ID']}"
+            f"&nbsp;&nbsp;&nbsp;&nbsp&;nbsp;&nbsp;&nbsp;&nbsp; "
+            f"<span style='color: {status_color}; margin-left: 60px; '>  {eligible_status}</span>"
+            f"</h1>"
+        )
+
+        title_label = QLabel()
+        title_label.setText(title_html)
+        # Crucially, set the text format to RichText to interpret HTML
+        title_label.setTextFormat(Qt.TextFormat.RichText)
+        # Remove the setProperty("class", "title") as styling is now inline HTML
+        # title_label.setProperty("class", "title") # No longer needed for color/bold
+
         layout.addWidget(title_label)
+        
+        
 
         form_layout = QFormLayout()
         form_layout.addRow("Supplier:", QLabel(self.order_data['Supplier']))
@@ -2967,7 +3003,7 @@ class MainDashboardWidget(QWidget):
             parent_window = self.window()
             if parent_window is not self:
                 parent_window.close()
-            import login as login
+            import logintravailleur as login
             self.loginpage = login.FlipCard()
             self.loginpage.show()
 
