@@ -93,7 +93,7 @@ class MainApp(QStackedWidget):
 
     def show_dashboard(self, role):
         if role == "Emballeur":
-            self.setCurrentWidget(self.worker)
+            self.setCurrentWidget(self.emballeur)
         elif role == "Manager":
             self.setCurrentWidget(self.manager)
         elif role == "Logisticien":
