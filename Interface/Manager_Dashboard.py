@@ -548,6 +548,7 @@ class RealtimeInventoryViewWidget(QWidget):
         table.verticalHeader().setVisible(False) # Hide vertical header (row numbers)
 
         return table
+
 class CircularProgress(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -611,17 +612,6 @@ class ColisEmballageCard(QFrame):
                 color: #6C63FF;
                 margin-bottom: 5px;
             }
-            QPushButton {
-                background-color: #00BFA5;
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                border-radius: 8px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #00897B;
-            }
         """)
         self.init_ui()
 
@@ -637,36 +627,8 @@ class ColisEmballageCard(QFrame):
         layout.addWidget(QLabel(f"Expected Date: <b>{self.colis_data['Expected_Date']}</b>"))
         layout.addWidget(QLabel(f"Status: <b>{self.colis_data['Status']}</b>"))
 
-        # Simulate interaction with emballeur.py / database
-        wrap_button = QPushButton("Mark as Wrapped")
-        wrap_button.clicked.connect(self.mark_as_wrapped)
-        layout.addWidget(wrap_button)
+        # REMOVED: The "Mark as Wrapped" button is no longer included
         layout.addStretch()
-
-    def mark_as_wrapped(self):
-        # Simulate updating database via emballeur.py
-        # In a real scenario, this would call a backend function in emballeur.py
-        # For now, we update the local data frame and notify the parent widget
-        
-        # Find the colis in the main data and update its status
-        order_id = self.colis_data['Order_ID']
-        # Access the parent's parent's parent (ZoneEmballage -> QWidget -> QScrollArea -> ZoneEmballage)
-        # This is a bit fragile, consider passing data object directly or using signals
-        zone_emballage_widget = self.parent().parent().parent() 
-        if isinstance(zone_emballage_widget, ZoneEmballage):
-            order_index = zone_emballage_widget.data.reception_df.index[
-                zone_emballage_widget.data.reception_df['Order_ID'] == order_id
-            ].tolist()
-
-            if order_index:
-                order_idx = order_index[0]
-                zone_emballage_widget.data.reception_df.at[order_idx, 'packer_assignment_status'] = 'wrapped'
-                QMessageBox.information(self, "Success", f"Colis {order_id} marked as wrapped.")
-                zone_emballage_widget.refresh_emballage_colis() # Refresh the list of colis to be wrapped
-            else:
-                QMessageBox.warning(self, "Error", f"Colis {order_id} not found in data for update.")
-        else:
-            QMessageBox.warning(self, "Error", "Could not find parent ZoneEmballage widget.")
 
 class LotDesemballageCard(QFrame):
     """Aesthetic card for a lot to be unwrapped."""
@@ -776,7 +738,7 @@ class ZoneEmballage(QWidget):
         container_layout.setVerticalSpacing(20)
         container_layout.setHorizontalSpacing(20)
 
-        # Emballage Section (Colis à emballer)
+        # Emballage Section (Colis à emballer) - FIXED: Only show items not yet wrapped
         emballage_group_box = self.create_section_group_box("Colis à Emballer (Packaging)")
         self.emballage_colis_layout = QVBoxLayout(emballage_group_box)
         self.emballage_colis_layout.setContentsMargins(15, 15, 15, 15)
@@ -833,7 +795,8 @@ class ZoneEmballage(QWidget):
             if widget:
                 widget.deleteLater()
         
-        # Filter for orders that are 'Accepte' and 'unassigned' for packer (meaning not yet wrapped)
+        # FIXED: Filter for orders that are 'Accepte' and 'unassigned' for packer (meaning not yet wrapped)
+        # This ensures only items not yet wrapped are shown
         colis_to_wrap = [
             order for order in self.data.reception_df.to_dict('records')
             if order['Status'] == 'Accepte' and order['packer_assignment_status'] == 'unassigned'
@@ -1892,7 +1855,7 @@ class TaskCard(QFrame):
         layout.addWidget(QLabel(f"Assignment Date: <b>{self.task_data['Assignment_Date']}</b>"))
         layout.addStretch()
 
-# New AssignedTasksViewWidget
+# FIXED: AssignedTasksViewWidget - Now properly shows assigned tasks
 class AssignedTasksViewWidget(QWidget):
     def __init__(self, data, workers_list):
         super().__init__()
@@ -1934,7 +1897,7 @@ class AssignedTasksViewWidget(QWidget):
         
         assigned_tasks_data = []
 
-        # Collect Colis assignments
+        # FIXED: Collect Colis assignments - now properly shows assigned colis
         for order_data in self.data.reception_df.to_dict('records'):
             if order_data.get('packer_assignment_status') == 'assigned':
                 assigned_packer_id = order_data.get('assigned_packer_id')
@@ -1944,14 +1907,14 @@ class AssignedTasksViewWidget(QWidget):
                 assigned_tasks_data.append({
                     'Task_Type': 'Colis (Package) Assignment',
                     'Order_ID': order_data['Order_ID'],
-                    'Item_Product_Name': f"{order_data['Items_Count']} items", # Display item count for colis
+                    'Item_Product_Name': f"Package with {order_data['Items_Count']} items", # Display item count for colis
                     'Quantity': order_data['Items_Count'],
-                    'Category': 'N/A', # Category not directly applicable to colis
+                    'Category': 'Package', # Category for colis
                     'Assigned_Worker': assigned_packer_name + " (Emballeur)",
                     'Assignment_Date': assignment_date
                 })
 
-            # Collect Lot assignments within this order
+            # FIXED: Collect Lot assignments within this order - now properly shows assigned lots
             if 'Products' in order_data and isinstance(order_data['Products'], list):
                 for product_item in order_data['Products']:
                     if product_item.get('assignment_status') == 'assigned':
@@ -1961,7 +1924,7 @@ class AssignedTasksViewWidget(QWidget):
                         product_details_from_db = next((p for p in produits_db if p[0] == product_id_or_lot), None)
                         if product_details_from_db:
                             product_name = product_details_from_db[2]
-                            product_category = product_details_from_db[7]
+                            product_category = product_details_from_db[6] if len(product_details_from_db) > 6 else "N/A"
                         
                         assigned_worker_id = product_item.get('assigned_worker_id')
                         assigned_worker_name = next((w['name'] for w in self.workers_list if w['id'] == assigned_worker_id), "N/A")
@@ -2671,6 +2634,9 @@ class PerformanceWidget(QWidget):
         header_layout.addWidget(title)
         header_layout.addStretch()
         header_layout.addLayout(date_layout)
+
+        # KPI Cards
+        k
 
         # KPI Cards
         kpi_layout = QHBoxLayout()

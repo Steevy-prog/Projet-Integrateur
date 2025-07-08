@@ -46,10 +46,32 @@ elif it == '2':
         port=5432
     )
 
-#Connection = ConnectionDB()
-#Connection_info = Connection.
+# if it == '1':
+#     print("You have chosen the online database.")
+#     conn = psycopg2.connect(
+#         host="dpg-d197j2nfte5s73c3e07g-a.virginia-postgres.render.com",
+#         database="projet_integrateur",
+#         user="group13",
+#         password="nTUJjJMX36MQ8yRdGVvTqA07nF55YJB3",
+#         port=5432
+#     )
+# elif it == '2':
+#     print("You have chosen the offline database.")
+#     conn = psycopg2.connect(
+#         host="localhost",
+#         database="postgres",
+#         user="postgres",
+#         password="steevy",
+#         port=5432
+#     )
 
-cur = conn.cursor()
+
+Connection = ConnectionDB()
+Connection_info = Connection.connection()
+
+db_connection = Connection_info['db_connection']
+
+cur = db_connection.cursor()
 
 
 cur.execute("SELECT (p).* FROM \"EMIR\".Conducteur_EVA() AS p;")
@@ -79,6 +101,8 @@ class LogisticsData:
     """Data generator and manager for logistics operations"""
     
     def __init__(self):
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
         self.generate_sample_data()
     def generate_sample_data(self):
         self.transporteurs_df = pd.DataFrame(conducteurs,columns=['id','idutil','nopermis','typepermis','date_obt','date_exp','annee_xp','statut','derniere_eva','noto_eva'])
@@ -97,6 +121,10 @@ class LogisticsData:
             'Order_Fulfillment_Rate': np.random.uniform(85, 99, len(dates))
         })
 
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+        cur = self.db_connection.cursor()
 
         #reports
         cur.execute("SELECT (p).* FROM \"EMIR\".Produit_EVA() AS p;")
@@ -232,6 +260,7 @@ class PerformanceWidget(QWidget):
 
     def __init__(self, data):
         super().__init__()
+
         self.data = data
         self.init_ui()
 
@@ -472,6 +501,9 @@ class LogisticsOverviewWidget(QWidget):
     def __init__(self, data):
         super().__init__()
         self.data = data
+        self.connection_info = Connection.connection()
+        self.db_connection = self.connection_info['db_connection']
+
         self.init_ui()
     
     def init_ui(self):
@@ -511,6 +543,11 @@ class LogisticsOverviewWidget(QWidget):
         header_layout.addWidget(refresh_btn)
         
         # Metrics cards
+        if not self.db_connection:
+                self.connection_info = Connection.connection()
+                self.db_connection = self.connection_info['db_connection']
+
+        cur = self.db_connection.cursor()
         metrics_layout = QHBoxLayout()
         cur.execute("SELECT \"EMIR\".entransit()")
         cmd_en_transit = cur.fetchone()[0]
