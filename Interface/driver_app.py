@@ -1063,7 +1063,7 @@ class DriverApp(QWidget):
         dashboard_content_layout.addWidget(welcome_label)
 
         # --- Direct display of "Livraisons en cours" ---
-        pending_deliveries_title = QLabel("🕒 Livraisons en cours aujourd'hui")
+        pending_deliveries_title = QLabel("🕒 Livraisons en cours")
         pending_deliveries_title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         pending_deliveries_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-top: 20px; margin-bottom: 10px;")
         dashboard_content_layout.addWidget(pending_deliveries_title)
@@ -1902,20 +1902,20 @@ class LoginScreen(QWidget):
         layout.setSpacing(20)
         layout.setContentsMargins(50, 50, 50, 50)
 
-        title = QLabel("🚚 DeliveryPro")
+        title = QLabel("🚚 SAC Delivery")
         title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         title.setStyleSheet(f"color: {COLOR_PRIMARY};")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Nom d'utilisateur (e.g., email du conducteur)")
+        self.username_input.setPlaceholderText("Nom d'utilisateur (email du conducteur)")
         self.username_input.setMinimumHeight(40)
         self.username_input.setFont(QFont("Segoe UI", 11))
         layout.addWidget(self.username_input)
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Mot de passe (e.g., password)")
+        self.password_input.setPlaceholderText("Mot de passe ")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.setMinimumHeight(40)
         self.password_input.setFont(QFont("Segoe UI", 11))
