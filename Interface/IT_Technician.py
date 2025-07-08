@@ -23,6 +23,8 @@ from terminal import TerminalPage, AutomationPage
 from db_connection import ConnectionDB
 
 Connection = ConnectionDB()
+
+
 class AccountSettingsPage(QWidget):
     """
     A QWidget that encapsulates the entire Account Settings content,
@@ -1081,156 +1083,156 @@ class DatabaseMaintenancePage(QWidget):
             if 'cursor' in locals() and cursor:
                 cursor.close()
 
-class SecuritySettingPage(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("securitySettingPage")
+# class SecuritySettingPage(QWidget):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setObjectName("securitySettingPage")
         
-        self.connection_info = Connection.connection()
-        self.db_connection = self.connection_info['db_connection']
+#         self.connection_info = Connection.connection()
+#         self.db_connection = self.connection_info['db_connection']
             
-        self._setup_ui()
-        self.password_policy_settings = {
-            "min_length": 8,
-            "require_uppercase": True,
-            "require_lowercase": True,
-            "require_number": True,
-            "require_special": True,
-            "password_expiration_days": 0,
-            "enforce_expiration": False
-        }
-        self._load_password_policy_from_db()
+#         self._setup_ui()
+#         self.password_policy_settings = {
+#             "min_length": 8,
+#             "require_uppercase": True,
+#             "require_lowercase": True,
+#             "require_number": True,
+#             "require_special": True,
+#             "password_expiration_days": 0,
+#             "enforce_expiration": False
+#         }
+#         self._load_password_policy_from_db()
 
-    def _setup_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(20)
-        title = QLabel("Security Settings")
-        title.setObjectName("sectionTitle")
-        main_layout.addWidget(title)
-        password_policy_frame = QFrame()
-        password_policy_frame.setObjectName("sectionFrame")
-        password_policy_layout = QVBoxLayout(password_policy_frame)
-        password_policy_layout.setContentsMargins(20, 20, 20, 20)
-        password_policy_layout.setSpacing(15)
-        policy_title = QLabel("Password Policy Configuration")
-        policy_title.setObjectName("sectionSubTitle")
-        password_policy_layout.addWidget(policy_title)
-        form_layout = QGridLayout()
-        form_layout.setSpacing(10)
-        form_layout.addWidget(QLabel("Minimum Length:"), 0, 0)
-        self.min_length_spinbox = QSpinBox()
-        self.min_length_spinbox.setMinimum(6)
-        self.min_length_spinbox.setMaximum(64)
-        self.min_length_spinbox.setValue(8)
-        form_layout.addWidget(self.min_length_spinbox, 0, 1)
-        self.require_uppercase_checkbox = QCheckBox("Require Uppercase Letter")
-        self.require_uppercase_checkbox.setChecked(True)
-        form_layout.addWidget(self.require_uppercase_checkbox, 1, 0, 1, 2)
-        self.require_lowercase_checkbox = QCheckBox("Require Lowercase Letter")
-        self.require_lowercase_checkbox.setChecked(True)
-        form_layout.addWidget(self.require_lowercase_checkbox, 2, 0, 1, 2)
-        self.require_number_checkbox = QCheckBox("Require Number")
-        self.require_number_checkbox.setChecked(True)
-        form_layout.addWidget(self.require_number_checkbox, 3, 0, 1, 2)
-        self.require_special_checkbox = QCheckBox("Require Special Character")
-        self.require_special_checkbox.setChecked(True)
-        form_layout.addWidget(self.require_special_checkbox, 4, 0, 1, 2)
-        self.enforce_expiration_checkbox = QCheckBox("Enforce Password Expiration")
-        self.enforce_expiration_checkbox.setChecked(False)
-        form_layout.addWidget(self.enforce_expiration_checkbox, 5, 0, 1, 2)
-        form_layout.addWidget(QLabel("Expire after (days):"), 6, 0)
-        self.expiration_days_spinbox = QSpinBox()
-        self.expiration_days_spinbox.setMinimum(0)
-        self.expiration_days_spinbox.setMaximum(365)
-        self.expiration_days_spinbox.setValue(90)
-        self.expiration_days_spinbox.setEnabled(False)
-        form_layout.addWidget(self.expiration_days_spinbox, 6, 1)
-        self.enforce_expiration_checkbox.toggled.connect(self.expiration_days_spinbox.setEnabled)
-        password_policy_layout.addLayout(form_layout)
-        self.save_policy_button = QPushButton("Save Password Policy")
-        self.save_policy_button.setObjectName("primaryButton")
-        self.save_policy_button.clicked.connect(self._save_password_policy)
-        password_policy_layout.addWidget(self.save_policy_button)
-        password_policy_layout.addStretch()
-        main_layout.addWidget(password_policy_frame)
-        main_layout.addStretch()
+#     def _setup_ui(self):
+#         main_layout = QVBoxLayout(self)
+#         main_layout.setContentsMargins(0, 0, 0, 0)
+#         main_layout.setSpacing(20)
+#         title = QLabel("Security Settings")
+#         title.setObjectName("sectionTitle")
+#         main_layout.addWidget(title)
+#         password_policy_frame = QFrame()
+#         password_policy_frame.setObjectName("sectionFrame")
+#         password_policy_layout = QVBoxLayout(password_policy_frame)
+#         password_policy_layout.setContentsMargins(20, 20, 20, 20)
+#         password_policy_layout.setSpacing(15)
+#         policy_title = QLabel("Password Policy Configuration")
+#         policy_title.setObjectName("sectionSubTitle")
+#         password_policy_layout.addWidget(policy_title)
+#         form_layout = QGridLayout()
+#         form_layout.setSpacing(10)
+#         form_layout.addWidget(QLabel("Minimum Length:"), 0, 0)
+#         self.min_length_spinbox = QSpinBox()
+#         self.min_length_spinbox.setMinimum(6)
+#         self.min_length_spinbox.setMaximum(64)
+#         self.min_length_spinbox.setValue(8)
+#         form_layout.addWidget(self.min_length_spinbox, 0, 1)
+#         self.require_uppercase_checkbox = QCheckBox("Require Uppercase Letter")
+#         self.require_uppercase_checkbox.setChecked(True)
+#         form_layout.addWidget(self.require_uppercase_checkbox, 1, 0, 1, 2)
+#         self.require_lowercase_checkbox = QCheckBox("Require Lowercase Letter")
+#         self.require_lowercase_checkbox.setChecked(True)
+#         form_layout.addWidget(self.require_lowercase_checkbox, 2, 0, 1, 2)
+#         self.require_number_checkbox = QCheckBox("Require Number")
+#         self.require_number_checkbox.setChecked(True)
+#         form_layout.addWidget(self.require_number_checkbox, 3, 0, 1, 2)
+#         self.require_special_checkbox = QCheckBox("Require Special Character")
+#         self.require_special_checkbox.setChecked(True)
+#         form_layout.addWidget(self.require_special_checkbox, 4, 0, 1, 2)
+#         self.enforce_expiration_checkbox = QCheckBox("Enforce Password Expiration")
+#         self.enforce_expiration_checkbox.setChecked(False)
+#         form_layout.addWidget(self.enforce_expiration_checkbox, 5, 0, 1, 2)
+#         form_layout.addWidget(QLabel("Expire after (days):"), 6, 0)
+#         self.expiration_days_spinbox = QSpinBox()
+#         self.expiration_days_spinbox.setMinimum(0)
+#         self.expiration_days_spinbox.setMaximum(365)
+#         self.expiration_days_spinbox.setValue(90)
+#         self.expiration_days_spinbox.setEnabled(False)
+#         form_layout.addWidget(self.expiration_days_spinbox, 6, 1)
+#         self.enforce_expiration_checkbox.toggled.connect(self.expiration_days_spinbox.setEnabled)
+#         password_policy_layout.addLayout(form_layout)
+#         self.save_policy_button = QPushButton("Save Password Policy")
+#         self.save_policy_button.setObjectName("primaryButton")
+#         self.save_policy_button.clicked.connect(self._save_password_policy)
+#         password_policy_layout.addWidget(self.save_policy_button)
+#         password_policy_layout.addStretch()
+#         main_layout.addWidget(password_policy_frame)
+#         main_layout.addStretch()
 
-    def _load_password_policy_from_db(self):
-        print("Loading password policy from database...")
-        cursor = None
-        try:
-            if not self.db_connection:
-                self.connection_info = Connection.connection()
-                self.db_connection = self.connection_info['db_connection']
+#     def _load_password_policy_from_db(self):
+#         print("Loading password policy from database...")
+#         cursor = None
+#         try:
+#             if not self.db_connection:
+#                 self.connection_info = Connection.connection()
+#                 self.db_connection = self.connection_info['db_connection']
         
-            cursor = self.db_connection.cursor()
-            query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'Default-Strong';"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            self.db_connection.commit()
-            loaded_settings = {row[0]: row[1] for row in rows}
-            self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
-            self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
-            self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
-            self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
-            self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
-            self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
-            self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
-            self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
-            self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
-            self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
-            self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
-            self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
-            self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
-            self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
-        except Error as e:
-            self.db_connection.rollback()
-            QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
-            print(f"Error loading password policy: {e}")
-        except Exception as e:
-            self.db_connection.rollback()
-            QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while loading password policy: {e}")
-            print(f"Unexpected error: {e}")
-        finally:
-            if cursor:
-                cursor.close()
+#             cursor = self.db_connection.cursor()
+#             query = "SELECT _setting_name, _setting_value FROM \"EMIR\".PasswordPolicies_EVA() WHERE _setting_group = 'Default-Strong';"
+#             cursor.execute(query)
+#             rows = cursor.fetchall()
+#             self.db_connection.commit()
+#             loaded_settings = {row[0]: row[1] for row in rows}
+#             self.password_policy_settings["min_length"] = int(loaded_settings.get("min_length", 8))
+#             self.password_policy_settings["require_uppercase"] = (loaded_settings.get("require_uppercase", "True") == "True")
+#             self.password_policy_settings["require_lowercase"] = (loaded_settings.get("require_lowercase", "True") == "True")
+#             self.password_policy_settings["require_number"] = (loaded_settings.get("require_number", "True") == "True")
+#             self.password_policy_settings["require_special"] = (loaded_settings.get("require_special", "True") == "True")
+#             self.password_policy_settings["enforce_expiration"] = (loaded_settings.get("enforce_expiration", "False") == "True")
+#             self.password_policy_settings["password_expiration_days"] = int(loaded_settings.get("password_expiration_days", 0))
+#             self.min_length_spinbox.setValue(self.password_policy_settings["min_length"])
+#             self.require_uppercase_checkbox.setChecked(self.password_policy_settings["require_uppercase"])
+#             self.require_lowercase_checkbox.setChecked(self.password_policy_settings["require_lowercase"])
+#             self.require_number_checkbox.setChecked(self.password_policy_settings["require_number"])
+#             self.require_special_checkbox.setChecked(self.password_policy_settings["require_special"])
+#             self.enforce_expiration_checkbox.setChecked(self.password_policy_settings["enforce_expiration"])
+#             self.expiration_days_spinbox.setValue(self.password_policy_settings["password_expiration_days"])
+#         except Error as e:
+#             self.db_connection.rollback()
+#             QMessageBox.critical(self, "Database Error", f"Failed to load password policy from database: {e}")
+#             print(f"Error loading password policy: {e}")
+#         except Exception as e:
+#             self.db_connection.rollback()
+#             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while loading password policy: {e}")
+#             print(f"Unexpected error: {e}")
+#         finally:
+#             if cursor:
+#                 cursor.close()
 
-    def _save_password_policy(self):
-        self.password_policy_settings["min_length"] = self.min_length_spinbox.value()
-        self.password_policy_settings["require_uppercase"] = self.require_uppercase_checkbox.isChecked()
-        self.password_policy_settings["require_lowercase"] = self.require_lowercase_checkbox.isChecked()
-        self.password_policy_settings["require_number"] = self.require_number_checkbox.isChecked()
-        self.password_policy_settings["require_special"] = self.require_special_checkbox.isChecked()
-        self.password_policy_settings["enforce_expiration"] = self.enforce_expiration_checkbox.isChecked()
-        self.password_policy_settings["password_expiration_days"] = self.expiration_days_spinbox.value() if self.enforce_expiration_checkbox.isChecked() else 0
-        print("Attempting to save password policy to database...")
-        try:
-            if not self.db_connection:
-                self.connection_info = Connection.connection()
-                self.db_connection = self.connection_info['db_connection']
+#     def _save_password_policy(self):
+#         self.password_policy_settings["min_length"] = self.min_length_spinbox.value()
+#         self.password_policy_settings["require_uppercase"] = self.require_uppercase_checkbox.isChecked()
+#         self.password_policy_settings["require_lowercase"] = self.require_lowercase_checkbox.isChecked()
+#         self.password_policy_settings["require_number"] = self.require_number_checkbox.isChecked()
+#         self.password_policy_settings["require_special"] = self.require_special_checkbox.isChecked()
+#         self.password_policy_settings["enforce_expiration"] = self.enforce_expiration_checkbox.isChecked()
+#         self.password_policy_settings["password_expiration_days"] = self.expiration_days_spinbox.value() if self.enforce_expiration_checkbox.isChecked() else 0
+#         print("Attempting to save password policy to database...")
+#         try:
+#             if not self.db_connection:
+#                 self.connection_info = Connection.connection()
+#                 self.db_connection = self.connection_info['db_connection']
             
-            cursor = self.db_connection.cursor()
-            for setting_name, value in self.password_policy_settings.items():
-                setting_value_str = str(value)
-                query = """
-                    CALL "EMIR".PasswordPolicies_INS('Default-Strong', %s, %s)
-                """
-                cursor.execute(query, (setting_name, setting_value_str))
-            self.db_connection.commit()
-            QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
-            print("Password policy saved to database.")
-        except Error as e:
-            self.db_connection.rollback()
-            QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")
-            print(f"Error saving password policy: {e}")
-        except Exception as e:
-            self.db_connection.rollback()
-            QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while saving password policy: {e}")
-            print(f"Unexpected error: {e}")
-        finally:
-            if cursor:
-                cursor.close()
+#             cursor = self.db_connection.cursor()
+#             for setting_name, value in self.password_policy_settings.items():
+#                 setting_value_str = str(value)
+#                 query = """
+#                     CALL "EMIR".PasswordPolicies_INS('Default-Strong', %s, %s)
+#                 """
+#                 cursor.execute(query, (setting_name, setting_value_str))
+#             self.db_connection.commit()
+#             QMessageBox.information(self, "Policy Saved", "Password policy saved successfully!")
+#             print("Password policy saved to database.")
+#         except Error as e:
+#             self.db_connection.rollback()
+#             QMessageBox.critical(self, "Database Error", f"Failed to save password policy: {e}")
+#             print(f"Error saving password policy: {e}")
+#         except Exception as e:
+#             self.db_connection.rollback()
+#             QMessageBox.critical(self, "Application Error", f"An unexpected error occurred while saving password policy: {e}")
+#             print(f"Unexpected error: {e}")
+#         finally:
+#             if cursor:
+#                 cursor.close()
 
 class HelpButton(QPushButton):
     def __init__(self, parent=None):
@@ -1278,7 +1280,7 @@ class MainWindow(QMainWindow):
             "ACCOUNT SETTINGS": AccountSettingsPage(),
             # "SYSTEM CONFIGURATION": SystemConfigurationPage(),
             "DATABASE MAINTENANCE": DatabaseMaintenancePage(),
-            "SECURITY SETTINGS": SecuritySettingPage(),
+            # "SECURITY SETTINGS": SecuritySettingPage(),
             "TERMINAL": TerminalPage(), # Terminal Page
             "AUTOMATION": AutomationPage(),
             
@@ -1679,4 +1681,5 @@ if __name__ == "__main__":
     window.show()
     sys.exit(app.exec())
     
+
 

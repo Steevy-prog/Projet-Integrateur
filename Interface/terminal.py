@@ -884,7 +884,7 @@ class AutomationPage(QWidget):
                 self.db_connection = self.connection_info['db_connection']
             else:
                 cursor = self.db_connection.cursor()
-                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY timestamp;")  # Assuming a 'logs' table
+                cursor.execute(f"SELECT TO_CHAR(_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS formatted_timestamp, _level, _message FROM \"EMIR\".Logs_EVA() ORDER BY _timestamp;")  # Assuming a 'logs' table
                 logs = cursor.fetchall()
                 self.db_connection.commit()
                 self.automation_log_output.append("\n--- ALl System Logs ---")
