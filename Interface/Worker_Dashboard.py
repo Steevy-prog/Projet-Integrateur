@@ -55,7 +55,7 @@ elif it == '3':
          password="Lune.Hatik123",
          port=5432
      )
-cur = con.cursor()
+cur = conn.cursor()
 
 class WorkerData:
     """Data generator and manager for warehouse worker operations"""
