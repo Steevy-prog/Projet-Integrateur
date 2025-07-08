@@ -28,7 +28,7 @@ elif it == '2':
         host="localhost",
         database="postgres",
         user="postgres",
-        password="steevy",
+        password="1234",
         port=5432
     )
 
@@ -171,7 +171,7 @@ class FlipCard(QWidget):
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setStyleSheet("color: #7f8c8d; margin-bottom: 30px;")
         self.login_email = QLineEdit()
-        self.login_email.setPlaceholderText("Email Address")
+        self.login_email.setPlaceholderText("Username")
         self.login_password = QLineEdit()
         self.login_password.setPlaceholderText("Password")
         self.login_password.setEchoMode(QLineEdit.EchoMode.Password)
