@@ -13,7 +13,6 @@ global conn
 print("1. online")
 print("2. offline")
 it = input("Enter the number of bd you want to use : ")
-
 if it == '1':
     print("You have chosen the online database.")
     conn = psycopg2.connect(
@@ -32,6 +31,10 @@ elif it == '2':
         password="steevy",
         port=5432
     )
+
+#Connection = ConnectionDB()
+#Connection_info = Connection.
+
 cur = conn.cursor()
 
 class BackgroundWidget(QWidget):
@@ -76,27 +79,27 @@ class MainApp(QStackedWidget):
         super().__init__()
         self.login = FlipCard(self)
         self.worker = dashboard.create_interface(1)
-        self.client = dashboard.create_interface(2)
-        self.it = dashboard.create_interface(3)
-        self.manager = dashboard.create_interface(4)
+        self.emballeur = dashboard.create_interface(2)
+        self.manager = dashboard.create_interface(3)
+        self.logmanager = dashboard.create_interface(4)
 
         self.addWidget(self.login)
         self.addWidget(self.worker)
-        self.addWidget(self.client)
-        self.addWidget(self.it)
+        self.addWidget(self.emballeur)
         self.addWidget(self.manager)
+        self.addWidget(self.logmanager)
 
         self.setCurrentIndex(0)
 
     def show_dashboard(self, role):
-        if role == "worker":
+        if role == "Emballeur":
             self.setCurrentWidget(self.worker)
-        elif role == "client":
-            self.setCurrentWidget(self.client)
-        elif role == "it":
-            self.setCurrentWidget(self.it)
-        elif role == "manager":
+        elif role == "Manager":
             self.setCurrentWidget(self.manager)
+        elif role == "Logisticien":
+            self.setCurrentWidget(self.logmanager)
+        elif role == "Magasinier":
+            self.setCurrentWidget(self.worker)
 
 class FlipCard(QWidget):
     def __init__(self, parent=None):
@@ -339,29 +342,20 @@ class FlipCard(QWidget):
         if not email or not password:
             self.login_status.setText("Please fill in all fields.")
             return
-        cur.execute('SELECT "EMIR".connexion_travailleur(%s,%s)',email,password)
+        cur.execute('SELECT "CREDENTIALS".connexion_travailleur1(%s,%s)',(email,password))
         poste = cur.fetchone()[0]
         if poste:
-            if poste == 'Administrateur':
-                pass
-            elif poste == 'Manager':
-                pass
-            elif poste == 'Logisticien':
-                pass
-            elif poste == 'Magasinier':
-                pass
-            elif poste == 'Securite':
-                pass
-            
             self.login_status.setText("Login successful! Redirecting...")
             self.login_status.setStyleSheet("color: #27ae60; font-weight: bold;")
-            QTimer.singleShot(1000, lambda: self.open_dashboard(credentials[email][1]))
+            QTimer.singleShot(1000, lambda: self.open_dashboard(poste))
         else:
             self.login_status.setText("Invalid email or password.")
             self.login_status.setStyleSheet("color: #e74c3c; font-weight: bold;")
 
     def open_dashboard(self, role):
-            role.show_dashboard()
+        parent = self.parent()
+        if hasattr(parent, "show_dashboard"):
+            parent.show_dashboard(role)
 
     def handle_signup(self):
         name = self.signup_name.text().strip()
