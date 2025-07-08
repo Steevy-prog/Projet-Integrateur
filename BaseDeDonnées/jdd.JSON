@@ -520,8 +520,8 @@
       },
       {
         "idindividu": "IWRKR1",
-        "nom": "Efficace",
-        "prenom": "Ouvrier",
+        "nom": "FANGUE",
+        "prenom": "LANDRY",
         "adresse": "303 Atelier Central, Limbe",
         "telephone": "655334455"
       },
@@ -1995,24 +1995,6 @@
         "niveau_acces": "employee"
       },
       {
-        "idutilisateur": "U00009",
-        "idindividu": "ITECH1",
-        "username": "paul_tchoua",
-        "date_inscription": "2023-09-30T18:00:00",
-        "date_derniere_connexion": "2024-06-09T18:00:00",
-        "statut": "actif",
-        "niveau_acces": "manager"
-      },
-      {
-        "idutilisateur": "U00010",
-        "idindividu": "ICUST2",
-        "username": "marie_nguimfack",
-        "date_inscription": "2023-10-12T19:00:00",
-        "date_derniere_connexion": "2024-06-10T19:00:00",
-        "statut": "actif",
-        "niveau_acces": "employee"
-      },
-      {
         "idutilisateur": "U00011",
         "idindividu": "ISUPP1",
         "username": "sophie_mballa",
@@ -2157,26 +2139,6 @@
         "date_derniere_evaluation": "2024-04-20"
       },
       {
-        "idtravailleur": "TR0008",
-        "idutilisateur": "U00009",
-        "date_embauche": "2023-09-15",
-        "poste": "Technicien",
-        "departement": "IT",
-        "salaire_horaire": 3500.00,
-        "statut": "actif",
-        "date_derniere_evaluation": "2024-05-01"
-      },
-      {
-        "idtravailleur": "TR0009",
-        "idutilisateur": "U00010",
-        "date_embauche": "2023-10-20",
-        "poste": "Chargé Clientèle",
-        "departement": "Service Client",
-        "salaire_horaire": 2300.00,
-        "statut": "actif",
-        "date_derniere_evaluation": "2024-05-10"
-      },
-      {
         "idtravailleur": "TR0010",
         "idutilisateur": "U00011",
         "date_embauche": "2023-11-25",
@@ -2291,7 +2253,7 @@
       },
       {
         "idtache": "T00008",
-        "idtravailleur": "TR0008",
+        "idtravailleur": "TR0010",
         "idcellule": "CB0002",
         "idlot": "LLOG1B",
         "date_creation": "2024-06-08",
@@ -2530,30 +2492,6 @@
         "date_acquisition": "2023-01-10",
         "certifie": true,
         "date_derniere_evaluation": "2024-04-20"
-      },
-      {
-        "idtravailleur": "TR0008",
-        "idcompetence": "COMP012",
-        "niveau_maitrise": "Expert",
-        "date_acquisition": "2018-05-18",
-        "certifie": true,
-        "date_derniere_evaluation": "2024-05-01"
-      },
-      {
-        "idtravailleur": "TR0008",
-        "idcompetence": "COMP013",
-        "niveau_maitrise": "Avancé",
-        "date_acquisition": "2020-07-25",
-        "certifie": true,
-        "date_derniere_evaluation": "2024-05-01"
-      },
-      {
-        "idtravailleur": "TR0009",
-        "idcompetence": "COMP014",
-        "niveau_maitrise": "Avancé",
-        "date_acquisition": "2022-03-08",
-        "certifie": true,
-        "date_derniere_evaluation": "2024-05-10"
       },
       {
         "idtravailleur": "TR0010",
