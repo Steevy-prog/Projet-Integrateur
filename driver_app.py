@@ -1,0 +1,2122 @@
+import sys, json
+from enum import Enum
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
+    QHeaderView, QFrame, QLineEdit, QStackedWidget, QInputDialog, QSizePolicy,
+    QComboBox, QScrollArea, QGridLayout
+)
+from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer, QPropertyAnimation, QRect, QUrl
+from PyQt6.QtGui import QFont, QPixmap, QPainter, QColor
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+import random # For dummy location updates
+
+# --- Fictitious Data for demonstration ---
+# Ensure dates are QDate objects for easier comparison and manipulation
+FICTITIOUS_PENDING_DELIVERIES = [
+    {
+        "id_livraison": "L001",
+        "id_colis": "C001",
+        "nom_destinataire": "Alice Dupont",
+        "adresse": "123 Rue Principale, Douala",
+        "date_expedition": QDate(2025, 7, 1),
+        "date_prevue": QDate(2025, 7, 8),
+        "poids": "5 kg",
+        "volume": "0.1 m³",
+        "type": "Colis Standard",
+        "instructions": "Laisser chez le voisin si absent.",
+        "lat": 4.0456,
+        "lon": 9.7045,
+        "status": "pending",
+        "telephone_destinataire": "699123456",
+        "idconducteur": "TR1234" # Assign to a dummy driver
+    },
+    {
+        "id_livraison": "L002",
+        "id_colis": "C002",
+        "nom_destinataire": "Bob Martin",
+        "adresse": "456 Avenue des Fleurs, Yaoundé",
+        "date_expedition": QDate(2025, 7, 2),
+        "date_prevue": QDate(2025, 7, 9),
+        "poids": "2.5 kg",
+        "volume": "0.05 m³",
+        "type": "Document Urgent",
+        "instructions": "Remettre en main propre.",
+        "lat": 3.8480,
+        "lon": 11.5021,
+        "status": "pending",
+        "telephone_destinataire": "677987654",
+        "idconducteur": "TR1235" # Assign to another dummy driver
+    },
+    {
+        "id_livraison": "L003",
+        "id_colis": "C003",
+        "nom_destinataire": "Charlie Brown",
+        "adresse": "789 Boulevard de la Liberté, Douala",
+        "date_expedition": QDate(2025, 7, 3),
+        "date_prevue": QDate(2025, 7, 10),
+        "poids": "10 kg",
+        "volume": "0.2 m³",
+        "type": "Grand Colis",
+        "instructions": "Appeler avant d'arriver.",
+        "lat": 4.0300,
+        "lon": 9.7100,
+        "status": "pending",
+        "telephone_destinataire": "688112233",
+        "idconducteur": "TR1234" # Assign to the main dummy driver
+    }
+]
+
+# Adding more diverse completed deliveries for better statistics demonstration
+FICTITIOUS_COMPLETED_DELIVERIES = [
+    {
+        "id_livraison": "L000",
+        "id_colis": "C000",
+        "nom_destinataire": "Zoe White",
+        "adresse": "101 Rue du Marché, Douala",
+        "date_expedition": QDate(2025, 6, 28),
+        "date_prevue": QDate(2025, 7, 1),
+        "date_livree": QDate(2025, 7, 1),
+        "poids": "1 kg",
+        "volume": "0.02 m³",
+        "type": "Petit Paquet",
+        "instructions": "Aucune.",
+        "lat": 4.0400,
+        "lon": 9.7000,
+        "status": "completed",
+        "telephone_destinataire": "677000000",
+        "delivery_time_seconds": 1800, # 30 minutes
+        "distance_km": 5.2,
+        "on_time": True,
+        "idconducteur": "TR1234"
+    },
+    {
+        "id_livraison": "L004",
+        "id_colis": "C004",
+        "nom_destinataire": "David Green",
+        "adresse": "202 Rue du Port, Douala",
+        "date_expedition": QDate(2025, 6, 29),
+        "date_prevue": QDate(2025, 7, 2),
+        "date_livree": QDate(2025, 7, 2),
+        "poids": "3 kg",
+        "volume": "0.1 m³",
+        "type": "Colis Fragile",
+        "instructions": "Manipuler avec soin.",
+        "lat": 4.0350,
+        "lon": 9.6950,
+        "status": "completed",
+        "telephone_destinataire": "677112233",
+        "delivery_time_seconds": 2400, # 40 minutes
+        "distance_km": 7.8,
+        "on_time": True,
+        "idconducteur": "TR1234"
+    },
+    {
+        "id_livraison": "L005",
+        "id_colis": "C005",
+        "nom_destinataire": "Eve Black",
+        "adresse": "303 Rue de la Gare, Yaoundé",
+        "date_expedition": QDate(2025, 7, 1),
+        "date_prevue": QDate(2025, 7, 3),
+        "date_livree": QDate(2025, 7, 4), # Late delivery
+        "poids": "15 kg",
+        "volume": "0.3 m³",
+        "type": "Équipement Lourd",
+        "instructions": "Utiliser le monte-charge.",
+        "lat": 3.8500,
+        "lon": 11.5100,
+        "status": "completed",
+        "telephone_destinataire": "699445566",
+        "delivery_time_seconds": 3600, # 60 minutes
+        "distance_km": 12.5,
+        "on_time": False,
+        "idconducteur": "TR1235"
+    },
+    {
+        "id_livraison": "L006",
+        "id_colis": "C006",
+        "nom_destinataire": "Frank White",
+        "adresse": "404 Rue du Centre, Douala",
+        "date_expedition": QDate(2025, 7, 4),
+        "date_prevue": QDate(2025, 7, 5),
+        "date_livree": QDate(2025, 7, 5),
+        "poids": "0.5 kg",
+        "volume": "0.01 m³",
+        "type": "Lettre",
+        "instructions": "Déposer dans la boîte aux lettres.",
+        "lat": 4.0480,
+        "lon": 9.7080,
+        "status": "completed",
+        "telephone_destinataire": "677778899",
+        "delivery_time_seconds": 1200, # 20 minutes
+        "distance_km": 3.1,
+        "on_time": True,
+        "idconducteur": "TR1234"
+    },
+    {
+        "id_livraison": "L007",
+        "id_colis": "C007",
+        "nom_destinataire": "Grace Hall",
+        "adresse": "505 Rue de la Plage, Kribi",
+        "date_expedition": QDate(2025, 7, 5),
+        "date_prevue": QDate(2025, 7, 7),
+        "date_livree": QDate(2025, 7, 7),
+        "poids": "8 kg",
+        "volume": "0.15 m³",
+        "type": "Produit Frais",
+        "instructions": "Urgent, conserver au frais.",
+        "lat": 2.9500,
+        "lon": 9.9000,
+        "status": "completed",
+        "telephone_destinataire": "699001122",
+        "delivery_time_seconds": 4800, # 80 minutes
+        "distance_km": 15.0,
+        "on_time": True,
+        "idconducteur": "TR1236"
+    },
+    {
+        "id_livraison": "L008",
+        "id_colis": "C008",
+        "nom_destinataire": "Henry King",
+        "adresse": "606 Rue du Lac, Limbe",
+        "date_expedition": QDate(2025, 7, 6),
+        "date_prevue": QDate(2025, 7, 8),
+        "date_livree": QDate(2025, 7, 8),
+        "poids": "6 kg",
+        "volume": "0.1 m³",
+        "type": "Électronique",
+        "instructions": "Signer la réception.",
+        "lat": 4.0000,
+        "lon": 9.2000,
+        "status": "completed",
+        "telephone_destinataire": "677334455",
+        "delivery_time_seconds": 3000, # 50 minutes
+        "distance_km": 10.5,
+        "on_time": True,
+        "idconducteur": "TR1234"
+    },
+    {
+        "id_livraison": "L009",
+        "id_colis": "C009",
+        "nom_destinataire": "Isabelle Lee",
+        "adresse": "707 Rue de la Montagne, Bafoussam",
+        "date_expedition": QDate(2025, 6, 20),
+        "date_prevue": QDate(2025, 6, 22),
+        "date_livree": QDate(2025, 6, 22),
+        "poids": "7 kg",
+        "volume": "0.12 m³",
+        "type": "Vêtements",
+        "instructions": "Laisser à la réception.",
+        "lat": 5.4760,
+        "lon": 10.4180,
+        "status": "completed",
+        "telephone_destinataire": "699887766",
+        "delivery_time_seconds": 2700, # 45 minutes
+        "distance_km": 8.9,
+        "on_time": True,
+        "idconducteur": "TR1236"
+    },
+    {
+        "id_livraison": "L010",
+        "id_colis": "C010",
+        "nom_destinataire": "Jack Wilson",
+        "adresse": "808 Rue du Soleil, Garoua",
+        "date_expedition": QDate(2025, 6, 25),
+        "date_prevue": QDate(2025, 6, 28),
+        "date_livree": QDate(2025, 6, 29), # Late delivery
+        "poids": "4 kg",
+        "volume": "0.08 m³",
+        "type": "Livres",
+        "instructions": "Déposer devant la porte.",
+        "lat": 9.3000,
+        "lon": 13.4000,
+        "status": "completed",
+        "telephone_destinataire": "677665544",
+        "delivery_time_seconds": 5400, # 90 minutes
+        "distance_km": 20.0,
+        "on_time": False,
+        "idconducteur": "TR1239"
+    },
+    # Add more deliveries for July to show "This Month" stats
+    {
+        "id_livraison": "L011",
+        "id_colis": "C011",
+        "nom_destinataire": "Kelly Green",
+        "adresse": "909 Rue de la Paix, Douala",
+        "date_expedition": QDate(2025, 7, 7),
+        "date_prevue": QDate(2025, 7, 8),
+        "date_livree": QDate(2025, 7, 8),
+        "poids": "2 kg",
+        "volume": "0.03 m³",
+        "type": "Petit Paquet",
+        "instructions": "Sonner deux fois.",
+        "lat": 4.0550,
+        "lon": 9.7150,
+        "status": "completed",
+        "telephone_destinataire": "699112233",
+        "delivery_time_seconds": 1500, # 25 minutes
+        "distance_km": 4.5,
+        "on_time": True,
+        "idconducteur": "TR1234"
+    },
+    {
+        "id_livraison": "L012",
+        "id_colis": "C012",
+        "nom_destinataire": "Liam Brown",
+        "adresse": "111 Rue du Parc, Douala",
+        "date_expedition": QDate(2025, 7, 7),
+        "date_prevue": QDate(2025, 7, 9),
+        "date_livree": QDate(2025, 7, 9),
+        "poids": "1.5 kg",
+        "volume": "0.04 m³",
+        "type": "Document",
+        "instructions": "Laisser à la réception.",
+        "lat": 4.0600,
+        "lon": 9.7200,
+        "status": "completed",
+        "telephone_destinataire": "677223344",
+        "delivery_time_seconds": 2100, # 35 minutes
+        "distance_km": 6.8,
+        "on_time": True,
+        "idconducteur": "TR1234"
+    },
+    {
+        "id_livraison": "L013",
+        "id_colis": "C013",
+        "nom_destinataire": "Mia Davis",
+        "adresse": "222 Rue des Écoles, Douala",
+        "date_expedition": QDate(2025, 7, 7),
+        "date_prevue": QDate(2025, 7, 10),
+        "date_livree": QDate(2025, 7, 11), # Late delivery
+        "poids": "9 kg",
+        "volume": "0.18 m³",
+        "type": "Colis Volumineux",
+        "instructions": "Appeler 30 min avant.",
+        "lat": 4.0500,
+        "lon": 9.7050,
+        "status": "completed",
+        "telephone_destinataire": "688556677",
+        "delivery_time_seconds": 3900, # 65 minutes
+        "distance_km": 10.0,
+        "on_time": False,
+        "idconducteur": "TR1234"
+    },
+]
+
+
+FICTITIOUS_DRIVER_LOCATIONS = {
+    "TR1234": (4.05, 9.77), # Douala, Cameroon
+    "TR1235": (3.8480, 11.5021), # Yaoundé, Cameroon
+    "TR1236": (5.4737, 10.4176), # Bafoussam, Cameroon
+    "TR1237": (4.0200, 9.7100), # Douala, another spot
+    "TR1238": (4.0000, 9.2000), # Limbe, Cameroon
+    "TR1239": (9.3000, 13.4000)  # Garoua, Cameroon
+}
+
+FICTITIOUS_DRIVERS = {
+    "messie.karlone@example.com": {
+        "idconducteur": "TR1234", "nom": "Karlone", "prenom": "Messie",
+        "telephone": "677111111", "email": "messie.karlone@example.com"
+    },
+    "ambiana.thibaut@example.com": {
+        "idconducteur": "TR1235", "nom": "Thibaut", "prenom": "Ambiana",
+        "telephone": "677222222", "email": "ambiana.thibaut@example.com"
+    },
+    "steevy.valery@example.com": {
+        "idconducteur": "TR1236", "nom": "Valery", "prenom": "Steevy",
+        "telephone": "677333333", "email": "steevy.valery@example.com"
+    },
+    "navou.emmanuel@example.com": {
+        "idconducteur": "TR1237", "nom": "Emmanuel", "prenom": "Navou",
+        "telephone": "677444444", "email": "navou.emmanuel@example.com"
+    },
+    "eric.viktor@example.com": {
+        "idconducteur": "TR1238", "nom": "Viktor", "prenom": "Eric",
+        "telephone": "677555555", "email": "eric.viktor@example.com"
+    },
+    "marc.landry@example.com": {
+        "idconducteur": "TR1239", "nom": "Landry", "prenom": "Marc",
+        "telephone": "677666666", "email": "marc.landry@example.com"
+    },
+}
+
+# --- Database Management Classes (Dummy Version) ---
+
+class DatabaseType(Enum):
+    POSTGRES = "PostgreSQL" # Keep for type consistency, but not used
+
+class DatabaseConfig:
+    """
+    Configuration pour la connexion à une base de données.
+    (Dummy: Non utilisée pour la connexion réelle, mais conservée pour la cohérence de l'interface)
+    """
+    def __init__(self, db_type, host, port, dbname, user, password):
+        self.db_type = db_type
+        self.host = host
+        self.port = port
+        self.dbname = dbname
+        self.user = user
+        self.password = password
+
+class DBManager:
+    """
+    Gère les connexions et les opérations de la base de données.
+    (Dummy: Simule les opérations de base de données en mémoire)
+    """
+    def __init__(self, config=None):
+        # Créer des copies des données fictives pour permettre la modification
+        self.pending_deliveries_dummy = [dict(d) for d in FICTITIOUS_PENDING_DELIVERIES]
+        self.completed_deliveries_dummy = [dict(d) for d in FICTITIOUS_COMPLETED_DELIVERIES]
+        self.driver_locations_dummy = dict(FICTITIOUS_DRIVER_LOCATIONS)
+        self.drivers_info_dummy = dict(FICTITIOUS_DRIVERS)
+
+    def connect(self):
+        print("Dummy DB: Connecté (simulé).")
+        return True
+
+    def test_connection(self):
+        print("Dummy DB: Test de connexion réussi (simulé).")
+        return True
+
+    def execute_query(self, query, params=None):
+        print(f"Dummy DB: Exécution de la requête (simulée): {query} avec les paramètres {params}")
+        # Simuler UPDATE pour le changement de statut dans "LivraisonConducteurColis"
+        if "UPDATE" in query and "status = 'completed'" in query and "LivraisonConducteurColis" in query:
+            # Assuming params are (date_livree_str, id_livraison)
+            date_livree_str = params[0]
+            delivery_id_to_complete = params[1] 
+            
+            # Find and move the delivery from pending to completed
+            found_index = -1
+            for i, delivery in enumerate(self.pending_deliveries_dummy):
+                if delivery["id_livraison"] == delivery_id_to_complete:
+                    found_index = i
+                    break
+            
+            if found_index != -1:
+                delivery = self.pending_deliveries_dummy.pop(found_index)
+                delivery["status"] = "completed"
+                delivery["date_livree"] = QDate.fromString(date_livree_str, 'yyyy-MM-dd')
+                # Simulate "on time" status for completed deliveries moved from pending
+                # For simplicity, assume it's on time if date_livree <= date_prevue
+                delivery["on_time"] = (delivery["date_livree"] <= delivery["date_prevue"])
+                
+                # Add fictitious values for delivery_time_seconds and distance_km if absent
+                if "delivery_time_seconds" not in delivery or delivery["delivery_time_seconds"] is None:
+                    delivery["delivery_time_seconds"] = random.randint(1000, 5000) # Fictitious default value
+                if "distance_km" not in delivery or delivery["distance_km"] is None:
+                    delivery["distance_km"] = round(random.uniform(3.0, 20.0), 1) # Fictitious default value
+
+                self.completed_deliveries_dummy.append(delivery)
+                print(f"Dummy DB: Livraison {delivery_id_to_complete} marquée comme terminée et déplacée.")
+            return
+        # Simuler UPDATE pour DriverLocations
+        if "DriverLocations" in query and "UPDATE" in query:
+            driver_id = params[2]
+            lat = float(params[0])
+            lon = float(params[1])
+            self.driver_locations_dummy[driver_id] = (lat, lon)
+            print(f"Dummy DB: Localisation du conducteur {driver_id} mise à jour en mémoire à ({lat}, {lon}).")
+            return
+        pass
+
+    def fetch_one(self, query, params=None):
+        print(f"Dummy DB: Récupération d'un élément (simulée): {query} avec les paramètres {params}")
+        if "SELECT current_latitude" in query and "DriverLocations" in query:
+            driver_id = params[0]
+            return self.driver_locations_dummy.get(driver_id, (4.05, 9.77)) # Default if not found
+        if "SELECT idconducteur" in query and "Conducteur" in query:
+            # Simulate searching for driver for login
+            email = params[0]
+            driver_data = self.drivers_info_dummy.get(email)
+            if driver_data:
+                # Convert dict to tuple in expected order for consistency with real DB fetch
+                return tuple(driver_data[key] for key in ["idconducteur", "nom", "prenom", "telephone", "email"])
+        return None # Return None if no match or other query
+
+    def fetch_all(self, query, params=None):
+        print(f"Dummy DB: Récupération de tous les éléments (simulée): {query} avec les paramètres {params}")
+        driver_id = params[0] if params else None # Assume driver_id is the first param for filtering
+
+        if "status = 'pending'" in query and "LivraisonConducteurColis" in query:
+            filtered_data = [d for d in self.pending_deliveries_dummy if driver_id is None or d.get("idconducteur", "") == driver_id]
+            # Return list of dictionaries, not tuples, for easier access by key
+            return filtered_data
+        elif "status = 'completed'" in query and "LivraisonConducteurColis" in query:
+            filtered_data = [d for d in self.completed_deliveries_dummy if driver_id is None or d.get("idconducteur", "") == driver_id]
+            # Return list of dictionaries
+            return filtered_data
+        return [] # Return an empty list for other queries
+
+    def close(self):
+        print("Dummy DB: Fermé (simulé).")
+
+# --- Définition de la palette de couleurs moderne ---
+COLOR_PRIMARY = "#4C51BF"  # Indigo profond
+COLOR_SECONDARY = "#667EEA" # Bleu-violet doux
+COLOR_BACKGROUND_LIGHT = "#F7FAFC" # Blanc cassé / Gris très clair
+COLOR_TEXT_DARK = "#2D3748" # Gris anthracite foncé
+COLOR_SUCCESS = "#38A169"  # Vert émeraude
+COLOR_WARNING = "#ED8936"  # Orange terreux (pour les livraisons en attente)
+COLOR_INFO = "#3182CE"    # Bleu ciel (pour l'icône du conducteur)
+COLOR_BORDER_LIGHT = "#E2E8F0" # Gris clair pour les bordures
+COLOR_HOVER_LIGHT = "rgba(255, 255, 255, 0.2)" # Effet de survol léger pour la barre latérale
+COLOR_HOVER_DARK = "#4338ca" # Effet de survol plus foncé pour les boutons principaux
+COLOR_ERROR = "#E53E3E" # Rouge pour les actions destructives (ex: déconnexion)
+
+# Ajout des couleurs manquantes
+COLOR_PRIMARY_DARK = "#3840A0" # Un indigo plus foncé
+COLOR_PRIMARY_LIGHT = "#828AE6" # Un indigo plus clair
+COLOR_TEXT_SECONDARY = "#718096" # Gris moyen pour les textes secondaires
+
+# --- Informations du conducteur par défaut (utilisé pour la recherche après login) ---
+placeholder_driver_info = {
+    "idconducteur": "TR1234",
+    "nom": "Karlone",
+    "prenom": "Messie",
+    "telephone": "677111111",
+    "email": "messie.karlone@example.com"
+}
+
+class AnimatedButton(QPushButton):
+    """Bouton animé personnalisé avec effets de survol pour la navigation latérale."""
+    def __init__(self, text, icon="", parent=None):
+        super().__init__(text, parent)
+        self.original_text = text # Stocker le texte original
+        self.icon_text = icon
+        self.is_active = False
+        self.setMinimumHeight(50)
+        self.setFont(QFont("Segoe UI", 11, QFont.Weight.Medium))
+        self.set_expanded_state(True) # L'état initial est étendu
+
+    def set_active(self, active):
+        self.is_active = active
+        self.update_style()
+
+    def set_expanded_state(self, expanded):
+        # Ajuster le texte et l'alignement en fonction de l'état étendu de la barre latérale
+        if expanded:
+            self.setText(self.icon_text + " " + self.original_text)
+            self.setStyleSheet(self.styleSheet() + "text-align: left;")
+        else:
+            self.setText(self.icon_text) # Afficher uniquement l'icône
+            self.setStyleSheet(self.styleSheet() + "text-align: center;")
+        self.update_style() # Réappliquer le style pour que les changements prennent effet
+
+    def update_style(self):
+        if self.is_active:
+            self.setStyleSheet(f"""
+                QPushButton {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_SECONDARY});
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-weight: 600;
+                    margin: 2px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                }}
+                QPushButton:hover {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_HOVER_DARK});
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+                }}
+            """)
+        else:
+            self.setStyleSheet(f"""
+                QPushButton {{
+                    background: {COLOR_BACKGROUND_LIGHT};
+                    color: {COLOR_TEXT_DARK};
+                    border: 1px solid {COLOR_BORDER_LIGHT};
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-weight: 500;
+                    margin: 2px;
+                }}
+                QPushButton:hover {{
+                    background: {COLOR_HOVER_LIGHT};
+                    border: 1px solid {COLOR_PRIMARY};
+                    color: {COLOR_PRIMARY};
+                }}
+            """)
+        # Réappliquer l'alignement du texte en fonction de l'état étendu actuel
+        if self.text() == self.icon_text: # État réduit
+            self.setStyleSheet(self.styleSheet() + "text-align: center;")
+        else: # État étendu
+            self.setStyleSheet(self.styleSheet() + "text-align: left;")
+
+class StatsCard(QFrame):
+    """Widget de carte de statistiques personnalisé pour le tableau de bord et les statistiques."""
+    def __init__(self, title, value, icon, color):
+        super().__init__()
+        self.setFrameStyle(QFrame.Shape.Box)
+        self.setMinimumHeight(120)
+        self.setMaximumHeight(120)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(5)
+
+        header_layout = QHBoxLayout()
+        icon_label = QLabel(icon)
+        icon_label.setFont(QFont("Segoe UI", 24))
+        icon_label.setStyleSheet(f"color: {color};")
+
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Medium))
+        title_label.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+
+        header_layout.addWidget(icon_label)
+        header_layout.addStretch()
+        header_layout.addWidget(title_label)
+
+        self.value_label = QLabel(str(value))
+        self.value_label.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
+        self.value_label.setStyleSheet(f"color: {color};")
+        self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout.addLayout(header_layout)
+        layout.addWidget(self.value_label)
+        layout.addStretch()
+
+        self.setStyleSheet(f"""
+            QFrame {{
+                background: white;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 16px;
+                padding: 15px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }}
+            QFrame:hover {{
+                border: 1px solid {color};
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            }}
+        """)
+
+    def update_value(self, value):
+        self.value_label.setText(str(value))
+
+
+class SideBar(QFrame):
+    """Barre latérale personnalisée avec boutons de navigation et fonctionnalité de bascule."""
+    navigation_changed = pyqtSignal(int)
+    # Signal pour informer DriverApp du changement de largeur et d'état de la barre latérale
+    sidebar_state_changed = pyqtSignal(bool) # True pour étendu, False pour réduit
+    logout_requested = pyqtSignal() # Nouveau signal pour la déconnexion
+
+    def __init__(self):
+        super().__init__()
+        self.expanded_width = 280
+        self.collapsed_width = 0 # Largeur quand complètement réduite
+        self.is_expanded = True
+
+        self.setFrameStyle(QFrame.Shape.Box)
+        self.setFixedWidth(self.expanded_width) # Largeur initiale
+
+        self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+
+        self.header = QLabel("🚚 SCA Delivery Dashboard")
+        self.header.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        self.header.setStyleSheet(f"color: {COLOR_TEXT_DARK}; padding: 10px 0;")
+        self.layout.addWidget(self.header)
+
+        self.nav_buttons = []
+        nav_items = [
+            ("Tableau de bord", "📋"),
+            ("Livraisons en cours", "🕒"),
+            ("Livraisons terminées", "✅"),
+            ("Carte interactive", "🗺️"),
+            ("Statistiques", "📊"),
+            ("Paramètres", "⚙️")
+        ]
+
+        for i, (text, icon) in enumerate(nav_items):
+            btn = AnimatedButton(text, icon)
+            btn.clicked.connect(lambda checked, idx=i: self.set_active_nav(idx))
+            self.nav_buttons.append(btn)
+            self.layout.addWidget(btn)
+
+        self.layout.addStretch()
+
+        self.user_frame = QFrame()
+        self.user_frame.setStyleSheet(f"""
+            QFrame {{
+                background: {COLOR_PRIMARY};
+                border-radius: 12px;
+                padding: 15px;
+                color: white;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }}
+        """)
+        self.user_layout = QVBoxLayout(self.user_frame)
+        self.user_name = QLabel("👤 Mon Profil")
+        self.user_name.setObjectName("user_name_label")
+        self.user_name.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.user_role = QLabel("Chauffeur-livreur")
+        self.user_role.setFont(QFont("Segoe UI", 10))
+        self.user_role.setStyleSheet("color: rgba(255, 255, 255, 0.8);")
+        self.user_layout.addWidget(self.user_name)
+        self.user_layout.addWidget(self.user_role)
+        self.layout.addWidget(self.user_frame)
+
+        # Bouton de déconnexion dans la barre latérale
+        self.logout_btn = AnimatedButton("Déconnexion", "➡️")
+        self.logout_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {COLOR_ERROR};
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 20px;
+                font-weight: 600;
+                margin: 2px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }}
+            QPushButton:hover {{
+                background: #C0392B; /* Darker red */
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            }}
+        """)
+        self.logout_btn.clicked.connect(self.logout_requested.emit)
+        self.layout.addWidget(self.logout_btn)
+
+
+        self.set_active_nav(0) # Définir le tableau de bord comme actif par défaut
+
+        self.setStyleSheet(f"""
+            QFrame {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                    stop:0 {COLOR_BACKGROUND_LIGHT}, stop:1 #edf2f7);
+                border-right: 1px solid {COLOR_BORDER_LIGHT};
+            }}
+        """)
+        self.set_expanded_state(True) # S'assurer que l'état initial est étendu
+
+    def set_active_nav(self, index):
+        for i, btn in enumerate(self.nav_buttons):
+            btn.set_active(i == index)
+        self.current_index = index
+        self.navigation_changed.emit(index)
+
+    def toggle_sidebar(self):
+        self.is_expanded = not self.is_expanded
+        self.set_expanded_state(self.is_expanded)
+        # Émettre l'état, pas seulement la largeur, pour un contrôle plus explicite dans DriverApp
+        self.sidebar_state_changed.emit(self.is_expanded)
+
+    def set_expanded_state(self, expanded):
+        self.is_expanded = expanded
+        target_width = self.expanded_width if expanded else self.collapsed_width
+
+        # Animer le changement de largeur
+        self.animation = QPropertyAnimation(self, b"minimumWidth")
+        self.animation.setDuration(200) # millisecondes
+        self.animation.setStartValue(self.width())
+        self.animation.setEndValue(target_width)
+        self.animation.start()
+
+        self.animation = QPropertyAnimation(self, b"maximumWidth")
+        self.animation.setDuration(200) # millisecondes
+        self.animation.setStartValue(self.width())
+        self.animation.setEndValue(target_width)
+        self.animation.start()
+
+        # Ajuster la visibilité et le texte des éléments
+        if expanded:
+            self.header.show()
+            self.user_frame.show()
+            self.logout_btn.show() # S'assurer que le bouton de déconnexion est visible
+            # Ajuster les marges pour l'état étendu
+            self.layout.setContentsMargins(20, 20, 20, 20)
+            for btn in self.nav_buttons:
+                btn.set_expanded_state(True)
+            self.logout_btn.set_expanded_state(True) # Mettre à jour l'état du bouton de déconnexion
+        else:
+            self.header.hide()
+            self.user_frame.hide()
+            self.logout_btn.hide() # Cacher le bouton de déconnexion
+            # Ajuster les marges pour l'état réduit (0 si la largeur est de 0)
+            self.layout.setContentsMargins(0, 0, 0, 0) # Définir à 0 lorsque réduit
+            for btn in self.nav_buttons:
+                btn.set_expanded_state(False)
+            self.logout_btn.set_expanded_state(False) # Mettre à jour l'état du bouton de déconnexion
+
+        # Émettre le changement d'état après le début de l'animation (ou immédiatement)
+        self.sidebar_state_changed.emit(self.is_expanded)
+
+
+class DriverApp(QWidget):
+    """Fenêtre principale de l'application pour le tableau de bord du conducteur."""
+    def __init__(self, driver_info, db_manager):
+        super().__init__()
+        self.driver_info = driver_info
+        self.db_manager = db_manager # C'est maintenant le Dummy DBManager
+        self.setWindowTitle(f"DeliveryPro - {driver_info['prenom']} {driver_info['nom']}")
+        
+        # Set minimum size for the widget itself, QMainWindow will handle maximization
+        self.setMinimumSize(800, 600) 
+
+        self.pending_deliveries_data = []
+        self.completed_deliveries_data = []
+        self.driver_current_location = None
+
+        self.init_ui()
+        self.apply_modern_styles()
+
+        # Indicateur de chargement global pour le tableau de bord
+        self.loading_label = QLabel("Chargement des données...", self)
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_label.setFont(QFont("Segoe UI", 14, QFont.Weight.DemiBold))
+        self.loading_label.setStyleSheet(f"color: {COLOR_PRIMARY}; padding: 20px;")
+        self.loading_label.hide()
+
+        self.load_all_deliveries_from_db()
+
+        self.location_timer = QTimer(self)
+        self.location_timer.setInterval(60000) # Mettre à jour la localisation toutes les 60 secondes
+        self.location_timer.timeout.connect(self.update_driver_location_on_map)
+        self.location_timer.start()
+
+    def init_ui(self):
+        self.main_layout = QHBoxLayout(self)
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.sidebar = SideBar()
+        self.sidebar.navigation_changed.connect(self.change_view)
+        self.sidebar.sidebar_state_changed.connect(self.update_top_bar_elements)
+        self.sidebar.logout_requested.connect(self.logout) # Connecter le signal de déconnexion
+        self.main_layout.addWidget(self.sidebar)
+
+        user_name_label = self.sidebar.findChild(QLabel, "user_name_label")
+        if user_name_label:
+            user_name_label.setText(f"👤 {self.driver_info['prenom']} {self.driver_info['nom']}")
+
+        # Zone de contenu avec bouton de bascule
+        self.content_area_layout = QVBoxLayout()
+        self.content_area_layout.setContentsMargins(0,0,0,0)
+        self.content_area_layout.setSpacing(0)
+
+        # Barre supérieure avec bouton de bascule (pas d'étiquette à côté)
+        self.top_bar = QFrame()
+        self.top_bar.setFixedHeight(60)
+        self.top_bar.setStyleSheet(f"""
+            QFrame {{
+                background: white;
+                border-bottom: 1px solid {COLOR_BORDER_LIGHT};
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }}
+        """)
+        top_bar_layout = QHBoxLayout(self.top_bar)
+        top_bar_layout.setContentsMargins(15, 0, 15, 0)
+        top_bar_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        self.toggle_button = QPushButton("☰") # Icône hamburger
+        self.toggle_button.setFixedSize(40, 40)
+        self.toggle_button.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        self.toggle_button.setStyleSheet(f"""
+            QPushButton {{
+                background: {COLOR_PRIMARY};
+                color: white;
+                border: none;
+                border-radius: 8px;
+            }}
+            QPushButton:hover {{
+                background: {COLOR_HOVER_DARK};
+            }}
+        """)
+        self.toggle_button.clicked.connect(self.sidebar.toggle_sidebar)
+        top_bar_layout.addWidget(self.toggle_button)
+
+        top_bar_layout.addStretch() # Pousser le bouton vers la gauche
+
+        self.content_area_layout.addWidget(self.top_bar)
+
+
+        self.content_stack = QStackedWidget()
+        self.content_area_layout.addWidget(self.content_stack)
+
+        self.create_dashboard_view()
+        self.create_pending_view()
+        self.create_completed_view()
+        self.create_map_view()
+        self.create_stats_view()
+        self.create_settings_view()
+
+        self.main_layout.addLayout(self.content_area_layout, 1)
+
+    def update_top_bar_elements(self, is_expanded):
+        # Ce slot est toujours nécessaire pour la connexion du signal, mais son contenu est maintenant vide
+        # car l'étiquette de bascule a été supprimée et aucun autre élément n'est mis à jour dynamiquement ici.
+        pass
+
+
+    def create_dashboard_view(self):
+        dashboard = QWidget()
+        layout = QVBoxLayout(dashboard)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        welcome_label = QLabel(f"Bonjour {self.driver_info['prenom']} ! 👋")
+        welcome_label.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+        welcome_label.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-bottom: 10px;")
+
+        subtitle = QLabel("Voici un aperçu de vos livraisons aujourd'hui")
+        subtitle.setFont(QFont("Segoe UI", 14))
+        subtitle.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-bottom: 20px;")
+
+        layout.addWidget(welcome_label)
+        layout.addWidget(subtitle)
+
+        # Statistiques principales (existantes)
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(20)
+
+        self.total_card = StatsCard("Total", 0, "📦", COLOR_INFO)
+        self.pending_card = StatsCard("En cours", 0, "🕒", COLOR_WARNING)
+        self.completed_card = StatsCard("Terminées", 0, "✅", COLOR_SUCCESS)
+
+        stats_layout.addWidget(self.total_card)
+        stats_layout.addWidget(self.pending_card)
+        stats_layout.addWidget(self.completed_card)
+
+        layout.addLayout(stats_layout)
+
+        # NOUVELLES Statistiques détaillées pour "Aujourd'hui" sur le tableau de bord
+        today_stats_title = QLabel("Performances du jour")
+        today_stats_title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        today_stats_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-top: 20px; margin-bottom: 10px;")
+        layout.addWidget(today_stats_title)
+
+        today_stats_grid = QGridLayout()
+        today_stats_grid.setSpacing(15)
+
+        self.dashboard_avg_delivery_time_card = self.create_stat_card("Temps moyen", "0 min", "⏱️")
+        today_stats_grid.addWidget(self.dashboard_avg_delivery_time_card, 0, 0)
+
+        self.dashboard_total_distance_card = self.create_stat_card("Distance totale", "0 km", "🛣️")
+        today_stats_grid.addWidget(self.dashboard_total_distance_card, 0, 1)
+
+        self.dashboard_fuel_consumption_card = self.create_stat_card("Carburant estimé", "0 L", "⛽")
+        today_stats_grid.addWidget(self.dashboard_fuel_consumption_card, 1, 0)
+
+        self.dashboard_on_time_rate_card = self.create_stat_card("Taux à temps", "0%", "🎯")
+        today_stats_grid.addWidget(self.dashboard_on_time_rate_card, 1, 1)
+
+        layout.addLayout(today_stats_grid)
+
+
+        actions_frame = QFrame()
+        actions_frame.setStyleSheet(f"""
+            QFrame {{
+                background: white;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 16px;
+                padding: 20px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }}
+        """)
+        actions_layout = QVBoxLayout(actions_frame)
+
+        actions_title = QLabel("🚀 Actions rapides")
+        actions_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        actions_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-bottom: 15px;")
+
+        actions_buttons_layout = QHBoxLayout()
+
+        view_pending_btn = QPushButton("📋 Voir les livraisons en cours")
+        view_map_btn = QPushButton("🗺️ Ouvrir la carte")
+
+        for btn in [view_pending_btn, view_map_btn]:
+            btn.setMinimumHeight(45)
+            btn.setFont(QFont("Segoe UI", 11, QFont.Weight.Medium))
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_SECONDARY});
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-weight: 600;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                }}
+                QPushButton:hover {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_HOVER_DARK});
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+                }}
+            """)
+            actions_buttons_layout.addWidget(btn)
+
+        view_pending_btn.clicked.connect(lambda: self.sidebar.set_active_nav(1))
+        view_map_btn.clicked.connect(lambda: self.sidebar.set_active_nav(3))
+
+        actions_layout.addWidget(actions_title)
+        actions_layout.addLayout(actions_buttons_layout)
+
+        layout.addWidget(actions_frame)
+        layout.addStretch()
+
+        self.content_stack.addWidget(dashboard)
+
+    def create_pending_view(self):
+        pending_widget = QWidget()
+        layout = QVBoxLayout(pending_widget)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        header_layout = QHBoxLayout()
+        title = QLabel("🕒 Livraisons en cours")
+        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+
+        search_frame = QFrame()
+        search_frame.setStyleSheet(f"""
+            QFrame {{
+                background: white;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 25px;
+                padding: 5px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }}
+        """)
+        search_layout = QHBoxLayout(search_frame)
+        search_layout.setContentsMargins(15, 5, 15, 5)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("🔍 Rechercher une livraison...")
+        self.search_input.setFont(QFont("Segoe UI", 12))
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: transparent;
+                border: none;
+                font-size: 14px;
+                padding: 5px;
+                color: {COLOR_TEXT_DARK};
+            }}
+        """)
+
+        search_btn = QPushButton("Rechercher")
+        search_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {COLOR_PRIMARY};
+                color: white;
+                border: none;
+                border-radius: 15px;
+                padding: 8px 15px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background: {COLOR_HOVER_DARK};
+            }}
+        """)
+        self.search_input.textChanged.connect(self.search_deliveries)
+        search_btn.clicked.connect(self.search_deliveries)
+
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(search_btn)
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(search_frame)
+
+        layout.addLayout(header_layout)
+
+        self.pending_table = QTableWidget()
+        self.setup_modern_table(self.pending_table, "pending")
+        layout.addWidget(self.pending_table)
+
+        # Message pour les livraisons en cours vides
+        self.no_pending_label = QLabel("🎉 Aucune livraison en cours pour le moment. Profitez de votre pause !")
+        self.no_pending_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.no_pending_label.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold))
+        self.no_pending_label.setStyleSheet(f"color: {COLOR_SUCCESS}; padding: 50px;")
+        self.no_pending_label.hide()
+        layout.addWidget(self.no_pending_label)
+        layout.addStretch()
+
+        self.content_stack.addWidget(pending_widget)
+
+    def create_completed_view(self):
+        completed_widget = QWidget()
+        layout = QVBoxLayout(completed_widget)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        title = QLabel("✅ Livraisons terminées")
+        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+        layout.addWidget(title)
+
+        self.done_table = QTableWidget()
+        self.setup_modern_table(self.done_table, "done")
+        layout.addWidget(self.done_table)
+
+        # Message pour les livraisons terminées vides
+        self.no_completed_label = QLabel("😔 Aucune livraison terminée n'a été enregistrée.")
+        self.no_completed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.no_completed_label.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold))
+        self.no_completed_label.setStyleSheet(f"color: {COLOR_WARNING}; padding: 50px;")
+        self.no_completed_label.hide()
+        layout.addWidget(self.no_completed_label)
+        layout.addStretch()
+        self.content_stack.addWidget(completed_widget)
+
+    def create_map_view(self):
+        map_widget = QWidget()
+        layout = QVBoxLayout(map_widget)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        title = QLabel("🗺️ Carte interactive")
+        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+        layout.addWidget(title)
+
+        self.map_view = QWebEngineView()
+        self.map_view.setStyleSheet(f"""
+            QWebEngineView {{
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }}
+        """)
+        layout.addWidget(self.map_view)
+
+        # Indicateur de chargement pour la carte
+        self.map_loading_label = QLabel("Chargement de la carte...", self)
+        self.map_loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.map_loading_label.setFont(QFont("Segoe UI", 14, QFont.Weight.DemiBold))
+        self.map_loading_label.setStyleSheet(f"color: {COLOR_PRIMARY}; padding: 20px;")
+        self.map_loading_label.hide()
+        layout.addWidget(self.map_loading_label)
+        layout.addStretch()
+
+        self.content_stack.addWidget(map_widget)
+
+    def create_stats_view(self):
+        stats_widget = QWidget()
+        # Use a QScrollArea to ensure the content is scrollable if it exceeds window height
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_area.setWidget(scroll_content)
+
+        layout = QVBoxLayout(scroll_content)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        title = QLabel("📊 Statistiques détaillées")
+        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+        layout.addWidget(title)
+
+        # Time Period Selector
+        period_layout = QHBoxLayout()
+        period_label = QLabel("Période:")
+        period_label.setFont(QFont("Segoe UI", 12))
+        period_label.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+        period_layout.addWidget(period_label)
+
+        self.period_selector = QComboBox()
+        self.period_selector.addItems(["Aujourd'hui", "Cette semaine", "Ce mois", "Toutes les périodes"])
+        self.period_selector.setCurrentText("Ce mois") # Sélection par défaut
+        self.period_selector.setFont(QFont("Segoe UI", 11))
+        self.period_selector.setStyleSheet(f"""
+            QComboBox {{
+            border: 1px solid {COLOR_BORDER_LIGHT};
+            border-radius: 8px;
+            padding: 5px 10px;
+            background: white;
+            color: {COLOR_TEXT_DARK};
+            }}
+            QComboBox::drop-down {{
+            border: 0px;
+            }}
+            QComboBox::down-arrow {{
+            width: 0;
+            height: 0;
+            }}
+            QComboBox QAbstractItemView {{ /* Style pour le menu déroulant */
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 8px;
+                background-color: white;
+                selection-background-color: {COLOR_PRIMARY_LIGHT};
+                color: {COLOR_TEXT_DARK};
+            }}
+        """)
+        self.period_selector.currentIndexChanged.connect(self.update_stats_display)
+        period_layout.addWidget(self.period_selector)
+        period_layout.addStretch()
+        layout.addLayout(period_layout)
+
+        # Main stats grid
+        stats_grid = QGridLayout()
+        stats_grid.setSpacing(15)
+
+        # Total Deliveries Card
+        self.total_deliveries_card = self.create_stat_card("Total des livraisons", "0", "🚚")
+        stats_grid.addWidget(self.total_deliveries_card, 0, 0)
+
+        # Completed Deliveries Card
+        self.completed_deliveries_card = self.create_stat_card("Livraisons terminées", "0", "✅")
+        stats_grid.addWidget(self.completed_deliveries_card, 0, 1)
+
+        # Pending Deliveries Card
+        self.pending_deliveries_card = self.create_stat_card("Livraisons en attente", "0", "⏳")
+        stats_grid.addWidget(self.pending_deliveries_card, 1, 0)
+
+        # Average Delivery Time Card
+        self.avg_delivery_time_card = self.create_stat_card("Temps moyen", "0 min", "⏱️")
+        stats_grid.addWidget(self.avg_delivery_time_card, 1, 1)
+
+        # NEW: Total Distance Covered Card
+        self.total_distance_card = self.create_stat_card("Distance totale parcourue", "0 km", "🛣️")
+        stats_grid.addWidget(self.total_distance_card, 2, 0)
+
+        # NEW: Fuel Consumption Card
+        self.fuel_consumption_card = self.create_stat_card("Consommation de carburant", "0 L", "⛽")
+        stats_grid.addWidget(self.fuel_consumption_card, 2, 1)
+
+        # NEW: On-time Delivery Rate Card
+        self.on_time_rate_card = self.create_stat_card("Taux de livraison à temps", "0%", "🎯")
+        stats_grid.addWidget(self.on_time_rate_card, 3, 0)
+
+        # Total Revenue Card (example) - move to new row
+        self.total_revenue_card = self.create_stat_card("Revenu total", "0 XAF", "💰")
+        stats_grid.addWidget(self.total_revenue_card, 3, 1) # Changed row
+
+        # Average Revenue per Delivery Card (example) - move to new row
+        self.avg_revenue_card = self.create_stat_card("Revenu moyen/livraison", "0 XAF", "💵")
+        stats_grid.addWidget(self.avg_revenue_card, 4, 0) # Changed row
+
+        layout.addLayout(stats_grid)
+
+        # Charts Section
+        chart_title = QLabel("Graphiques de performance")
+        chart_title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        chart_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-top: 20px;")
+        layout.addWidget(chart_title)
+
+        # Example: Placeholder for a chart (e.g., using Matplotlib or a web-based chart)
+        self.chart_view = QWebEngineView() # Or a QChartView if using QtCharts
+        self.chart_view.setMinimumHeight(400)
+        self.chart_view.setStyleSheet(f"""
+            QWebEngineView {{
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                background-color: white;
+            }}
+        """)
+        layout.addWidget(self.chart_view)
+
+        layout.addStretch() # Push content to the top
+
+        # Add the scroll area to the main stats_widget layout
+        main_stats_layout = QVBoxLayout(stats_widget)
+        main_stats_layout.addWidget(scroll_area)
+        main_stats_layout.setContentsMargins(0,0,0,0) # Remove extra margins from main layout
+
+        self.content_stack.addWidget(stats_widget)
+
+    # Example of a helper method for stat cards (you'd define this elsewhere in your class)
+    def create_stat_card(self, title_text, value_text, icon_text):
+        card_widget = QWidget()
+        card_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: white;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 12px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+                padding: 20px;
+            }}
+        """)
+        card_layout = QVBoxLayout(card_widget)
+        card_layout.setContentsMargins(15, 15, 15, 15)
+        card_layout.setSpacing(10)
+
+        icon_label = QLabel(icon_text)
+        icon_label.setFont(QFont("Segoe UI", 28))
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        card_layout.addWidget(icon_label)
+
+        title_label = QLabel(title_text)
+        title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.DemiBold))
+        title_label.setStyleSheet(f"color: {COLOR_TEXT_SECONDARY};")
+        card_layout.addWidget(title_label)
+
+        value_label = QLabel(value_text)
+        value_label.setObjectName("value_label") # Add object name for easy lookup
+        # Slightly reduce font size for better fit in smaller cards
+        value_label.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        value_label.setStyleSheet(f"color: {COLOR_PRIMARY_DARK};")
+        card_layout.addWidget(value_label)
+
+        card_layout.addStretch()
+        return card_widget
+
+    def update_stats_display(self):
+        # This method would be called when the period_selector changes
+        selected_period = self.period_selector.currentText()
+        print(f"Updating stats for period: {selected_period}")
+        
+        today = QDate.currentDate()
+        filtered_completed_deliveries = []
+
+        # self.completed_deliveries_data already contains dictionaries from DBManager
+        completed_data_dicts = self.completed_deliveries_data
+
+
+        if selected_period == "Aujourd'hui":
+            filtered_completed_deliveries = [
+                d for d in completed_data_dicts
+                if d["date_livree"] == today
+            ]
+        elif selected_period == "Cette semaine":
+            current_day_of_week = today.dayOfWeek()
+            start_of_week = today.addDays(1 - current_day_of_week) # Adjust to Monday
+            end_of_week = start_of_week.addDays(6) # End on Sunday
+
+            filtered_completed_deliveries = [
+                d for d in completed_data_dicts
+                if d["date_livree"] and d["date_livree"] >= start_of_week and d["date_livree"] <= end_of_week
+            ]
+        elif selected_period == "Ce mois":
+            filtered_completed_deliveries = [
+                d for d in completed_data_dicts
+                if d["date_livree"] and d["date_livree"].year() == today.year() and d["date_livree"].month() == today.month()
+            ]
+        elif selected_period == "Toutes les périodes":
+            filtered_completed_deliveries = completed_data_dicts
+        
+        # Calculate statistics
+        # pending_count is always global, not filtered by date
+        pending_count = len(self.pending_deliveries_data) 
+        completed_count = len(filtered_completed_deliveries)
+        total_count = pending_count + completed_count
+
+        total_delivery_time_seconds = sum(d.get("delivery_time_seconds", 0) for d in filtered_completed_deliveries)
+        avg_time_minutes = (total_delivery_time_seconds / completed_count / 60) if completed_count > 0 else 0
+
+        total_distance_km = sum(d.get("distance_km", 0) for d in filtered_completed_deliveries)
+        # Assuming 1 liter per 10 km for dummy calculation
+        fuel_consumption = (total_distance_km / 10) if total_distance_km > 0 else 0
+
+        on_time_deliveries_count = sum(1 for d in filtered_completed_deliveries if d.get("on_time", False))
+        on_time_rate = (on_time_deliveries_count / completed_count * 100) if completed_count > 0 else 0
+
+        # Dummy revenue calculation (e.g., 5000 XAF per delivery)
+        total_revenue = completed_count * 5000
+        avg_revenue = (total_revenue / completed_count) if completed_count > 0 else 0
+
+        # Update the labels of the StatsCards
+        self.total_deliveries_card.findChild(QLabel, "value_label").setText(str(total_count))
+        self.completed_deliveries_card.findChild(QLabel, "value_label").setText(str(completed_count))
+        self.pending_deliveries_card.findChild(QLabel, "value_label").setText(str(pending_count))
+        self.avg_delivery_time_card.findChild(QLabel, "value_label").setText(f"{avg_time_minutes:.0f} min")
+        self.total_distance_card.findChild(QLabel, "value_label").setText(f"{total_distance_km:.1f} km")
+        self.fuel_consumption_card.findChild(QLabel, "value_label").setText(f"{fuel_consumption:.1f} L")
+        self.on_time_rate_card.findChild(QLabel, "value_label").setText(f"{on_time_rate:.1f}%")
+        self.total_revenue_card.findChild(QLabel, "value_label").setText(f"{total_revenue:,} XAF".replace(",", " "))
+        self.avg_revenue_card.findChild(QLabel, "value_label").setText(f"{avg_revenue:.0f} XAF")
+
+        # Generate HTML for a simple bar chart
+        chart_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100%; margin: 0; background-color: white; }}
+                .chart-container {{ width: 90%; max-width: 600px; padding: 20px; border-radius: 8px; background-color: #f9f9f9; }}
+                .bar-chart {{ display: flex; flex-direction: row; height: 250px; justify-content: space-around; align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid #ccc; }}
+                .bar-wrapper {{ display: flex; flex-direction: column; align-items: center; height: 100%; width: 45%; }}
+                .bar {{ background-color: {COLOR_PRIMARY}; width: 80%; border-radius: 4px 4px 0 0; transition: height 0.5s ease-out; position: relative; }}
+                .bar.completed {{ background-color: {COLOR_SUCCESS}; }}
+                .bar.pending {{ background-color: {COLOR_WARNING}; }}
+                .bar-value {{ position: absolute; top: -25px; width: 100%; text-align: center; font-size: 12px; color: {COLOR_TEXT_DARK}; font-weight: bold; }}
+                .bar-label {{ font-size: 14px; color: {COLOR_TEXT_DARK}; margin-top: 10px; text-align: center; }}
+                .chart-title {{ font-size: 18px; font-weight: bold; color: {COLOR_TEXT_DARK}; text-align: center; margin-bottom: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="chart-container">
+                <div class="chart-title">Répartition des livraisons ({selected_period})</div>
+                <div class="bar-chart">
+                    <div class="bar-wrapper">
+                        <div class="bar completed" style="height: {min(completed_count * 10, 200) + 50}px;"><span class="bar-value">{completed_count}</span></div>
+                        <div class="bar-label">Terminées</div>
+                    </div>
+                    <div class="bar-wrapper">
+                        <div class="bar pending" style="height: {min(pending_count * 10, 200) + 50}px;"><span class="bar-value">{pending_count}</span></div>
+                        <div class="bar-label">En attente</div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        self.chart_view.setHtml(chart_html)
+
+
+    def create_settings_view(self):
+        settings_widget = QWidget()
+        layout = QVBoxLayout(settings_widget)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        title = QLabel("⚙️ Paramètres")
+        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
+        layout.addWidget(title)
+
+        # Driver Info Section
+        driver_info_frame = QFrame()
+        driver_info_frame.setStyleSheet(f"""
+            QFrame {{
+                background: white;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            }}
+        """)
+        driver_info_layout = QVBoxLayout(driver_info_frame)
+        driver_info_layout.setSpacing(10)
+
+        info_title = QLabel("Informations du conducteur")
+        info_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        info_title.setStyleSheet(f"color: {COLOR_PRIMARY}; margin-bottom: 10px;")
+        driver_info_layout.addWidget(info_title)
+
+        # Display driver info
+        driver_info_layout.addWidget(QLabel(f"<b>ID:</b> {self.driver_info.get('idconducteur', 'N/A')}"))
+        driver_info_layout.addWidget(QLabel(f"<b>Nom:</b> {self.driver_info.get('nom', 'N/A')}"))
+        driver_info_layout.addWidget(QLabel(f"<b>Prénom:</b> {self.driver_info.get('prenom', 'N/A')}"))
+        driver_info_layout.addWidget(QLabel(f"<b>Téléphone:</b> {self.driver_info.get('telephone', 'N/A')}"))
+        driver_info_layout.addWidget(QLabel(f"<b>Email:</b> {self.driver_info.get('email', 'N/A')}"))
+
+        layout.addWidget(driver_info_frame)
+        layout.addStretch() # Pousser le contenu vers le haut
+
+        self.content_stack.addWidget(settings_widget)
+
+    def report_issue(self):
+        QMessageBox.information(self, 'Signaler un problème',
+                                "Votre problème a été signalé au service client. Nous vous contacterons bientôt.")
+
+
+    def setup_modern_table(self, table_widget, table_type):
+        """Configure le style et les propriétés des QTableWidget."""
+        # Adjust column count based on table type
+        if table_type == "pending":
+            headers = ["ID Livraison", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Action"]
+            table_widget.setColumnCount(len(headers))
+        else: # table_type == "done"
+            headers = ["ID Livraison", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Date Livrée", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Temps (s)", "Distance (km)", "À l'heure"]
+            table_widget.setColumnCount(len(headers))
+
+        table_widget.setHorizontalHeaderLabels(headers)
+        table_widget.horizontalHeader().setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        table_widget.horizontalHeader().setStyleSheet(f"""
+            QHeaderView::section {{
+                background-color: {COLOR_PRIMARY};
+                color: white;
+                padding: 8px;
+                border: 1px solid {COLOR_PRIMARY_DARK};
+                font-weight: bold;
+            }}
+        """)
+        table_widget.verticalHeader().setVisible(False)
+        table_widget.setAlternatingRowColors(True)
+        table_widget.setStyleSheet(f"""
+            QTableWidget {{
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 12px;
+                background-color: white;
+                gridline-color: {COLOR_BORDER_LIGHT};
+                font-size: 14px;
+                selection-background-color: {COLOR_PRIMARY_LIGHT};
+                selection-color: {COLOR_TEXT_DARK};
+            }}
+            QTableWidget::item {{
+                padding: 8px;
+            }}
+            QTableWidget::item:selected {{
+                background-color: {COLOR_PRIMARY_LIGHT};
+                color: {COLOR_TEXT_DARK};
+            }}
+            QTableCornerButton::section {{
+                background-color: {COLOR_PRIMARY};
+                border: 1px solid {COLOR_PRIMARY_DARK};
+            }}
+        """)
+        table_widget.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table_widget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table_widget.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_widget.horizontalHeader().setStretchLastSection(True)
+
+    def load_all_deliveries_from_db(self):
+        self.loading_label.show()
+        QApplication.processEvents() # Process events to show loading label immediately
+
+        try:
+            driver_id = self.driver_info["idconducteur"]
+            print(f"Fetching deliveries for driver ID: {driver_id}") # Debug print
+            self.pending_deliveries_data = self.db_manager.fetch_all(
+                "SELECT * FROM LivraisonConducteurColis WHERE status = 'pending' AND idconducteur = %s;",
+                (driver_id,)
+            )
+            self.completed_deliveries_data = self.db_manager.fetch_all(
+                "SELECT * FROM LivraisonConducteurColis WHERE status = 'completed' AND idconducteur = %s;",
+                (driver_id,)
+            )
+            print(f"Pending deliveries fetched: {len(self.pending_deliveries_data)}") # Debug print
+            print(f"Completed deliveries fetched: {len(self.completed_deliveries_data)}") # Debug print
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur de données", f"Échec du chargement des livraisons : {e}")
+            self.pending_deliveries_data = []
+            self.completed_deliveries_data = []
+        
+        self.update_tables()
+        self.update_dashboard_stats()
+        self.update_stats_display() # Initial update for stats view
+        self.update_driver_location_on_map() # Initial map load
+
+        self.loading_label.hide()
+
+    def update_tables(self):
+        # Update Pending Deliveries Table
+        self.pending_table.setRowCount(len(self.pending_deliveries_data))
+        if len(self.pending_deliveries_data) == 0:
+            self.pending_table.hide()
+            self.no_pending_label.show()
+        else:
+            self.pending_table.show()
+            self.no_pending_label.hide()
+            for row_idx, delivery in enumerate(self.pending_deliveries_data):
+                self.pending_table.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
+                self.pending_table.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
+                self.pending_table.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
+                self.pending_table.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
+                self.pending_table.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
+                self.pending_table.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
+                self.pending_table.setItem(row_idx, 6, QTableWidgetItem(delivery["poids"]))
+                self.pending_table.setItem(row_idx, 7, QTableWidgetItem(delivery["volume"]))
+                self.pending_table.setItem(row_idx, 8, QTableWidgetItem(delivery["type"]))
+                self.pending_table.setItem(row_idx, 9, QTableWidgetItem(delivery["instructions"]))
+                self.pending_table.setItem(row_idx, 10, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
+                self.pending_table.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
+                self.pending_table.setItem(row_idx, 12, QTableWidgetItem(delivery["status"]))
+                self.pending_table.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"]))
+
+                # Add "Action" button for pending deliveries
+                details_button = QPushButton("Détails")
+                details_button.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLOR_INFO};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 5px 10px;
+                        font-weight: 500;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #2868A8;
+                    }}
+                """)
+                # Connect the button to a handler, passing the entire delivery dictionary
+                details_button.clicked.connect(lambda checked, d=delivery: self.show_delivery_popup(d))
+                self.pending_table.setCellWidget(row_idx, 14, details_button) # Column 14 for action
+
+        # Update Completed Deliveries Table
+        self.done_table.setRowCount(len(self.completed_deliveries_data))
+        if len(self.completed_deliveries_data) == 0:
+            self.done_table.hide()
+            self.no_completed_label.show()
+        else:
+            self.done_table.show()
+            self.no_completed_label.hide()
+            for row_idx, delivery in enumerate(self.completed_deliveries_data):
+                # delivery is a dictionary, access by key
+                self.done_table.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
+                self.done_table.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
+                self.done_table.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
+                self.done_table.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
+                self.done_table.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
+                self.done_table.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
+                self.done_table.setItem(row_idx, 6, QTableWidgetItem(delivery["date_livree"].toString('yyyy-MM-dd') if delivery["date_livree"] else 'N/A'))
+                self.done_table.setItem(row_idx, 7, QTableWidgetItem(delivery["poids"]))
+                self.done_table.setItem(row_idx, 8, QTableWidgetItem(delivery["volume"]))
+                self.done_table.setItem(row_idx, 9, QTableWidgetItem(delivery["type"]))
+                self.done_table.setItem(row_idx, 10, QTableWidgetItem(delivery["instructions"]))
+                self.done_table.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
+                self.done_table.setItem(row_idx, 12, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
+                self.done_table.setItem(row_idx, 13, QTableWidgetItem(delivery["status"]))
+                self.done_table.setItem(row_idx, 14, QTableWidgetItem(delivery["telephone_destinataire"]))
+                self.done_table.setItem(row_idx, 15, QTableWidgetItem(f"{delivery.get('delivery_time_seconds', 0) / 60:.0f} min"))
+                self.done_table.setItem(row_idx, 16, QTableWidgetItem(f"{delivery.get('distance_km', 0):.1f} km"))
+                self.done_table.setItem(row_idx, 17, QTableWidgetItem("Oui" if delivery.get('on_time', False) else "Non"))
+
+
+    def update_dashboard_stats(self):
+        # Stats for overall (all periods)
+        total_deliveries = len(self.pending_deliveries_data) + len(self.completed_deliveries_data)
+        self.total_card.update_value(total_deliveries)
+        self.pending_card.update_value(len(self.pending_deliveries_data))
+        self.completed_card.update_value(len(self.completed_deliveries_data))
+
+        # Stats for "Today" on the dashboard
+        today = QDate.currentDate()
+        # self.completed_deliveries_data already contains dictionaries
+        completed_data_dicts = self.completed_deliveries_data
+
+        completed_today = [
+            d for d in completed_data_dicts
+            if d["date_livree"] == today
+        ]
+
+        completed_today_count = len(completed_today)
+        
+        total_delivery_time_seconds_today = sum(d.get("delivery_time_seconds", 0) for d in completed_today)
+        avg_time_minutes_today = (total_delivery_time_seconds_today / completed_today_count / 60) if completed_today_count > 0 else 0
+
+        total_distance_km_today = sum(d.get("distance_km", 0) for d in completed_today)
+        fuel_consumption_today = (total_distance_km_today / 10) if total_distance_km_today > 0 else 0 # Dummy calc
+
+        on_time_deliveries_count_today = sum(1 for d in completed_today if d.get("on_time", False))
+        on_time_rate_today = (on_time_deliveries_count_today / completed_today_count * 100) if completed_today_count > 0 else 0
+
+        self.dashboard_avg_delivery_time_card.findChild(QLabel, "value_label").setText(f"{avg_time_minutes_today:.0f} min")
+        self.dashboard_total_distance_card.findChild(QLabel, "value_label").setText(f"{total_distance_km_today:.1f} km")
+        self.dashboard_fuel_consumption_card.findChild(QLabel, "value_label").setText(f"{fuel_consumption_today:.1f} L")
+        self.dashboard_on_time_rate_card.findChild(QLabel, "value_label").setText(f"{on_time_rate_today:.1f}%")
+
+
+    def show_delivery_popup(self, delivery):
+        msg = QMessageBox()
+        msg.setWindowTitle(f"📦 Détails - Livraison {delivery['id_livraison']}")
+        msg.setStyleSheet("""
+            QMessageBox {
+                background: white;
+                border-radius: 12px;
+            }
+            QMessageBox QLabel {
+                color: #2d3748;
+                font-size: 14px;
+            }
+            QMessageBox QPushButton {
+                background: #4f46e5;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 500;
+                min-width: 120px;
+            }
+            QMessageBox QPushButton:hover {
+                background: #4338ca;
+            }
+        """)
+
+        info = f"""
+        <div style='font-family: Segoe UI; line-height: 1.6;'>
+            <h3 style='color: #2d3748; margin-top: 0;'>📦 {delivery['id_colis']}</h3>
+            <p><strong>👤 Destinataire:</strong> {delivery['nom_destinataire']}</p>
+            <p><strong>📍 Adresse:</strong> {delivery['adresse']}</p>
+            <p><strong>⚖️ Poids:</strong> {delivery['poids']}</p>
+            <p><strong>📏 Volume:</strong> {delivery['volume']}</p>
+            <p><strong>📦 Type:</strong> {delivery['type']}</p>
+            <p><strong>📝 Instructions:</strong> {delivery['instructions']}</p>
+            <p><strong>🗓️ Date d'expédition:</strong> {delivery['date_expedition'].toString("dd/MM/yyyy") if delivery['date_expedition'] else 'N/A'}</p>
+            <p><strong>🗓️ Date prévue:</strong> {delivery['date_prevue'].toString("dd/MM/yyyy") if delivery['date_prevue'] else 'N/A'}</p>
+        </div>
+        """
+
+        msg.setTextFormat(Qt.TextFormat.RichText)
+        msg.setText(info)
+        # Add "Marquer comme livrée" button only if status is pending
+        if delivery["status"] == "pending":
+            mark_complete_btn = msg.addButton("✅ Marquer comme livrée", QMessageBox.ButtonRole.AcceptRole)
+            mark_complete_btn.setStyleSheet("""
+                QPushButton {
+                    background: #38a169; /* Green for success */
+                }
+                QPushButton:hover {
+                    background: #2f855a;
+                }
+            """)
+        else:
+            mark_complete_btn = None # No "Mark Complete" button for completed deliveries
+
+        report_problem_btn = msg.addButton("⚠️ Signaler un problème", QMessageBox.ButtonRole.DestructiveRole)
+        close_btn = msg.addButton("❌ Fermer", QMessageBox.ButtonRole.RejectRole)
+
+        ret = msg.exec()
+        if mark_complete_btn and msg.clickedButton() == mark_complete_btn: # Check if the specific button was clicked
+            self.complete_delivery(delivery)
+        elif msg.clickedButton() == report_problem_btn:
+            QMessageBox.information(self, "⚠️ Problème signalé", "Le problème a été signalé au service client.")
+
+    def complete_delivery(self, delivery):
+        reply = QMessageBox.question(self, 'Confirmer la livraison',
+                                     f"Voulez-vous marquer la livraison {delivery['id_livraison']} comme terminée ?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # When completing a delivery, we update the dummy data directly
+                # The DBManager's execute_query for LivraisonConducteurColis is designed to handle this.
+                query = """
+                UPDATE "SCA"."LivraisonConducteurColis"
+                SET status = 'completed', date_livree = %s
+                WHERE id_livraison = %s; # Corrected from idbonexpedition to id_livraison
+                """
+                current_date = QDate.currentDate().toString("yyyy-MM-dd")
+                # Pass delivery["id_livraison"] as the second parameter for the dummy DBManager
+                self.db_manager.execute_query(query, (current_date, delivery["id_livraison"]))
+
+                success_msg = QMessageBox()
+                success_msg.setIcon(QMessageBox.Icon.Information)
+                success_msg.setWindowTitle("✅ Livraison terminée")
+                success_msg.setText("🎉 Livraison marquée comme terminée avec succès !")
+                success_msg.setStyleSheet("""
+                    QMessageBox {
+                        background: white;
+                        border-radius: 12px;
+                    }
+                    QMessageBox QPushButton {
+                        background: #38a169;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 8px 16px;
+                        font-weight: 500;
+                    }
+                """)
+                success_msg.exec()
+
+                self.load_all_deliveries_from_db() # Reload data to reflect changes
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur de base de données", f"Échec de la mise à jour de la livraison : {e}")
+
+    def update_counters(self):
+        # This method is no longer needed as update_dashboard_stats covers its functionality
+        pass
+
+    def search_deliveries(self):
+        search_text = self.search_input.text().lower()
+        # Filter the internal data list, then update the table
+        filtered_data = []
+        for delivery in self.pending_deliveries_data: # self.pending_deliveries_data is already dicts
+            if search_text in delivery["id_livraison"].lower() or \
+               search_text in delivery["nom_destinataire"].lower() or \
+               search_text in delivery["adresse"].lower():
+                filtered_data.append(delivery) # Keep the original raw data for table display
+
+        self.pending_table.setRowCount(len(filtered_data))
+        if len(filtered_data) == 0:
+            self.pending_table.hide()
+            self.no_pending_label.show()
+        else:
+            self.pending_table.show()
+            self.no_pending_label.hide()
+            for row_idx, delivery in enumerate(filtered_data):
+                self.pending_table.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
+                self.pending_table.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
+                self.pending_table.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
+                self.pending_table.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
+                self.pending_table.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
+                self.pending_table.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
+                self.pending_table.setItem(row_idx, 6, QTableWidgetItem(delivery["poids"]))
+                self.pending_table.setItem(row_idx, 7, QTableWidgetItem(delivery["volume"]))
+                self.pending_table.setItem(row_idx, 8, QTableWidgetItem(delivery["type"]))
+                self.pending_table.setItem(row_idx, 9, QTableWidgetItem(delivery["instructions"]))
+                self.pending_table.setItem(row_idx, 10, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
+                self.pending_table.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
+                self.pending_table.setItem(row_idx, 12, QTableWidgetItem(delivery["status"]))
+                self.pending_table.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"]))
+
+                details_button = QPushButton("Détails")
+                details_button.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLOR_INFO};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 5px 10px;
+                        font-weight: 500;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #2868A8;
+                    }}
+                """)
+                details_button.clicked.connect(lambda checked, d=delivery: self.show_delivery_popup(d))
+                self.pending_table.setCellWidget(row_idx, 14, details_button)
+
+    def update_driver_location_on_map(self):
+        self.map_loading_label.show()
+        QApplication.processEvents() # Process events to show loading label
+
+        try:
+            # Fetch driver's current location from DB or dummy data
+            location_query = """
+            SELECT current_latitude, current_longitude
+            FROM "SCA"."DriverLocations"
+            WHERE idconducteur = %s;
+            """
+            location_data = self.db_manager.fetch_one(location_query, (self.driver_info["idconducteur"],))
+            if location_data:
+                self.driver_current_location = (float(location_data[0]), float(location_data[1]))
+            else:
+                # Fallback to a default location if not found in DB or dummy data
+                self.driver_current_location = (4.05, 9.77) # Douala, Cameroon
+
+            # Simulate location movement for the driver in dummy data
+            current_lat, current_lon = self.driver_current_location
+            new_lat = current_lat + (random.uniform(-0.005, 0.005)) # Smaller random movement
+            new_lon = current_lon + (random.uniform(-0.005, 0.005))
+            self.driver_current_location = (new_lat, new_lon)
+            # Update dummy location in DBManager (this will call the dummy logic in execute_query)
+            self.db_manager.execute_query(
+                "UPDATE \"SCA\".\"DriverLocations\" SET current_latitude = %s, current_longitude = %s WHERE idconducteur = %s;",
+                (new_lat, new_lon, self.driver_info["idconducteur"])
+            )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur de localisation", f"Impossible de charger la position du conducteur : {e}. Utilisation d'une position par défaut.")
+            self.driver_current_location = (4.05, 9.77)
+
+        # Generate HTML for the map using OpenStreetMap and Leaflet.js
+        # Include all pending and completed delivery locations as markers
+        map_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Carte des Livraisons</title>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+            <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+            <style>
+                body {{ margin: 0; padding: 0; }}
+                #mapid {{ width: 100%; height: 100vh; border-radius: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div id="mapid"></div>
+            <script>
+                var map = L.map('mapid'); // No initial setView, will fitBounds later
+
+                L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }}).addTo(map);
+
+                var allMarkers = [];
+
+                // Driver's current location marker
+                var driverLat = {self.driver_current_location[0]};
+                var driverLon = {self.driver_current_location[1]};
+                var driverMarker = L.marker([driverLat, driverLon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_INFO}; width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">🚚</div>', iconSize: [30, 30], iconAnchor: [15, 30]}})}})
+                    .addTo(map)
+                    .bindPopup("<b>Votre position actuelle</b><br>Chauffeur: {self.driver_info['prenom']} {self.driver_info['nom']}");
+                allMarkers.push(driverMarker);
+
+                // Add markers for pending deliveries
+                var pendingDeliveries = {json.dumps([
+                    {"lat": d["lat"], "lon": d["lon"], "id": d["id_livraison"], "name": d["nom_destinataire"], "address": d["adresse"]}
+                    for d in self.pending_deliveries_data
+                    if d.get("lat") is not None and d.get("lon") is not None # Ensure coordinates exist
+                ])};
+                pendingDeliveries.forEach(function(delivery) {{
+                    var marker = L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_WARNING}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">🕒</div>', iconSize: [24, 24], iconAnchor: [12, 24]}})}})
+                        .addTo(map)
+                        .bindPopup("<b>Livraison en cours: " + delivery.id + "</b><br>" + delivery.name + "<br>" + delivery.address);
+                    allMarkers.push(marker);
+                }});
+
+                // Add markers for completed deliveries
+                var completedDeliveries = {json.dumps([
+                    {"lat": d["lat"], "lon": d["lon"], "id": d["id_livraison"], "name": d["nom_destinataire"], "address": d["adresse"]}
+                    for d in self.completed_deliveries_data
+                    if d.get("lat") is not None and d.get("lon") is not None # Ensure coordinates exist
+                ])};
+                completedDeliveries.forEach(function(delivery) {{
+                    var marker = L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_SUCCESS}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">✅</div>', iconSize: [24, 24], iconAnchor: [12, 24]}})}})
+                        .addTo(map)
+                        .bindPopup("<b>Livraison terminée: " + delivery.id + "</b><br>" + delivery.name + "<br>" + delivery.address);
+                    allMarkers.push(marker);
+                }});
+
+                // Adjust map bounds to fit all markers
+                if (allMarkers.length > 0) {{
+                    var group = L.featureGroup(allMarkers);
+                    map.fitBounds(group.getBounds().pad(0.1)); // Add 10% padding
+                }} else {{
+                    // If no markers, set a default view (e.g., center on driver's initial location)
+                    map.setView([driverLat, driverLon], 13);
+                }}
+            </script>
+        </body>
+        </html>
+        """
+        self.map_view.setHtml(map_html)
+        self.map_loading_label.hide()
+
+    def change_view(self, index):
+        self.content_stack.setCurrentIndex(index)
+        # Reload data for all views on navigation to ensure freshness
+        self.load_all_deliveries_from_db()
+        if index == 3: # Map view
+            self.update_driver_location_on_map()
+        elif index == 4: # Stats view
+            self.update_stats_display() # Ensure stats are updated when view is changed to stats
+
+
+    def apply_modern_styles(self):
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {COLOR_BACKGROUND_LIGHT};
+                color: {COLOR_TEXT_DARK};
+                font-family: "Segoe UI", sans-serif;
+            }}
+            QLabel {{
+                color: {COLOR_TEXT_DARK};
+            }}
+            QPushButton {{
+                background-color: {COLOR_PRIMARY};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 15px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {COLOR_SECONDARY};
+            }}
+            QTableWidget {{
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 12px;
+                background-color: white;
+            }}
+            QHeaderView::section {{
+                background-color: {COLOR_PRIMARY};
+                color: white;
+                padding: 5px;
+                border: 1px solid {COLOR_PRIMARY_DARK};
+            }}
+            QMessageBox {{
+                background-color: {COLOR_BACKGROUND_LIGHT};
+                color: {COLOR_TEXT_DARK};
+                font-family: "Segoe UI", sans-serif;
+            }}
+            QMessageBox QPushButton {{
+                background-color: {COLOR_PRIMARY};
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+                font-weight: normal;
+            }}
+            QMessageBox QPushButton:hover {{
+                background-color: {COLOR_SECONDARY};
+            }}
+        """)
+
+    def logout(self):
+        reply = QMessageBox.question(self, 'Déconnexion',
+                                     "Êtes-vous sûr de vouloir vous déconnecter ?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            QMessageBox.information(self, 'Déconnexion', "Vous avez été déconnecté.")
+            # In a real app, you would close the current window and open the login window
+            self.close()
+            # For this dummy app, we'll just exit
+            QApplication.quit()
+
+class LoginScreen(QWidget):
+    """Écran de connexion pour l'application."""
+    login_successful = pyqtSignal(dict) # Emits driver_info on successful login
+
+    def __init__(self, db_manager_instance):
+        super().__init__()
+        self.db_manager = db_manager_instance
+        self.setWindowTitle("DeliveryPro - Connexion")
+        self.setGeometry(500, 300, 400, 350)
+        self.init_ui()
+        self.apply_login_styles()
+
+        self.login_loading_label = QLabel("Connexion en cours...", self)
+        self.login_loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.login_loading_label.setFont(QFont("Segoe UI", 12, QFont.Weight.DemiBold))
+        self.login_loading_label.setStyleSheet("color: white; padding: 10px;")
+        self.login_loading_label.hide()
+        self.layout().addWidget(self.login_loading_label)
+
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setSpacing(20)
+        layout.setContentsMargins(50, 50, 50, 50)
+
+        title = QLabel("🚚 DeliveryPro")
+        title.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {COLOR_PRIMARY};")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText("Nom d'utilisateur (e.g., email du conducteur)")
+        self.username_input.setMinimumHeight(40)
+        self.username_input.setFont(QFont("Segoe UI", 11))
+        layout.addWidget(self.username_input)
+
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("Mot de passe (e.g., password)")
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_input.setMinimumHeight(40)
+        self.password_input.setFont(QFont("Segoe UI", 11))
+        layout.addWidget(self.password_input)
+
+        login_button = QPushButton("Se connecter")
+        login_button.setMinimumHeight(45)
+        login_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        login_button.clicked.connect(self.attempt_login)
+        layout.addWidget(login_button)
+
+        layout.addStretch()
+
+    def apply_login_styles(self):
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                    stop:0 #A7BFE8, stop:1 #6190E8);
+                border-radius: 20px;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+            }}
+            QLabel {{
+                color: white;
+            }}
+            QLineEdit {{
+                background: white;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 10px;
+                padding: 10px 15px;
+                color: {COLOR_TEXT_DARK};
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {COLOR_PRIMARY};
+            }}
+            QPushButton {{
+                background: {COLOR_PRIMARY};
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 20px;
+                font-weight: 600;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }}
+            QPushButton:hover {{
+                background: {COLOR_HOVER_DARK};
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            }}
+        """)
+
+    def attempt_login(self):
+        entered_email = self.username_input.text()
+        entered_password = self.password_input.text()
+
+        self.login_loading_label.show()
+        QApplication.processEvents()
+
+        # For demonstration, we assume a universal password 'password' for all registered drivers.
+        # In a real application, you would hash and compare passwords securely.
+        if entered_password == "password":
+            try:
+                driver_info = None
+                # Try dummy drivers for login
+                driver_data = self.db_manager.drivers_info_dummy.get(entered_email)
+                if driver_data:
+                    driver_info = driver_data
+                
+                if driver_info:
+                    self.login_loading_label.hide()
+                    QMessageBox.information(self, "Connexion Réussie", f"Bienvenue, {driver_info['prenom']}!")
+                    self.login_successful.emit(driver_info)
+                else:
+                    self.login_loading_label.hide()
+                    QMessageBox.warning(self, "Erreur de Connexion", "Conducteur non trouvé avec cet e-mail. Veuillez vérifier.")
+            except Exception as e:
+                self.login_loading_label.hide()
+                QMessageBox.critical(self, "Erreur de base de données", f"Échec de la récupération des informations du conducteur : {e}")
+        else:
+            self.login_loading_label.hide()
+            QMessageBox.warning(self, "Erreur de Connexion", "Mot de passe incorrect.")
+
+
+# --- Logique principale de l'application (Point d'entrée) ---
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+
+    # 1. Database Selection Dialog
+    # In this version, both "online" and "offline" will use the dummy DBManager
+    # as psycopg2 is commented out. This is for demonstration purposes.
+    db_options = ["1. online (dummy)", "2. offline (dummy)"]
+    db_choice, ok = QInputDialog.getItem(
+        None, "Sélection de la base de données",
+        "Entrez le numéro de la BD que vous voulez utiliser :",
+        db_options, 1, False # Default to 'offline' (index 1)
+    )
+
+    db_config = None # Always None for this dummy version
+    db_type_selected = "dummy" # Indicate that we are always using dummy
+
+    if ok and db_choice:
+        choice_num = int(db_choice.split('.')[0])
+        if choice_num == 1:
+            print("You have chosen the online (dummy) database.")
+        elif choice_num == 2:
+            print("You have chosen the offline (dummy) database.")
+        else:
+            QMessageBox.critical(None, "Erreur", "Sélection de base de données non valide.")
+            sys.exit(1)
+    else:
+        QMessageBox.critical(None, "Annulé", "Sélection de base de données annulée. L'application va se fermer.")
+        sys.exit(0)
+
+    # 2. Initialize DBManager (always dummy in this version)
+    db_manager = DBManager(db_config) # db_config is None, which is fine for dummy DBManager
+    
+    # Test connection is always true for dummy DBManager
+    if not db_manager.test_connection():
+        QMessageBox.critical(None, "Erreur de connexion à la BD", "Impossible de se connecter à la base de données. L'application va se fermer.")
+        sys.exit(1)
+
+    # 3. Create and show Login Screen
+    main_window = QMainWindow() # Use QMainWindow as the top-level window
+    login_screen = LoginScreen(db_manager)
+    main_window.setCentralWidget(login_screen)
+    # Set initial size, but allow resizing
+    main_window.resize(400, 350) 
+    main_window.show()
+
+    # 4. Connect login signal to show main app
+    def show_main_app(driver_info):
+        # Create DriverApp with the logged-in driver's info and db_manager
+        driver_dashboard = DriverApp(driver_info, db_manager)
+        main_window.setCentralWidget(driver_dashboard)
+        # Maximize the main window and allow resizing
+        main_window.setWindowState(Qt.WindowState.WindowMaximized)
+        main_window.setMinimumSize(800, 600) # Set a minimum size for the main window
+        main_window.show() # Show the main app
+
+    login_screen.login_successful.connect(show_main_app)
+
+    # 5. Start the Qt event loop
+    sys.exit(app.exec())
