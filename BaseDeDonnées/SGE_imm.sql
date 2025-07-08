@@ -3213,3 +3213,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+create or replace function "EMIR".getbonid(colis "SCA".idcolis)
+returns "SCA".idbonexpedition as $$
+begin
+   return select idbonexpedition from "SCA".Bonexpedition where idcolis = colis;
+end;
+$$ language plpgsql;
