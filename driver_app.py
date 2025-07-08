@@ -4,12 +4,14 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
     QHeaderView, QFrame, QLineEdit, QStackedWidget, QInputDialog, QSizePolicy,
-    QComboBox, QScrollArea, QGridLayout
+    QComboBox, QScrollArea, QGridLayout, QDialog, QTextEdit
 )
-from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer, QPropertyAnimation, QRect, QUrl
+from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer, QPropertyAnimation, QRect, QUrl, QThread
 from PyQt6.QtGui import QFont, QPixmap, QPainter, QColor
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import random # For dummy location updates
+import threading # For chatbot hotkey, though not used in integrated version
+import google.generativeai as genai # For chatbot
 
 # --- Fictitious Data for demonstration ---
 # Ensure dates are QDate objects for easier comparison and manipulation
@@ -46,7 +48,7 @@ FICTITIOUS_PENDING_DELIVERIES = [
         "lon": 11.5021,
         "status": "pending",
         "telephone_destinataire": "677987654",
-        "idconducteur": "TR1235" # Assign to another dummy driver
+        "idconducteur": "TR1234" # Assign to the main dummy driver
     },
     {
         "id_livraison": "L003",
@@ -67,7 +69,6 @@ FICTITIOUS_PENDING_DELIVERIES = [
     }
 ]
 
-# Adding more diverse completed deliveries for better statistics demonstration
 FICTITIOUS_COMPLETED_DELIVERIES = [
     {
         "id_livraison": "L000",
@@ -127,9 +128,6 @@ FICTITIOUS_COMPLETED_DELIVERIES = [
         "lon": 11.5100,
         "status": "completed",
         "telephone_destinataire": "699445566",
-        "delivery_time_seconds": 3600, # 60 minutes
-        "distance_km": 12.5,
-        "on_time": False,
         "idconducteur": "TR1235"
     },
     {
@@ -340,35 +338,16 @@ FICTITIOUS_DRIVERS = {
     },
 }
 
-# --- Database Management Classes (Dummy Version) ---
-
-class DatabaseType(Enum):
-    POSTGRES = "PostgreSQL" # Keep for type consistency, but not used
-
-class DatabaseConfig:
-    """
-    Configuration pour la connexion à une base de données.
-    (Dummy: Non utilisée pour la connexion réelle, mais conservée pour la cohérence de l'interface)
-    """
-    def __init__(self, db_type, host, port, dbname, user, password):
-        self.db_type = db_type
-        self.host = host
-        self.port = port
-        self.dbname = dbname
-        self.user = user
-        self.password = password
-
-class DBManager:
-    """
-    Gère les connexions et les opérations de la base de données.
-    (Dummy: Simule les opérations de base de données en mémoire)
-    """
-    def __init__(self, config=None):
-        # Créer des copies des données fictives pour permettre la modification
+# --- Internal Dummy Database Manager ---
+# This class simulates database operations directly in memory using fictitious data.
+# It is used when the application runs in a single-file, self-contained mode.
+class InternalDummyDBManager:
+    def __init__(self):
+        # Create copies of fictitious data to allow modification during runtime
         self.pending_deliveries_dummy = [dict(d) for d in FICTITIOUS_PENDING_DELIVERIES]
         self.completed_deliveries_dummy = [dict(d) for d in FICTITIOUS_COMPLETED_DELIVERIES]
         self.driver_locations_dummy = dict(FICTITIOUS_DRIVER_LOCATIONS)
-        self.drivers_info_dummy = dict(FICTITIOUS_DRIVERS)
+        self.drivers_info_dummy = dict(FICTITIOUS_DRIVERS) # Corrected typo here
 
     def connect(self):
         print("Dummy DB: Connecté (simulé).")
@@ -380,7 +359,7 @@ class DBManager:
 
     def execute_query(self, query, params=None):
         print(f"Dummy DB: Exécution de la requête (simulée): {query} avec les paramètres {params}")
-        # Simuler UPDATE pour le changement de statut dans "LivraisonConducteurColis"
+        # Simulate UPDATE for status change in "LivraisonConducteurColis"
         if "UPDATE" in query and "status = 'completed'" in query and "LivraisonConducteurColis" in query:
             # Assuming params are (date_livree_str, id_livraison)
             date_livree_str = params[0]
@@ -410,7 +389,7 @@ class DBManager:
                 self.completed_deliveries_dummy.append(delivery)
                 print(f"Dummy DB: Livraison {delivery_id_to_complete} marquée comme terminée et déplacée.")
             return
-        # Simuler UPDATE pour DriverLocations
+        # Simulate UPDATE for DriverLocations
         if "DriverLocations" in query and "UPDATE" in query:
             driver_id = params[2]
             lat = float(params[0])
@@ -424,14 +403,15 @@ class DBManager:
         print(f"Dummy DB: Récupération d'un élément (simulée): {query} avec les paramètres {params}")
         if "SELECT current_latitude" in query and "DriverLocations" in query:
             driver_id = params[0]
+            # Returns a tuple (lat, lon) as expected by the map update function
             return self.driver_locations_dummy.get(driver_id, (4.05, 9.77)) # Default if not found
         if "SELECT idconducteur" in query and "Conducteur" in query:
             # Simulate searching for driver for login
             email = params[0]
             driver_data = self.drivers_info_dummy.get(email)
             if driver_data:
-                # Convert dict to tuple in expected order for consistency with real DB fetch
-                return tuple(driver_data[key] for key in ["idconducteur", "nom", "prenom", "telephone", "email"])
+                # Return dict for consistency with how DriverApp expects data
+                return driver_data
         return None # Return None if no match or other query
 
     def fetch_all(self, query, params=None):
@@ -440,7 +420,7 @@ class DBManager:
 
         if "status = 'pending'" in query and "LivraisonConducteurColis" in query:
             filtered_data = [d for d in self.pending_deliveries_dummy if driver_id is None or d.get("idconducteur", "") == driver_id]
-            # Return list of dictionaries, not tuples, for easier access by key
+            # Return list of dictionaries
             return filtered_data
         elif "status = 'completed'" in query and "LivraisonConducteurColis" in query:
             filtered_data = [d for d in self.completed_deliveries_dummy if driver_id is None or d.get("idconducteur", "") == driver_id]
@@ -451,23 +431,23 @@ class DBManager:
     def close(self):
         print("Dummy DB: Fermé (simulé).")
 
-# --- Définition de la palette de couleurs moderne ---
-COLOR_PRIMARY = "#4C51BF"  # Indigo profond
-COLOR_SECONDARY = "#667EEA" # Bleu-violet doux
-COLOR_BACKGROUND_LIGHT = "#F7FAFC" # Blanc cassé / Gris très clair
-COLOR_TEXT_DARK = "#2D3748" # Gris anthracite foncé
-COLOR_SUCCESS = "#38A169"  # Vert émeraude
-COLOR_WARNING = "#ED8936"  # Orange terreux (pour les livraisons en attente)
-COLOR_INFO = "#3182CE"    # Bleu ciel (pour l'icône du conducteur)
-COLOR_BORDER_LIGHT = "#E2E8F0" # Gris clair pour les bordures
-COLOR_HOVER_LIGHT = "rgba(255, 255, 255, 0.2)" # Effet de survol léger pour la barre latérale
-COLOR_HOVER_DARK = "#4338ca" # Effet de survol plus foncé pour les boutons principaux
-COLOR_ERROR = "#E53E3E" # Rouge pour les actions destructives (ex: déconnexion)
+# --- Définition de la palette de couleurs "Élégance Douce" ---
+COLOR_PRIMARY = "#5F7F80"  # Un vert-bleu sourd et élégant
+COLOR_SECONDARY = "#8AB0B2" # Un vert-bleu plus clair et lumineux
+COLOR_BACKGROUND_LIGHT = "#F5F5F5" # Un gris très clair, presque blanc
+COLOR_TEXT_DARK = "#333333" # Un gris anthracite foncé
+COLOR_SUCCESS = "#7CB342"  # Un vert olive doux et naturel
+COLOR_WARNING = "#FFB300"  # Un orange ambre doux
+COLOR_INFO = "#5F7F80"    # Le même vert-bleu sourd que COLOR_PRIMARY
+COLOR_BORDER_LIGHT = "#E0E0E0" # Un gris clair et subtil
+COLOR_HOVER_LIGHT = "rgba(0, 0, 0, 0.05)" # Un léger voile gris transparent
+COLOR_HOVER_DARK = "#4A6465" # Un vert-bleu plus foncé pour les survols des éléments primaires
+COLOR_ERROR = "#E57373" # Un rouge atténué
 
 # Ajout des couleurs manquantes
-COLOR_PRIMARY_DARK = "#3840A0" # Un indigo plus foncé
-COLOR_PRIMARY_LIGHT = "#828AE6" # Un indigo plus clair
-COLOR_TEXT_SECONDARY = "#718096" # Gris moyen pour les textes secondaires
+COLOR_PRIMARY_DARK = "#4A6465" # Un vert-bleu plus foncé
+COLOR_PRIMARY_LIGHT = "#C0D1D2" # Un vert-bleu très pâle
+COLOR_TEXT_SECONDARY = "#757575" # Un gris moyen
 
 # --- Informations du conducteur par défaut (utilisé pour la recherche après login) ---
 placeholder_driver_info = {
@@ -508,19 +488,17 @@ class AnimatedButton(QPushButton):
             self.setStyleSheet(f"""
                 QPushButton {{
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_SECONDARY});
+                                        stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_SECONDARY});
                     color: white;
                     border: none;
                     border-radius: 12px;
                     padding: 12px 20px;
                     font-weight: 600;
                     margin: 2px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
                 }}
                 QPushButton:hover {{
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_HOVER_DARK});
-                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+                                        stop:0 {COLOR_PRIMARY_DARK}, stop:1 {COLOR_SECONDARY});
                 }}
             """)
         else:
@@ -585,11 +563,9 @@ class StatsCard(QFrame):
                 border: 1px solid {COLOR_BORDER_LIGHT};
                 border-radius: 16px;
                 padding: 15px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }}
             QFrame:hover {{
                 border: 1px solid {color};
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
             }}
         """)
 
@@ -600,18 +576,17 @@ class StatsCard(QFrame):
 class SideBar(QFrame):
     """Barre latérale personnalisée avec boutons de navigation et fonctionnalité de bascule."""
     navigation_changed = pyqtSignal(int)
-    # Signal pour informer DriverApp du changement de largeur et d'état de la barre latérale
-    sidebar_state_changed = pyqtSignal(bool) # True pour étendu, False pour réduit
-    logout_requested = pyqtSignal() # Nouveau signal pour la déconnexion
+    sidebar_state_changed = pyqtSignal(bool) # True for expanded, False for collapsed
+    logout_requested = pyqtSignal() # Signal for logout
 
     def __init__(self):
         super().__init__()
         self.expanded_width = 280
-        self.collapsed_width = 0 # Largeur quand complètement réduite
+        self.collapsed_width = 0 # Width when fully collapsed
         self.is_expanded = True
 
         self.setFrameStyle(QFrame.Shape.Box)
-        self.setFixedWidth(self.expanded_width) # Largeur initiale
+        self.setFixedWidth(self.expanded_width) # Initial width
 
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(10)
@@ -623,13 +598,13 @@ class SideBar(QFrame):
         self.layout.addWidget(self.header)
 
         self.nav_buttons = []
+        # Updated navigation items based on the new structure
         nav_items = [
             ("Tableau de bord", "📋"),
-            ("Livraisons en cours", "🕒"),
-            ("Livraisons terminées", "✅"),
-            ("Carte interactive", "🗺️"),
-            ("Statistiques", "📊"),
-            ("Paramètres", "⚙️")
+            ("Livraisons terminées", "✅"), # Index 1
+            ("Carte interactive", "🗺️"),    # Index 2
+            ("Aide", "❓"),                 # Index 3
+            ("Paramètres", "⚙️")             # Index 4
         ]
 
         for i, (text, icon) in enumerate(nav_items):
@@ -647,7 +622,6 @@ class SideBar(QFrame):
                 border-radius: 12px;
                 padding: 15px;
                 color: white;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }}
         """)
         self.user_layout = QVBoxLayout(self.user_frame)
@@ -661,7 +635,6 @@ class SideBar(QFrame):
         self.user_layout.addWidget(self.user_role)
         self.layout.addWidget(self.user_frame)
 
-        # Bouton de déconnexion dans la barre latérale
         self.logout_btn = AnimatedButton("Déconnexion", "➡️")
         self.logout_btn.setStyleSheet(f"""
             QPushButton {{
@@ -672,18 +645,15 @@ class SideBar(QFrame):
                 padding: 12px 20px;
                 font-weight: 600;
                 margin: 2px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }}
             QPushButton:hover {{
                 background: #C0392B; /* Darker red */
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
             }}
         """)
         self.logout_btn.clicked.connect(self.logout_requested.emit)
         self.layout.addWidget(self.logout_btn)
 
-
-        self.set_active_nav(0) # Définir le tableau de bord comme actif par défaut
+        self.set_active_nav(0) # Set dashboard as default active
 
         self.setStyleSheet(f"""
             QFrame {{
@@ -692,7 +662,7 @@ class SideBar(QFrame):
                 border-right: 1px solid {COLOR_BORDER_LIGHT};
             }}
         """)
-        self.set_expanded_state(True) # S'assurer que l'état initial est étendu
+        self.set_expanded_state(True) # Ensure initial state is expanded
 
     def set_active_nav(self, index):
         for i, btn in enumerate(self.nav_buttons):
@@ -703,48 +673,243 @@ class SideBar(QFrame):
     def toggle_sidebar(self):
         self.is_expanded = not self.is_expanded
         self.set_expanded_state(self.is_expanded)
-        # Émettre l'état, pas seulement la largeur, pour un contrôle plus explicite dans DriverApp
         self.sidebar_state_changed.emit(self.is_expanded)
 
     def set_expanded_state(self, expanded):
         self.is_expanded = expanded
         target_width = self.expanded_width if expanded else self.collapsed_width
 
-        # Animer le changement de largeur
         self.animation = QPropertyAnimation(self, b"minimumWidth")
-        self.animation.setDuration(200) # millisecondes
+        self.animation.setDuration(200)
         self.animation.setStartValue(self.width())
         self.animation.setEndValue(target_width)
         self.animation.start()
 
         self.animation = QPropertyAnimation(self, b"maximumWidth")
-        self.animation.setDuration(200) # millisecondes
+        self.animation.setDuration(200)
         self.animation.setStartValue(self.width())
         self.animation.setEndValue(target_width)
         self.animation.start()
 
-        # Ajuster la visibilité et le texte des éléments
         if expanded:
             self.header.show()
             self.user_frame.show()
-            self.logout_btn.show() # S'assurer que le bouton de déconnexion est visible
-            # Ajuster les marges pour l'état étendu
+            self.logout_btn.show()
             self.layout.setContentsMargins(20, 20, 20, 20)
             for btn in self.nav_buttons:
                 btn.set_expanded_state(True)
-            self.logout_btn.set_expanded_state(True) # Mettre à jour l'état du bouton de déconnexion
+            self.logout_btn.set_expanded_state(True)
         else:
             self.header.hide()
             self.user_frame.hide()
-            self.logout_btn.hide() # Cacher le bouton de déconnexion
-            # Ajuster les marges pour l'état réduit (0 si la largeur est de 0)
-            self.layout.setContentsMargins(0, 0, 0, 0) # Définir à 0 lorsque réduit
+            self.logout_btn.hide()
+            self.layout.setContentsMargins(0, 0, 0, 0)
             for btn in self.nav_buttons:
                 btn.set_expanded_state(False)
-            self.logout_btn.set_expanded_state(False) # Mettre à jour l'état du bouton de déconnexion
+            self.logout_btn.set_expanded_state(False)
 
-        # Émettre le changement d'état après le début de l'animation (ou immédiatement)
         self.sidebar_state_changed.emit(self.is_expanded)
+
+
+class ReportIssueDialog(QDialog):
+    """Dialogue personnalisé pour signaler un problème avec un champ de texte."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Signaler un problème")
+        self.setMinimumSize(400, 300) # Adequate size for text input
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {COLOR_BACKGROUND_LIGHT};
+                border-radius: 16px;
+                border: 1px solid {COLOR_BORDER_LIGHT};
+            }}
+            QLabel {{
+                color: {COLOR_TEXT_DARK};
+                font-size: 14px;
+            }}
+            QTextEdit {{
+                border: 1px solid {COLOR_BORDER_LIGHT};
+                border-radius: 8px;
+                padding: 10px;
+                background-color: white;
+                font-size: 14px;
+                color: {COLOR_TEXT_DARK};
+            }}
+            QPushButton {{
+                background-color: {COLOR_PRIMARY};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 15px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {COLOR_SECONDARY};
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        title_label = QLabel("Décrivez le problème rencontré :")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"color: {COLOR_PRIMARY};")
+        layout.addWidget(title_label)
+
+        self.problem_text_edit = QTextEdit()
+        self.problem_text_edit.setPlaceholderText("Ex: Le destinataire était absent, l'adresse est incorrecte, colis endommagé...")
+        layout.addWidget(self.problem_text_edit)
+
+        button_layout = QHBoxLayout()
+        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLOR_ERROR};
+            }}
+            QPushButton:hover {{
+                background-color: #C0392B;
+            }}
+        """)
+        self.cancel_button.clicked.connect(self.reject) # Reject the dialog
+        button_layout.addWidget(self.cancel_button)
+
+        self.submit_button = QPushButton("Valider")
+        self.submit_button.clicked.connect(self.accept) # Accept the dialog
+        button_layout.addWidget(self.submit_button)
+
+        layout.addLayout(button_layout)
+
+    def get_problem_description(self):
+        return self.problem_text_edit.toPlainText()
+
+
+# --- Chatbot Integration ---
+API_KEY = "AIzaSyACCuz2G5YDYs7rmVl9X7Q_Z60Qa1TOq_8"
+genai.configure(api_key=API_KEY)
+
+MODEL_NAME = "models/gemini-2.5-pro"
+model = genai.GenerativeModel(MODEL_NAME)
+
+HELP_TEXT = """
+To reset your password, click 'Forgot Password' on the login screen.
+You’ll receive an email with a link to create a new one.
+If you don’t receive it, check your spam folder or contact support.
+"""
+
+class WorkerThread(QThread):
+    finished = pyqtSignal(str)
+
+    def __init__(self, prompt):
+        super().__init__()
+        self.prompt = prompt
+
+    def run(self):
+        try:
+            response = model.generate_content(self.prompt)
+            answer = response.text.strip()
+        except Exception as e:
+            answer = f"Error: {e}"
+        self.finished.emit(answer)
+
+
+class ChatBot(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SCA AI help Chatbot")
+        self.resize(400, 450)
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Window) # Keep on top
+
+        # Card frame
+        card = QFrame(self)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {COLOR_PRIMARY}; /* Using primary color for chatbot background */
+                border-radius: 18px;
+                border: 1.5px solid {COLOR_BORDER_LIGHT};
+                padding: 18px;
+                box-shadow: 0 6px 24px rgba(108,99,255,0.10);
+            }}
+        """)
+
+        card_layout = QVBoxLayout(card)
+        card_layout.setSpacing(12)
+        card_layout.setContentsMargins(18, 18, 18, 18)
+
+        self.chat_display = QTextEdit()
+        self.chat_display.setReadOnly(True)
+        self.chat_display.setStyleSheet(f"background: #fff; border-radius: 8px; padding: 8px; color: {COLOR_TEXT_DARK};")
+        self.chat_display.setFont(QFont("Segoe UI", 10))
+        card_layout.addWidget(self.chat_display)
+
+        self.input_line = QLineEdit()
+        self.input_line.setPlaceholderText("Tapez votre message ici...")
+        self.input_line.setStyleSheet(f"background: #FFFFFF; border-radius: 8px; padding: 8px; color: {COLOR_TEXT_DARK};")
+        self.input_line.setFont(QFont("Segoe UI", 10))
+        card_layout.addWidget(self.input_line)
+
+        self.send_button = QPushButton("Envoyer")
+        self.send_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLOR_SUCCESS}; /* Green for send button */
+                color: white;
+                font-weight: bold;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 8px 20px;
+            }}
+            QPushButton:hover {{
+                background-color: #3B823E; /* Darker green */
+            }}
+        """)
+        card_layout.addWidget(self.send_button)
+
+        # Main layout for the widget
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.addWidget(card)
+
+        self.send_button.clicked.connect(self.on_send)
+        self.input_line.returnPressed.connect(self.on_send)
+
+        self.append_message("System", "Bienvenue ! Posez-moi des questions sur l'application.")
+
+        self.worker_thread = None
+
+    def append_message(self, sender, message):
+        self.chat_display.append(f"<b>{sender}:</b> {message}")
+
+    def on_send(self):
+        question = self.input_line.text().strip()
+        if not question:
+            return
+
+        self.append_message("Vous", question)
+        self.input_line.clear()
+
+        self.append_message("Bot", "<i>Réflexion en cours...</i>")
+
+        prompt = f"""
+You are a helpful and kind assistant. Use the following help guide to answer the user's question. If he asks about something not in the help guide, say you don't know.
+If he greets you or shows any sign of politeness, respond in a friendly manner.
+
+HELP DOCUMENT:
+{HELP_TEXT}
+
+QUESTION:
+{question}
+
+Answer only based on the HELP DOCUMENT above.
+"""
+
+        self.worker_thread = WorkerThread(prompt)
+        self.worker_thread.finished.connect(self.handle_response)
+        self.worker_thread.start()
+
+    def handle_response(self, answer):
+        self.chat_display.undo() # Remove "Thinking..." message
+        self.append_message("SCA-Bot", answer)
+        self.worker_thread = None
 
 
 class DriverApp(QWidget):
@@ -752,20 +917,19 @@ class DriverApp(QWidget):
     def __init__(self, driver_info, db_manager):
         super().__init__()
         self.driver_info = driver_info
-        self.db_manager = db_manager # C'est maintenant le Dummy DBManager
+        self.db_manager = db_manager
         self.setWindowTitle(f"DeliveryPro - {driver_info['prenom']} {driver_info['nom']}")
         
-        # Set minimum size for the widget itself, QMainWindow will handle maximization
         self.setMinimumSize(800, 600) 
 
         self.pending_deliveries_data = []
         self.completed_deliveries_data = []
         self.driver_current_location = None
+        self.chatbot_window = None # To hold the chatbot instance
 
         self.init_ui()
         self.apply_modern_styles()
 
-        # Indicateur de chargement global pour le tableau de bord
         self.loading_label = QLabel("Chargement des données...", self)
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.loading_label.setFont(QFont("Segoe UI", 14, QFont.Weight.DemiBold))
@@ -775,7 +939,7 @@ class DriverApp(QWidget):
         self.load_all_deliveries_from_db()
 
         self.location_timer = QTimer(self)
-        self.location_timer.setInterval(60000) # Mettre à jour la localisation toutes les 60 secondes
+        self.location_timer.setInterval(60000) # Update location every 60 seconds
         self.location_timer.timeout.connect(self.update_driver_location_on_map)
         self.location_timer.start()
 
@@ -787,33 +951,30 @@ class DriverApp(QWidget):
         self.sidebar = SideBar()
         self.sidebar.navigation_changed.connect(self.change_view)
         self.sidebar.sidebar_state_changed.connect(self.update_top_bar_elements)
-        self.sidebar.logout_requested.connect(self.logout) # Connecter le signal de déconnexion
+        self.sidebar.logout_requested.connect(self.logout)
         self.main_layout.addWidget(self.sidebar)
 
         user_name_label = self.sidebar.findChild(QLabel, "user_name_label")
         if user_name_label:
             user_name_label.setText(f"👤 {self.driver_info['prenom']} {self.driver_info['nom']}")
 
-        # Zone de contenu avec bouton de bascule
         self.content_area_layout = QVBoxLayout()
         self.content_area_layout.setContentsMargins(0,0,0,0)
         self.content_area_layout.setSpacing(0)
 
-        # Barre supérieure avec bouton de bascule (pas d'étiquette à côté)
         self.top_bar = QFrame()
         self.top_bar.setFixedHeight(60)
         self.top_bar.setStyleSheet(f"""
             QFrame {{
                 background: white;
                 border-bottom: 1px solid {COLOR_BORDER_LIGHT};
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             }}
         """)
         top_bar_layout = QHBoxLayout(self.top_bar)
         top_bar_layout.setContentsMargins(15, 0, 15, 0)
         top_bar_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self.toggle_button = QPushButton("☰") # Icône hamburger
+        self.toggle_button = QPushButton("☰") # Hamburger icon
         self.toggle_button.setFixedSize(40, 40)
         self.toggle_button.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         self.toggle_button.setStyleSheet(f"""
@@ -830,215 +991,143 @@ class DriverApp(QWidget):
         self.toggle_button.clicked.connect(self.sidebar.toggle_sidebar)
         top_bar_layout.addWidget(self.toggle_button)
 
-        top_bar_layout.addStretch() # Pousser le bouton vers la gauche
+        top_bar_layout.addStretch()
 
         self.content_area_layout.addWidget(self.top_bar)
-
 
         self.content_stack = QStackedWidget()
         self.content_area_layout.addWidget(self.content_stack)
 
         self.create_dashboard_view()
-        self.create_pending_view()
-        self.create_completed_view()
-        self.create_map_view()
-        self.create_stats_view()
-        self.create_settings_view()
+        self.create_completed_view() # Now index 1
+        self.create_map_view()       # Now index 2
+        self.create_help_view()      # Now index 3
+        self.create_settings_view()  # Now index 4
 
         self.main_layout.addLayout(self.content_area_layout, 1)
 
     def update_top_bar_elements(self, is_expanded):
-        # Ce slot est toujours nécessaire pour la connexion du signal, mais son contenu est maintenant vide
-        # car l'étiquette de bascule a été supprimée et aucun autre élément n'est mis à jour dynamiquement ici.
         pass
 
-
     def create_dashboard_view(self):
-        dashboard = QWidget()
-        layout = QVBoxLayout(dashboard)
-        layout.setSpacing(20)
-        layout.setContentsMargins(30, 30, 30, 30)
+        # Create a main widget for the dashboard content
+        dashboard_content_widget = QWidget()
+        dashboard_content_layout = QVBoxLayout(dashboard_content_widget)
+        dashboard_content_layout.setSpacing(20)
+        dashboard_content_layout.setContentsMargins(30, 30, 30, 30)
+
+        # Wrap the dashboard content in a QScrollArea
+        dashboard_scroll_area = QScrollArea()
+        dashboard_scroll_area.setWidgetResizable(True)
+        dashboard_scroll_area.setWidget(dashboard_content_widget)
+        dashboard_scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent; /* Make scroll area background transparent */
+            }
+            QScrollArea > QWidget > QWidget {
+                background-color: transparent; /* Ensure content widget background is transparent */
+            }
+        """)
+
+        # Add the scroll area to the content stack
+        self.content_stack.addWidget(dashboard_scroll_area)
+
 
         welcome_label = QLabel(f"Bonjour {self.driver_info['prenom']} ! 👋")
         welcome_label.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         welcome_label.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-bottom: 10px;")
 
-        subtitle = QLabel("Voici un aperçu de vos livraisons aujourd'hui")
-        subtitle.setFont(QFont("Segoe UI", 14))
-        subtitle.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-bottom: 20px;")
+        dashboard_content_layout.addWidget(welcome_label)
 
-        layout.addWidget(welcome_label)
-        layout.addWidget(subtitle)
+        # --- Direct display of "Livraisons en cours" ---
+        pending_deliveries_title = QLabel("🕒 Livraisons en cours aujourd'hui")
+        pending_deliveries_title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        pending_deliveries_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-top: 20px; margin-bottom: 10px;")
+        dashboard_content_layout.addWidget(pending_deliveries_title)
 
-        # Statistiques principales (existantes)
-        stats_layout = QHBoxLayout()
-        stats_layout.setSpacing(20)
+        self.dashboard_pending_table = QTableWidget()
+        self.setup_modern_table(self.dashboard_pending_table, "pending")
+        # Ensure the table expands to fill available space
+        self.dashboard_pending_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        dashboard_content_layout.addWidget(self.dashboard_pending_table) 
 
-        self.total_card = StatsCard("Total", 0, "📦", COLOR_INFO)
-        self.pending_card = StatsCard("En cours", 0, "🕒", COLOR_WARNING)
-        self.completed_card = StatsCard("Terminées", 0, "✅", COLOR_SUCCESS)
+        self.no_pending_dashboard_label = QLabel("🎉 Aucune livraison en cours pour le moment. Profitez de votre pause !")
+        self.no_pending_dashboard_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.no_pending_dashboard_label.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold))
+        self.no_pending_dashboard_label.setStyleSheet(f"color: {COLOR_SUCCESS}; padding: 50px;")
+        self.no_pending_dashboard_label.hide()
+        dashboard_content_layout.addWidget(self.no_pending_dashboard_label)
 
-        stats_layout.addWidget(self.total_card)
-        stats_layout.addWidget(self.pending_card)
-        stats_layout.addWidget(self.completed_card)
-
-        layout.addLayout(stats_layout)
-
-        # NOUVELLES Statistiques détaillées pour "Aujourd'hui" sur le tableau de bord
-        today_stats_title = QLabel("Performances du jour")
-        today_stats_title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        today_stats_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-top: 20px; margin-bottom: 10px;")
-        layout.addWidget(today_stats_title)
-
-        today_stats_grid = QGridLayout()
-        today_stats_grid.setSpacing(15)
-
-        self.dashboard_avg_delivery_time_card = self.create_stat_card("Temps moyen", "0 min", "⏱️")
-        today_stats_grid.addWidget(self.dashboard_avg_delivery_time_card, 0, 0)
-
-        self.dashboard_total_distance_card = self.create_stat_card("Distance totale", "0 km", "🛣️")
-        today_stats_grid.addWidget(self.dashboard_total_distance_card, 0, 1)
-
-        self.dashboard_fuel_consumption_card = self.create_stat_card("Carburant estimé", "0 L", "⛽")
-        today_stats_grid.addWidget(self.dashboard_fuel_consumption_card, 1, 0)
-
-        self.dashboard_on_time_rate_card = self.create_stat_card("Taux à temps", "0%", "🎯")
-        today_stats_grid.addWidget(self.dashboard_on_time_rate_card, 1, 1)
-
-        layout.addLayout(today_stats_grid)
-
-
-        actions_frame = QFrame()
-        actions_frame.setStyleSheet(f"""
-            QFrame {{
-                background: white;
-                border: 1px solid {COLOR_BORDER_LIGHT};
-                border-radius: 16px;
-                padding: 20px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            }}
-        """)
-        actions_layout = QVBoxLayout(actions_frame)
-
-        actions_title = QLabel("🚀 Actions rapides")
-        actions_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        actions_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-bottom: 15px;")
-
-        actions_buttons_layout = QHBoxLayout()
-
-        view_pending_btn = QPushButton("📋 Voir les livraisons en cours")
-        view_map_btn = QPushButton("🗺️ Ouvrir la carte")
-
-        for btn in [view_pending_btn, view_map_btn]:
-            btn.setMinimumHeight(45)
-            btn.setFont(QFont("Segoe UI", 11, QFont.Weight.Medium))
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_SECONDARY});
-                    color: white;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 12px 20px;
-                    font-weight: 600;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                }}
-                QPushButton:hover {{
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                                    stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_HOVER_DARK});
-                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-                }}
-            """)
-            actions_buttons_layout.addWidget(btn)
-
-        view_pending_btn.clicked.connect(lambda: self.sidebar.set_active_nav(1))
-        view_map_btn.clicked.connect(lambda: self.sidebar.set_active_nav(3))
-
-        actions_layout.addWidget(actions_title)
-        actions_layout.addLayout(actions_buttons_layout)
-
-        layout.addWidget(actions_frame)
-        layout.addStretch()
-
-        self.content_stack.addWidget(dashboard)
-
-    def create_pending_view(self):
-        pending_widget = QWidget()
-        layout = QVBoxLayout(pending_widget)
-        layout.setSpacing(20)
-        layout.setContentsMargins(30, 30, 30, 30)
-
-        header_layout = QHBoxLayout()
-        title = QLabel("🕒 Livraisons en cours")
-        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
-        title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
-
-        search_frame = QFrame()
-        search_frame.setStyleSheet(f"""
-            QFrame {{
-                background: white;
-                border: 1px solid {COLOR_BORDER_LIGHT};
-                border-radius: 25px;
-                padding: 5px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            }}
-        """)
-        search_layout = QHBoxLayout(search_frame)
-        search_layout.setContentsMargins(15, 5, 15, 5)
-
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Rechercher une livraison...")
-        self.search_input.setFont(QFont("Segoe UI", 12))
-        self.search_input.setStyleSheet(f"""
-            QLineEdit {{
-                background: transparent;
-                border: none;
-                font-size: 14px;
-                padding: 5px;
-                color: {COLOR_TEXT_DARK};
-            }}
-        """)
-
-        search_btn = QPushButton("Rechercher")
-        search_btn.setStyleSheet(f"""
+        # Button to navigate to the map
+        view_map_btn = QPushButton("🗺️ Ouvrir la carte interactive")
+        view_map_btn.setMinimumHeight(45)
+        view_map_btn.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        view_map_btn.setStyleSheet(f"""
             QPushButton {{
-                background: {COLOR_PRIMARY};
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 {COLOR_PRIMARY}, stop:1 {COLOR_SECONDARY});
                 color: white;
                 border: none;
-                border-radius: 15px;
-                padding: 8px 15px;
-                font-weight: 500;
+                border-radius: 12px;
+                padding: 12px 20px;
+                font-weight: 600;
+                margin-top: 20px; /* Add some space above the button */
             }}
             QPushButton:hover {{
-                background: {COLOR_HOVER_DARK};
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 {COLOR_PRIMARY_DARK}, stop:1 {COLOR_SECONDARY});
             }}
         """)
-        self.search_input.textChanged.connect(self.search_deliveries)
-        search_btn.clicked.connect(self.search_deliveries)
+        view_map_btn.clicked.connect(lambda: self.sidebar.set_active_nav(2)) # Index 2 for Map
+        dashboard_content_layout.addWidget(view_map_btn)
 
-        search_layout.addWidget(self.search_input)
-        search_layout.addWidget(search_btn)
+        dashboard_content_layout.addStretch() # Ensures the table and button are pushed to the top
 
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        header_layout.addWidget(search_frame)
 
-        layout.addLayout(header_layout)
+    def populate_dashboard_pending_table(self):
+        t = self.dashboard_pending_table
+        t.setRowCount(len(self.pending_deliveries_data))
+        if len(self.pending_deliveries_data) == 0:
+            t.hide()
+            self.no_pending_dashboard_label.show()
+        else:
+            t.show()
+            self.no_pending_dashboard_label.hide()
+            for row_idx, delivery in enumerate(self.pending_deliveries_data):
+                t.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
+                t.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
+                t.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
+                t.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
+                t.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
+                t.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
+                t.setItem(row_idx, 6, QTableWidgetItem(delivery["poids"]))
+                t.setItem(row_idx, 7, QTableWidgetItem(delivery["volume"]))
+                t.setItem(row_idx, 8, QTableWidgetItem(delivery["type"]))
+                t.setItem(row_idx, 9, QTableWidgetItem(delivery["instructions"]))
+                t.setItem(row_idx, 10, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
+                t.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
+                t.setItem(row_idx, 12, QTableWidgetItem(delivery["status"]))
+                t.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"]))
 
-        self.pending_table = QTableWidget()
-        self.setup_modern_table(self.pending_table, "pending")
-        layout.addWidget(self.pending_table)
+                details_button = QPushButton("Détails")
+                details_button.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLOR_INFO};
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 5px 10px;
+                        font-weight: 500;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {COLOR_PRIMARY_DARK};
+                    }}
+                """)
+                # Connect the button to a handler, passing the entire delivery dictionary
+                details_button.clicked.connect(lambda checked, d=delivery: self.show_delivery_popup(d))
+                t.setCellWidget(row_idx, 14, details_button) # Column 14 for action
 
-        # Message pour les livraisons en cours vides
-        self.no_pending_label = QLabel("🎉 Aucune livraison en cours pour le moment. Profitez de votre pause !")
-        self.no_pending_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.no_pending_label.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold))
-        self.no_pending_label.setStyleSheet(f"color: {COLOR_SUCCESS}; padding: 50px;")
-        self.no_pending_label.hide()
-        layout.addWidget(self.no_pending_label)
-        layout.addStretch()
-
-        self.content_stack.addWidget(pending_widget)
 
     def create_completed_view(self):
         completed_widget = QWidget()
@@ -1055,7 +1144,7 @@ class DriverApp(QWidget):
         self.setup_modern_table(self.done_table, "done")
         layout.addWidget(self.done_table)
 
-        # Message pour les livraisons terminées vides
+        # Message for empty completed deliveries
         self.no_completed_label = QLabel("😔 Aucune livraison terminée n'a été enregistrée.")
         self.no_completed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.no_completed_label.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold))
@@ -1081,12 +1170,11 @@ class DriverApp(QWidget):
             QWebEngineView {{
                 border: 1px solid {COLOR_BORDER_LIGHT};
                 border-radius: 12px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }}
         """)
         layout.addWidget(self.map_view)
 
-        # Indicateur de chargement pour la carte
+        # Loading indicator for the map
         self.map_loading_label = QLabel("Chargement de la carte...", self)
         self.map_loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.map_loading_label.setFont(QFont("Segoe UI", 14, QFont.Weight.DemiBold))
@@ -1097,269 +1185,98 @@ class DriverApp(QWidget):
 
         self.content_stack.addWidget(map_widget)
 
-    def create_stats_view(self):
-        stats_widget = QWidget()
-        # Use a QScrollArea to ensure the content is scrollable if it exceeds window height
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_content = QWidget()
-        scroll_area.setWidget(scroll_content)
-
-        layout = QVBoxLayout(scroll_content)
+    def create_help_view(self):
+        help_widget = QWidget()
+        layout = QVBoxLayout(help_widget)
         layout.setSpacing(20)
         layout.setContentsMargins(30, 30, 30, 30)
 
-        title = QLabel("📊 Statistiques détaillées")
+        title = QLabel("❓ Centre d'aide")
         title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
         title.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
         layout.addWidget(title)
 
-        # Time Period Selector
-        period_layout = QHBoxLayout()
-        period_label = QLabel("Période:")
-        period_label.setFont(QFont("Segoe UI", 12))
-        period_label.setStyleSheet(f"color: {COLOR_TEXT_DARK};")
-        period_layout.addWidget(period_label)
-
-        self.period_selector = QComboBox()
-        self.period_selector.addItems(["Aujourd'hui", "Cette semaine", "Ce mois", "Toutes les périodes"])
-        self.period_selector.setCurrentText("Ce mois") # Sélection par défaut
-        self.period_selector.setFont(QFont("Segoe UI", 11))
-        self.period_selector.setStyleSheet(f"""
-            QComboBox {{
-            border: 1px solid {COLOR_BORDER_LIGHT};
-            border-radius: 8px;
-            padding: 5px 10px;
-            background: white;
-            color: {COLOR_TEXT_DARK};
-            }}
-            QComboBox::drop-down {{
-            border: 0px;
-            }}
-            QComboBox::down-arrow {{
-            width: 0;
-            height: 0;
-            }}
-            QComboBox QAbstractItemView {{ /* Style pour le menu déroulant */
-                border: 1px solid {COLOR_BORDER_LIGHT};
-                border-radius: 8px;
-                background-color: white;
-                selection-background-color: {COLOR_PRIMARY_LIGHT};
-                color: {COLOR_TEXT_DARK};
-            }}
-        """)
-        self.period_selector.currentIndexChanged.connect(self.update_stats_display)
-        period_layout.addWidget(self.period_selector)
-        period_layout.addStretch()
-        layout.addLayout(period_layout)
-
-        # Main stats grid
-        stats_grid = QGridLayout()
-        stats_grid.setSpacing(15)
-
-        # Total Deliveries Card
-        self.total_deliveries_card = self.create_stat_card("Total des livraisons", "0", "🚚")
-        stats_grid.addWidget(self.total_deliveries_card, 0, 0)
-
-        # Completed Deliveries Card
-        self.completed_deliveries_card = self.create_stat_card("Livraisons terminées", "0", "✅")
-        stats_grid.addWidget(self.completed_deliveries_card, 0, 1)
-
-        # Pending Deliveries Card
-        self.pending_deliveries_card = self.create_stat_card("Livraisons en attente", "0", "⏳")
-        stats_grid.addWidget(self.pending_deliveries_card, 1, 0)
-
-        # Average Delivery Time Card
-        self.avg_delivery_time_card = self.create_stat_card("Temps moyen", "0 min", "⏱️")
-        stats_grid.addWidget(self.avg_delivery_time_card, 1, 1)
-
-        # NEW: Total Distance Covered Card
-        self.total_distance_card = self.create_stat_card("Distance totale parcourue", "0 km", "🛣️")
-        stats_grid.addWidget(self.total_distance_card, 2, 0)
-
-        # NEW: Fuel Consumption Card
-        self.fuel_consumption_card = self.create_stat_card("Consommation de carburant", "0 L", "⛽")
-        stats_grid.addWidget(self.fuel_consumption_card, 2, 1)
-
-        # NEW: On-time Delivery Rate Card
-        self.on_time_rate_card = self.create_stat_card("Taux de livraison à temps", "0%", "🎯")
-        stats_grid.addWidget(self.on_time_rate_card, 3, 0)
-
-        # Total Revenue Card (example) - move to new row
-        self.total_revenue_card = self.create_stat_card("Revenu total", "0 XAF", "💰")
-        stats_grid.addWidget(self.total_revenue_card, 3, 1) # Changed row
-
-        # Average Revenue per Delivery Card (example) - move to new row
-        self.avg_revenue_card = self.create_stat_card("Revenu moyen/livraison", "0 XAF", "💵")
-        stats_grid.addWidget(self.avg_revenue_card, 4, 0) # Changed row
-
-        layout.addLayout(stats_grid)
-
-        # Charts Section
-        chart_title = QLabel("Graphiques de performance")
-        chart_title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        chart_title.setStyleSheet(f"color: {COLOR_TEXT_DARK}; margin-top: 20px;")
-        layout.addWidget(chart_title)
-
-        # Example: Placeholder for a chart (e.g., using Matplotlib or a web-based chart)
-        self.chart_view = QWebEngineView() # Or a QChartView if using QtCharts
-        self.chart_view.setMinimumHeight(400)
-        self.chart_view.setStyleSheet(f"""
-            QWebEngineView {{
+        help_text = f"""
+        <div style='font-family: Segoe UI; line-height: 1.6; color: {COLOR_TEXT_DARK};'>
+            <h3 style='color: {COLOR_PRIMARY}; margin-top: 0;'>Bienvenue dans le Centre d'Aide !</h3>
+            <p>Cette section vous fournit des informations essentielles sur l'utilisation de l'application de livraison.</p>
+            
+            <h4 style='color: {COLOR_TEXT_DARK};'>Fonctionnalités principales :</h4>
+            <ul>
+                <li><strong>Tableau de bord :</strong> Aperçu rapide de vos livraisons en cours et terminées du jour.</li>
+                <li><strong>Livraisons terminées :</strong> Historique de toutes les livraisons que vous avez complétées.</li>
+                <li><strong>Carte interactive :</strong> Visualisez votre position actuelle ainsi que les lieux de livraison en cours et terminées sur une carte.</li>
+                <li><strong>Paramètres :</strong> Accédez à vos informations de profil.</li>
+            </ul>
+            
+            <h4 style='color: {COLOR_TEXT_DARK};'>Comment marquer une livraison comme terminée ?</h4>
+            <p>Dans la section "Tableau de bord", cliquez sur la carte "En cours" pour afficher la liste de vos livraisons en attente. Ensuite, cliquez sur le bouton "Détails" à côté de la livraison concernée. Une fenêtre s'ouvrira, vous y trouverez un bouton "Marquer comme livrée". Cliquez dessus pour confirmer la fin de la livraison.</p>
+            
+            <h4 style='color: {COLOR_TEXT_DARK};'>Que faire en cas de problème ?</h4>
+            <p>Si vous rencontrez un problème avec une livraison (adresse introuvable, destinataire absent, colis endommagé, etc.), vous pouvez le signaler depuis la fenêtre des détails de la livraison en cliquant sur "Signaler un problème". Notre équipe de support vous contactera.</p>
+            
+            <h4 style='color: {COLOR_TEXT_DARK};'>Mise à jour de la position :</h4>
+            <p>Votre position est automatiquement mise à jour sur la carte interactive toutes les 60 secondes pour permettre un suivi précis de vos livraisons.</p>
+            
+            <p style='margin-top: 20px; font-style: italic;'>Pour toute question supplémentaire, veuillez contacter le support technique.</p>
+            <p style='margin-top: 20px; font-weight: bold;'>Pour une assistance rapide, démarrez notre chatbot intelligent !</p>
+        </div>
+        """
+        
+        self.help_content_label = QLabel()
+        self.help_content_label.setTextFormat(Qt.TextFormat.RichText)
+        self.help_content_label.setText(help_text)
+        self.help_content_label.setWordWrap(True)
+        
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.help_content_label)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: 1px solid {COLOR_BORDER_LIGHT};
                 border-radius: 12px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                 background-color: white;
             }}
-        """)
-        layout.addWidget(self.chart_view)
-
-        layout.addStretch() # Push content to the top
-
-        # Add the scroll area to the main stats_widget layout
-        main_stats_layout = QVBoxLayout(stats_widget)
-        main_stats_layout.addWidget(scroll_area)
-        main_stats_layout.setContentsMargins(0,0,0,0) # Remove extra margins from main layout
-
-        self.content_stack.addWidget(stats_widget)
-
-    # Example of a helper method for stat cards (you'd define this elsewhere in your class)
-    def create_stat_card(self, title_text, value_text, icon_text):
-        card_widget = QWidget()
-        card_widget.setStyleSheet(f"""
-            QWidget {{
+            QScrollArea > QWidget > QWidget {{
                 background-color: white;
-                border: 1px solid {COLOR_BORDER_LIGHT};
-                border-radius: 12px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
                 padding: 20px;
             }}
         """)
-        card_layout = QVBoxLayout(card_widget)
-        card_layout.setContentsMargins(15, 15, 15, 15)
-        card_layout.setSpacing(10)
-
-        icon_label = QLabel(icon_text)
-        icon_label.setFont(QFont("Segoe UI", 28))
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        card_layout.addWidget(icon_label)
-
-        title_label = QLabel(title_text)
-        title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.DemiBold))
-        title_label.setStyleSheet(f"color: {COLOR_TEXT_SECONDARY};")
-        card_layout.addWidget(title_label)
-
-        value_label = QLabel(value_text)
-        value_label.setObjectName("value_label") # Add object name for easy lookup
-        # Slightly reduce font size for better fit in smaller cards
-        value_label.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
-        value_label.setStyleSheet(f"color: {COLOR_PRIMARY_DARK};")
-        card_layout.addWidget(value_label)
-
-        card_layout.addStretch()
-        return card_widget
-
-    def update_stats_display(self):
-        # This method would be called when the period_selector changes
-        selected_period = self.period_selector.currentText()
-        print(f"Updating stats for period: {selected_period}")
         
-        today = QDate.currentDate()
-        filtered_completed_deliveries = []
+        layout.addWidget(scroll_area)
 
-        # self.completed_deliveries_data already contains dictionaries from DBManager
-        completed_data_dicts = self.completed_deliveries_data
+        # Add Chatbot Button
+        chatbot_button = QPushButton("🤖 Démarrer le Chatbot")
+        chatbot_button.setMinimumHeight(45)
+        chatbot_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        chatbot_button.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                    stop:0 {COLOR_SUCCESS}, stop:1 {COLOR_PRIMARY});
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 20px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                    stop:0 #3B823E, stop:1 {COLOR_PRIMARY_DARK});
+            }}
+        """)
+        chatbot_button.clicked.connect(self.start_chatbot)
+        layout.addWidget(chatbot_button)
 
+        layout.addStretch()
+        self.content_stack.addWidget(help_widget)
 
-        if selected_period == "Aujourd'hui":
-            filtered_completed_deliveries = [
-                d for d in completed_data_dicts
-                if d["date_livree"] == today
-            ]
-        elif selected_period == "Cette semaine":
-            current_day_of_week = today.dayOfWeek()
-            start_of_week = today.addDays(1 - current_day_of_week) # Adjust to Monday
-            end_of_week = start_of_week.addDays(6) # End on Sunday
-
-            filtered_completed_deliveries = [
-                d for d in completed_data_dicts
-                if d["date_livree"] and d["date_livree"] >= start_of_week and d["date_livree"] <= end_of_week
-            ]
-        elif selected_period == "Ce mois":
-            filtered_completed_deliveries = [
-                d for d in completed_data_dicts
-                if d["date_livree"] and d["date_livree"].year() == today.year() and d["date_livree"].month() == today.month()
-            ]
-        elif selected_period == "Toutes les périodes":
-            filtered_completed_deliveries = completed_data_dicts
-        
-        # Calculate statistics
-        # pending_count is always global, not filtered by date
-        pending_count = len(self.pending_deliveries_data) 
-        completed_count = len(filtered_completed_deliveries)
-        total_count = pending_count + completed_count
-
-        total_delivery_time_seconds = sum(d.get("delivery_time_seconds", 0) for d in filtered_completed_deliveries)
-        avg_time_minutes = (total_delivery_time_seconds / completed_count / 60) if completed_count > 0 else 0
-
-        total_distance_km = sum(d.get("distance_km", 0) for d in filtered_completed_deliveries)
-        # Assuming 1 liter per 10 km for dummy calculation
-        fuel_consumption = (total_distance_km / 10) if total_distance_km > 0 else 0
-
-        on_time_deliveries_count = sum(1 for d in filtered_completed_deliveries if d.get("on_time", False))
-        on_time_rate = (on_time_deliveries_count / completed_count * 100) if completed_count > 0 else 0
-
-        # Dummy revenue calculation (e.g., 5000 XAF per delivery)
-        total_revenue = completed_count * 5000
-        avg_revenue = (total_revenue / completed_count) if completed_count > 0 else 0
-
-        # Update the labels of the StatsCards
-        self.total_deliveries_card.findChild(QLabel, "value_label").setText(str(total_count))
-        self.completed_deliveries_card.findChild(QLabel, "value_label").setText(str(completed_count))
-        self.pending_deliveries_card.findChild(QLabel, "value_label").setText(str(pending_count))
-        self.avg_delivery_time_card.findChild(QLabel, "value_label").setText(f"{avg_time_minutes:.0f} min")
-        self.total_distance_card.findChild(QLabel, "value_label").setText(f"{total_distance_km:.1f} km")
-        self.fuel_consumption_card.findChild(QLabel, "value_label").setText(f"{fuel_consumption:.1f} L")
-        self.on_time_rate_card.findChild(QLabel, "value_label").setText(f"{on_time_rate:.1f}%")
-        self.total_revenue_card.findChild(QLabel, "value_label").setText(f"{total_revenue:,} XAF".replace(",", " "))
-        self.avg_revenue_card.findChild(QLabel, "value_label").setText(f"{avg_revenue:.0f} XAF")
-
-        # Generate HTML for a simple bar chart
-        chart_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100%; margin: 0; background-color: white; }}
-                .chart-container {{ width: 90%; max-width: 600px; padding: 20px; border-radius: 8px; background-color: #f9f9f9; }}
-                .bar-chart {{ display: flex; flex-direction: row; height: 250px; justify-content: space-around; align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid #ccc; }}
-                .bar-wrapper {{ display: flex; flex-direction: column; align-items: center; height: 100%; width: 45%; }}
-                .bar {{ background-color: {COLOR_PRIMARY}; width: 80%; border-radius: 4px 4px 0 0; transition: height 0.5s ease-out; position: relative; }}
-                .bar.completed {{ background-color: {COLOR_SUCCESS}; }}
-                .bar.pending {{ background-color: {COLOR_WARNING}; }}
-                .bar-value {{ position: absolute; top: -25px; width: 100%; text-align: center; font-size: 12px; color: {COLOR_TEXT_DARK}; font-weight: bold; }}
-                .bar-label {{ font-size: 14px; color: {COLOR_TEXT_DARK}; margin-top: 10px; text-align: center; }}
-                .chart-title {{ font-size: 18px; font-weight: bold; color: {COLOR_TEXT_DARK}; text-align: center; margin-bottom: 20px; }}
-            </style>
-        </head>
-        <body>
-            <div class="chart-container">
-                <div class="chart-title">Répartition des livraisons ({selected_period})</div>
-                <div class="bar-chart">
-                    <div class="bar-wrapper">
-                        <div class="bar completed" style="height: {min(completed_count * 10, 200) + 50}px;"><span class="bar-value">{completed_count}</span></div>
-                        <div class="bar-label">Terminées</div>
-                    </div>
-                    <div class="bar-wrapper">
-                        <div class="bar pending" style="height: {min(pending_count * 10, 200) + 50}px;"><span class="bar-value">{pending_count}</span></div>
-                        <div class="bar-label">En attente</div>
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        self.chart_view.setHtml(chart_html)
+    def start_chatbot(self):
+        """Launches the chatbot window."""
+        if not self.chatbot_window:
+            self.chatbot_window = ChatBot()
+        self.chatbot_window.show()
+        self.chatbot_window.activateWindow()
+        self.chatbot_window.raise_()
 
 
     def create_settings_view(self):
@@ -1381,7 +1298,6 @@ class DriverApp(QWidget):
                 border: 1px solid {COLOR_BORDER_LIGHT};
                 border-radius: 12px;
                 padding: 20px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
             }}
         """)
         driver_info_layout = QVBoxLayout(driver_info_frame)
@@ -1400,7 +1316,7 @@ class DriverApp(QWidget):
         driver_info_layout.addWidget(QLabel(f"<b>Email:</b> {self.driver_info.get('email', 'N/A')}"))
 
         layout.addWidget(driver_info_frame)
-        layout.addStretch() # Pousser le contenu vers le haut
+        layout.addStretch()
 
         self.content_stack.addWidget(settings_widget)
 
@@ -1411,7 +1327,6 @@ class DriverApp(QWidget):
 
     def setup_modern_table(self, table_widget, table_type):
         """Configure le style et les propriétés des QTableWidget."""
-        # Adjust column count based on table type
         if table_type == "pending":
             headers = ["ID Livraison", "ID Colis", "Destinataire", "Adresse", "Date Exp.", "Date Prévue", "Poids", "Volume", "Type", "Instructions", "Lat", "Long", "Statut", "Téléphone", "Action"]
             table_widget.setColumnCount(len(headers))
@@ -1462,206 +1377,223 @@ class DriverApp(QWidget):
 
     def load_all_deliveries_from_db(self):
         self.loading_label.show()
-        QApplication.processEvents() # Process events to show loading label immediately
+        QApplication.processEvents()
 
         try:
             driver_id = self.driver_info["idconducteur"]
-            print(f"Fetching deliveries for driver ID: {driver_id}") # Debug print
+            print(f"Fetching deliveries for driver ID: {driver_id}")
+            # Fetching pending deliveries (still needed for dashboard and dialog)
             self.pending_deliveries_data = self.db_manager.fetch_all(
                 "SELECT * FROM LivraisonConducteurColis WHERE status = 'pending' AND idconducteur = %s;",
                 (driver_id,)
             )
+            # Convert QDate objects for pending deliveries
+            for d in self.pending_deliveries_data:
+                d["date_expedition"] = QDate.fromString(str(d["date_expedition"]), 'yyyy-MM-dd') if d.get("date_expedition") else None
+                d["date_prevue"] = QDate.fromString(str(d["date_prevue"]), 'yyyy-MM-dd') if d.get("date_prevue") else None
+
+            # Fetching completed deliveries
             self.completed_deliveries_data = self.db_manager.fetch_all(
                 "SELECT * FROM LivraisonConducteurColis WHERE status = 'completed' AND idconducteur = %s;",
                 (driver_id,)
             )
-            print(f"Pending deliveries fetched: {len(self.pending_deliveries_data)}") # Debug print
-            print(f"Completed deliveries fetched: {len(self.completed_deliveries_data)}") # Debug print
+            # Convert QDate objects for completed deliveries
+            for d in self.completed_deliveries_data:
+                d["date_expedition"] = QDate.fromString(str(d["date_expedition"]), 'yyyy-MM-dd') if d.get("date_expedition") else None
+                d["date_prevue"] = QDate.fromString(str(d["date_prevue"]), 'yyyy-MM-dd') if d.get("date_prevue") else None
+                d["date_livree"] = QDate.fromString(str(d["date_livree"]), 'yyyy-MM-dd') if d.get("date_livree") else None
+
+
+            print(f"Pending deliveries fetched: {len(self.pending_deliveries_data)}")
+            print(f"Completed deliveries fetched: {len(self.completed_deliveries_data)}")
 
         except Exception as e:
             QMessageBox.critical(self, "Erreur de données", f"Échec du chargement des livraisons : {e}")
             self.pending_deliveries_data = []
             self.completed_deliveries_data = []
         
-        self.update_tables()
-        self.update_dashboard_stats()
-        self.update_stats_display() # Initial update for stats view
-        self.update_driver_location_on_map() # Initial map load
+        self.populate_dashboard_pending_table() # Populate the new dashboard table
+        self.load_completed_table_data() # Only update completed table directly
+        # self.update_dashboard_stats() # Removed as per user request
+        self.update_driver_location_on_map()
 
         self.loading_label.hide()
 
     def update_tables(self):
-        # Update Pending Deliveries Table
-        self.pending_table.setRowCount(len(self.pending_deliveries_data))
-        if len(self.pending_deliveries_data) == 0:
-            self.pending_table.hide()
-            self.no_pending_label.show()
-        else:
-            self.pending_table.show()
-            self.no_pending_label.hide()
-            for row_idx, delivery in enumerate(self.pending_deliveries_data):
-                self.pending_table.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
-                self.pending_table.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
-                self.pending_table.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
-                self.pending_table.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
-                self.pending_table.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
-                self.pending_table.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
-                self.pending_table.setItem(row_idx, 6, QTableWidgetItem(delivery["poids"]))
-                self.pending_table.setItem(row_idx, 7, QTableWidgetItem(delivery["volume"]))
-                self.pending_table.setItem(row_idx, 8, QTableWidgetItem(delivery["type"]))
-                self.pending_table.setItem(row_idx, 9, QTableWidgetItem(delivery["instructions"]))
-                self.pending_table.setItem(row_idx, 10, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
-                self.pending_table.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
-                self.pending_table.setItem(row_idx, 12, QTableWidgetItem(delivery["status"]))
-                self.pending_table.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"]))
+        # This method is adjusted as pending table is no longer a main view
+        # The pending table for the dialog is loaded when the dialog is shown.
+        self.populate_dashboard_pending_table()
+        self.load_completed_table_data()
 
-                # Add "Action" button for pending deliveries
-                details_button = QPushButton("Détails")
-                details_button.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {COLOR_INFO};
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        padding: 5px 10px;
-                        font-weight: 500;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #2868A8;
-                    }}
-                """)
-                # Connect the button to a handler, passing the entire delivery dictionary
-                details_button.clicked.connect(lambda checked, d=delivery: self.show_delivery_popup(d))
-                self.pending_table.setCellWidget(row_idx, 14, details_button) # Column 14 for action
-
-        # Update Completed Deliveries Table
-        self.done_table.setRowCount(len(self.completed_deliveries_data))
+    def load_completed_table_data(self):
+        t = self.done_table
+        t.setRowCount(len(self.completed_deliveries_data))
         if len(self.completed_deliveries_data) == 0:
-            self.done_table.hide()
+            t.hide()
             self.no_completed_label.show()
         else:
-            self.done_table.show()
+            t.show()
             self.no_completed_label.hide()
             for row_idx, delivery in enumerate(self.completed_deliveries_data):
-                # delivery is a dictionary, access by key
-                self.done_table.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
-                self.done_table.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
-                self.done_table.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
-                self.done_table.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
-                self.done_table.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
-                self.done_table.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
-                self.done_table.setItem(row_idx, 6, QTableWidgetItem(delivery["date_livree"].toString('yyyy-MM-dd') if delivery["date_livree"] else 'N/A'))
-                self.done_table.setItem(row_idx, 7, QTableWidgetItem(delivery["poids"]))
-                self.done_table.setItem(row_idx, 8, QTableWidgetItem(delivery["volume"]))
-                self.done_table.setItem(row_idx, 9, QTableWidgetItem(delivery["type"]))
-                self.done_table.setItem(row_idx, 10, QTableWidgetItem(delivery["instructions"]))
-                self.done_table.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
-                self.done_table.setItem(row_idx, 12, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
-                self.done_table.setItem(row_idx, 13, QTableWidgetItem(delivery["status"]))
-                self.done_table.setItem(row_idx, 14, QTableWidgetItem(delivery["telephone_destinataire"]))
-                self.done_table.setItem(row_idx, 15, QTableWidgetItem(f"{delivery.get('delivery_time_seconds', 0) / 60:.0f} min"))
-                self.done_table.setItem(row_idx, 16, QTableWidgetItem(f"{delivery.get('distance_km', 0):.1f} km"))
-                self.done_table.setItem(row_idx, 17, QTableWidgetItem("Oui" if delivery.get('on_time', False) else "Non"))
+                t.setItem(row_idx, 0, QTableWidgetItem(str(delivery.get("id_livraison", 'N/A'))))
+                t.setItem(row_idx, 1, QTableWidgetItem(delivery.get("id_colis", 'N/A')))
+                t.setItem(row_idx, 2, QTableWidgetItem(delivery.get("nom_destinataire", 'N/A')))
+                t.setItem(row_idx, 3, QTableWidgetItem(delivery.get("adresse", 'N/A')))
+                t.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery.get("date_expedition") else 'N/A'))
+                t.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery.get("date_prevue") else 'N/A'))
+                t.setItem(row_idx, 6, QTableWidgetItem(delivery["date_livree"].toString('yyyy-MM-dd') if delivery.get("date_livree") else 'N/A'))
+                t.setItem(row_idx, 7, QTableWidgetItem(delivery.get("poids", 'N/A')))
+                t.setItem(row_idx, 8, QTableWidgetItem(delivery.get("volume", 'N/A')))
+                t.setItem(row_idx, 9, QTableWidgetItem(delivery.get("type", 'N/A')))
+                t.setItem(row_idx, 10, QTableWidgetItem(delivery.get("instructions", 'N/A')))
+                t.setItem(row_idx, 11, QTableWidgetItem(str(delivery.get("lat", 'N/A'))))
+                t.setItem(row_idx, 12, QTableWidgetItem(str(delivery.get("lon", 'N/A'))))
+                t.setItem(row_idx, 13, QTableWidgetItem(delivery.get("status", 'N/A')))
+                t.setItem(row_idx, 14, QTableWidgetItem(delivery.get("telephone_destinataire", 'N/A')))
+                t.setItem(row_idx, 15, QTableWidgetItem(f"{delivery.get('delivery_time_seconds', 0) / 60:.0f} min"))
+                t.setItem(row_idx, 16, QTableWidgetItem(f"{delivery.get('distance_km', 0):.1f} km"))
+                t.setItem(row_idx, 17, QTableWidgetItem("Oui" if delivery.get('on_time', False) else "Non"))
 
 
     def update_dashboard_stats(self):
-        # Stats for overall (all periods)
-        total_deliveries = len(self.pending_deliveries_data) + len(self.completed_deliveries_data)
-        self.total_card.update_value(total_deliveries)
-        self.pending_card.update_value(len(self.pending_deliveries_data))
-        self.completed_card.update_value(len(self.completed_deliveries_data))
-
-        # Stats for "Today" on the dashboard
-        today = QDate.currentDate()
-        # self.completed_deliveries_data already contains dictionaries
-        completed_data_dicts = self.completed_deliveries_data
-
-        completed_today = [
-            d for d in completed_data_dicts
-            if d["date_livree"] == today
-        ]
-
-        completed_today_count = len(completed_today)
-        
-        total_delivery_time_seconds_today = sum(d.get("delivery_time_seconds", 0) for d in completed_today)
-        avg_time_minutes_today = (total_delivery_time_seconds_today / completed_today_count / 60) if completed_today_count > 0 else 0
-
-        total_distance_km_today = sum(d.get("distance_km", 0) for d in completed_today)
-        fuel_consumption_today = (total_distance_km_today / 10) if total_distance_km_today > 0 else 0 # Dummy calc
-
-        on_time_deliveries_count_today = sum(1 for d in completed_today if d.get("on_time", False))
-        on_time_rate_today = (on_time_deliveries_count_today / completed_today_count * 100) if completed_today_count > 0 else 0
-
-        self.dashboard_avg_delivery_time_card.findChild(QLabel, "value_label").setText(f"{avg_time_minutes_today:.0f} min")
-        self.dashboard_total_distance_card.findChild(QLabel, "value_label").setText(f"{total_distance_km_today:.1f} km")
-        self.dashboard_fuel_consumption_card.findChild(QLabel, "value_label").setText(f"{fuel_consumption_today:.1f} L")
-        self.dashboard_on_time_rate_card.findChild(QLabel, "value_label").setText(f"{on_time_rate_today:.1f}%")
+        # Removed "Performances du jour" stats from the dashboard as per user request.
+        # The following lines are commented out:
+        # today = QDate.currentDate()
+        # completed_data_dicts = self.completed_deliveries_data
+        # completed_today = [
+        #     d for d in completed_data_dicts
+        #     if d.get("date_livree") and d["date_livree"] == today
+        # ]
+        # completed_today_count = len(completed_today)
+        # total_delivery_time_seconds_today = sum(d.get("delivery_time_seconds", 0) for d in completed_today)
+        # avg_time_minutes_today = (total_delivery_time_seconds_today / completed_today_count / 60) if completed_today_count > 0 else 0
+        # total_distance_km_today = sum(d.get("distance_km", 0) for d in completed_today)
+        # fuel_consumption_today = (total_distance_km_today / 10) if total_distance_km_today > 0 else 0 # Dummy calc
+        # on_time_deliveries_count_today = sum(1 for d in completed_today if d.get("on_time", False))
+        # on_time_rate_today = (on_time_deliveries_count_today / completed_today_count * 100) if completed_today_count > 0 else 0
+        # self.avg_time_value_label.setText(f"{avg_time_minutes_today:.0f} min")
+        # self.total_distance_value_label.setText(f"{total_distance_km_today:.1f} km")
+        # self.fuel_consumption_value_label.setText(f"{fuel_consumption_today:.1f} L")
+        # self.on_time_rate_value_label.setText(f"{on_time_rate_today:.1f}%")
+        pass # No longer updating these stats on the dashboard
 
 
     def show_delivery_popup(self, delivery):
         msg = QMessageBox()
         msg.setWindowTitle(f"📦 Détails - Livraison {delivery['id_livraison']}")
-        msg.setStyleSheet("""
-            QMessageBox {
+        msg.setStyleSheet(f"""
+            QMessageBox {{
                 background: white;
                 border-radius: 12px;
-            }
-            QMessageBox QLabel {
-                color: #2d3748;
+            }}
+            QMessageBox QLabel {{
+                color: {COLOR_TEXT_DARK};
                 font-size: 14px;
-            }
-            QMessageBox QPushButton {
-                background: #4f46e5;
+            }}
+            QMessageBox QPushButton {{
+                background: {COLOR_PRIMARY};
                 color: white;
                 border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 500;
                 min-width: 120px;
-            }
-            QMessageBox QPushButton:hover {
-                background: #4338ca;
-            }
+            }}
+            QMessageBox QPushButton:hover {{
+                background: {COLOR_PRIMARY_DARK};
+            }}
         """)
 
         info = f"""
         <div style='font-family: Segoe UI; line-height: 1.6;'>
-            <h3 style='color: #2d3748; margin-top: 0;'>📦 {delivery['id_colis']}</h3>
+            <h3 style='color: {COLOR_TEXT_DARK}; margin-top: 0;'>📦 {delivery['id_colis']}</h3>
             <p><strong>👤 Destinataire:</strong> {delivery['nom_destinataire']}</p>
             <p><strong>📍 Adresse:</strong> {delivery['adresse']}</p>
             <p><strong>⚖️ Poids:</strong> {delivery['poids']}</p>
             <p><strong>📏 Volume:</strong> {delivery['volume']}</p>
             <p><strong>📦 Type:</strong> {delivery['type']}</p>
             <p><strong>📝 Instructions:</strong> {delivery['instructions']}</p>
-            <p><strong>🗓️ Date d'expédition:</strong> {delivery['date_expedition'].toString("dd/MM/yyyy") if delivery['date_expedition'] else 'N/A'}</p>
-            <p><strong>🗓️ Date prévue:</strong> {delivery['date_prevue'].toString("dd/MM/yyyy") if delivery['date_prevue'] else 'N/A'}</p>
+            <p><strong>🗓️ Date d'expédition:</strong> {delivery['date_expedition'].toString("dd/MM/yyyy") if delivery.get('date_expedition') else 'N/A'}</p>
+            <p><strong>🗓️ Date prévue:</strong> {delivery['date_prevue'].toString("dd/MM/yyyy") if delivery.get('date_prevue') else 'N/A'}</p>
         </div>
         """
 
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(info)
-        # Add "Marquer comme livrée" button only if status is pending
+        
+        # Create custom buttons for QMessageBox
+        mark_complete_btn = None
         if delivery["status"] == "pending":
-            mark_complete_btn = msg.addButton("✅ Marquer comme livrée", QMessageBox.ButtonRole.AcceptRole)
-            mark_complete_btn.setStyleSheet("""
-                QPushButton {
-                    background: #38a169; /* Green for success */
-                }
-                QPushButton:hover {
-                    background: #2f855a;
-                }
+            mark_complete_btn = QPushButton("✅ Marquer comme livrée")
+            mark_complete_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {COLOR_SUCCESS}; /* Green for success */
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-weight: 500;
+                    min-width: 120px;
+                }}
+                QPushButton:hover {{
+                    background: #3B823E; /* Darker green */
+                }}
             """)
-        else:
-            mark_complete_btn = None # No "Mark Complete" button for completed deliveries
+            msg.addButton(mark_complete_btn, QMessageBox.ButtonRole.AcceptRole)
 
-        report_problem_btn = msg.addButton("⚠️ Signaler un problème", QMessageBox.ButtonRole.DestructiveRole)
-        close_btn = msg.addButton("❌ Fermer", QMessageBox.ButtonRole.RejectRole)
+        report_problem_btn = QPushButton("⚠️ Signaler un problème")
+        report_problem_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {COLOR_WARNING}; /* Orange for warning */
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 500;
+                min-width: 120px;
+            }}
+            QPushButton:hover {{
+                background: #CC9900; /* Darker orange */
+            }}
+        """)
+        msg.addButton(report_problem_btn, QMessageBox.ButtonRole.DestructiveRole) # Using DestructiveRole for problem reporting
 
-        ret = msg.exec()
-        if mark_complete_btn and msg.clickedButton() == mark_complete_btn: # Check if the specific button was clicked
+        close_btn = QPushButton("❌ Fermer")
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {COLOR_PRIMARY};
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 500;
+                min-width: 120px;
+            }}
+            QPushButton:hover {{
+                background: {COLOR_PRIMARY_DARK};
+            }}
+        """)
+        msg.addButton(close_btn, QMessageBox.ButtonRole.RejectRole)
+
+        msg.exec() # Show the message box and wait for user interaction
+
+        # Handle button clicks
+        if mark_complete_btn and msg.clickedButton() == mark_complete_btn:
             self.complete_delivery(delivery)
         elif msg.clickedButton() == report_problem_btn:
-            QMessageBox.information(self, "⚠️ Problème signalé", "Le problème a été signalé au service client.")
+            self.show_report_issue_dialog() # Call new method for reporting issue
+
+    def show_report_issue_dialog(self):
+        dialog = ReportIssueDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            problem_description = dialog.get_problem_description()
+            if problem_description.strip():
+                QMessageBox.information(self, "Problème signalé", f"Votre problème a été signalé avec la description : \n\n'{problem_description}'\n\nNotre équipe vous contactera bientôt.")
+            else:
+                QMessageBox.warning(self, "Problème non signalé", "Vous n'avez pas saisi de description pour le problème.")
+        else:
+            QMessageBox.information(self, "Annulé", "Le signalement du problème a été annulé.")
+
 
     def complete_delivery(self, delivery):
         reply = QMessageBox.question(self, 'Confirmer la livraison',
@@ -1670,34 +1602,31 @@ class DriverApp(QWidget):
                                      QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                # When completing a delivery, we update the dummy data directly
-                # The DBManager's execute_query for LivraisonConducteurColis is designed to handle this.
                 query = """
                 UPDATE "SCA"."LivraisonConducteurColis"
                 SET status = 'completed', date_livree = %s
-                WHERE id_livraison = %s; # Corrected from idbonexpedition to id_livraison
+                WHERE id_livraison = %s;
                 """
                 current_date = QDate.currentDate().toString("yyyy-MM-dd")
-                # Pass delivery["id_livraison"] as the second parameter for the dummy DBManager
                 self.db_manager.execute_query(query, (current_date, delivery["id_livraison"]))
 
                 success_msg = QMessageBox()
                 success_msg.setIcon(QMessageBox.Icon.Information)
                 success_msg.setWindowTitle("✅ Livraison terminée")
                 success_msg.setText("🎉 Livraison marquée comme terminée avec succès !")
-                success_msg.setStyleSheet("""
-                    QMessageBox {
+                success_msg.setStyleSheet(f"""
+                    QMessageBox {{
                         background: white;
                         border-radius: 12px;
-                    }
-                    QMessageBox QPushButton {
-                        background: #38a169;
+                    }}
+                    QMessageBox QPushButton {{
+                        background: {COLOR_SUCCESS};
                         color: white;
                         border: none;
                         border-radius: 8px;
                         padding: 8px 16px;
                         font-weight: 500;
-                    }
+                    }}
                 """)
                 success_msg.exec()
 
@@ -1706,65 +1635,18 @@ class DriverApp(QWidget):
                 QMessageBox.critical(self, "Erreur de base de données", f"Échec de la mise à jour de la livraison : {e}")
 
     def update_counters(self):
-        # This method is no longer needed as update_dashboard_stats covers its functionality
         pass
 
     def search_deliveries(self):
-        search_text = self.search_input.text().lower()
-        # Filter the internal data list, then update the table
-        filtered_data = []
-        for delivery in self.pending_deliveries_data: # self.pending_deliveries_data is already dicts
-            if search_text in delivery["id_livraison"].lower() or \
-               search_text in delivery["nom_destinataire"].lower() or \
-               search_text in delivery["adresse"].lower():
-                filtered_data.append(delivery) # Keep the original raw data for table display
-
-        self.pending_table.setRowCount(len(filtered_data))
-        if len(filtered_data) == 0:
-            self.pending_table.hide()
-            self.no_pending_label.show()
-        else:
-            self.pending_table.show()
-            self.no_pending_label.hide()
-            for row_idx, delivery in enumerate(filtered_data):
-                self.pending_table.setItem(row_idx, 0, QTableWidgetItem(str(delivery["id_livraison"])))
-                self.pending_table.setItem(row_idx, 1, QTableWidgetItem(delivery["id_colis"]))
-                self.pending_table.setItem(row_idx, 2, QTableWidgetItem(delivery["nom_destinataire"]))
-                self.pending_table.setItem(row_idx, 3, QTableWidgetItem(delivery["adresse"]))
-                self.pending_table.setItem(row_idx, 4, QTableWidgetItem(delivery["date_expedition"].toString('yyyy-MM-dd') if delivery["date_expedition"] else 'N/A'))
-                self.pending_table.setItem(row_idx, 5, QTableWidgetItem(delivery["date_prevue"].toString('yyyy-MM-dd') if delivery["date_prevue"] else 'N/A'))
-                self.pending_table.setItem(row_idx, 6, QTableWidgetItem(delivery["poids"]))
-                self.pending_table.setItem(row_idx, 7, QTableWidgetItem(delivery["volume"]))
-                self.pending_table.setItem(row_idx, 8, QTableWidgetItem(delivery["type"]))
-                self.pending_table.setItem(row_idx, 9, QTableWidgetItem(delivery["instructions"]))
-                self.pending_table.setItem(row_idx, 10, QTableWidgetItem(str(delivery["lat"]) if delivery["lat"] is not None else 'N/A'))
-                self.pending_table.setItem(row_idx, 11, QTableWidgetItem(str(delivery["lon"]) if delivery["lon"] is not None else 'N/A'))
-                self.pending_table.setItem(row_idx, 12, QTableWidgetItem(delivery["status"]))
-                self.pending_table.setItem(row_idx, 13, QTableWidgetItem(delivery["telephone_destinataire"]))
-
-                details_button = QPushButton("Détails")
-                details_button.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {COLOR_INFO};
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        padding: 5px 10px;
-                        font-weight: 500;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #2868A8;
-                    }}
-                """)
-                details_button.clicked.connect(lambda checked, d=delivery: self.show_delivery_popup(d))
-                self.pending_table.setCellWidget(row_idx, 14, details_button)
+        # This method is no longer used for a dedicated pending view,
+        # but could be adapted if a search bar is added to the dialog.
+        pass
 
     def update_driver_location_on_map(self):
         self.map_loading_label.show()
-        QApplication.processEvents() # Process events to show loading label
+        QApplication.processEvents()
 
         try:
-            # Fetch driver's current location from DB or dummy data
             location_query = """
             SELECT current_latitude, current_longitude
             FROM "SCA"."DriverLocations"
@@ -1772,17 +1654,16 @@ class DriverApp(QWidget):
             """
             location_data = self.db_manager.fetch_one(location_query, (self.driver_info["idconducteur"],))
             if location_data:
+                # Corrected access to tuple elements
                 self.driver_current_location = (float(location_data[0]), float(location_data[1]))
             else:
-                # Fallback to a default location if not found in DB or dummy data
-                self.driver_current_location = (4.05, 9.77) # Douala, Cameroon
+                self.driver_current_location = (4.05, 9.77) # Default to Douala, Cameroon
 
             # Simulate location movement for the driver in dummy data
             current_lat, current_lon = self.driver_current_location
-            new_lat = current_lat + (random.uniform(-0.005, 0.005)) # Smaller random movement
+            new_lat = current_lat + (random.uniform(-0.005, 0.005))
             new_lon = current_lon + (random.uniform(-0.005, 0.005))
             self.driver_current_location = (new_lat, new_lon)
-            # Update dummy location in DBManager (this will call the dummy logic in execute_query)
             self.db_manager.execute_query(
                 "UPDATE \"SCA\".\"DriverLocations\" SET current_latitude = %s, current_longitude = %s WHERE idconducteur = %s;",
                 (new_lat, new_lon, self.driver_info["idconducteur"])
@@ -1792,8 +1673,6 @@ class DriverApp(QWidget):
             QMessageBox.warning(self, "Erreur de localisation", f"Impossible de charger la position du conducteur : {e}. Utilisation d'une position par défaut.")
             self.driver_current_location = (4.05, 9.77)
 
-        # Generate HTML for the map using OpenStreetMap and Leaflet.js
-        # Include all pending and completed delivery locations as markers
         map_html = f"""
         <!DOCTYPE html>
         <html>
@@ -1811,7 +1690,7 @@ class DriverApp(QWidget):
         <body>
             <div id="mapid"></div>
             <script>
-                var map = L.map('mapid'); // No initial setView, will fitBounds later
+                var map = L.map('mapid').setView([{self.driver_current_location[0]}, {self.driver_current_location[1]}], 13);
 
                 L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -1831,7 +1710,7 @@ class DriverApp(QWidget):
                 var pendingDeliveries = {json.dumps([
                     {"lat": d["lat"], "lon": d["lon"], "id": d["id_livraison"], "name": d["nom_destinataire"], "address": d["adresse"]}
                     for d in self.pending_deliveries_data
-                    if d.get("lat") is not None and d.get("lon") is not None # Ensure coordinates exist
+                    if d.get("lat") is not None and d.get("lon") is not None
                 ])};
                 pendingDeliveries.forEach(function(delivery) {{
                     var marker = L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_WARNING}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">🕒</div>', iconSize: [24, 24], iconAnchor: [12, 24]}})}})
@@ -1844,7 +1723,7 @@ class DriverApp(QWidget):
                 var completedDeliveries = {json.dumps([
                     {"lat": d["lat"], "lon": d["lon"], "id": d["id_livraison"], "name": d["nom_destinataire"], "address": d["adresse"]}
                     for d in self.completed_deliveries_data
-                    if d.get("lat") is not None and d.get("lon") is not None # Ensure coordinates exist
+                    if d.get("lat") is not None and d.get("lon") is not None
                 ])};
                 completedDeliveries.forEach(function(delivery) {{
                     var marker = L.marker([delivery.lat, delivery.lon], {{icon: L.divIcon({{className: 'custom-div-icon', html: '<div style="background-color: {COLOR_SUCCESS}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;">✅</div>', iconSize: [24, 24], iconAnchor: [12, 24]}})}})
@@ -1853,12 +1732,10 @@ class DriverApp(QWidget):
                     allMarkers.push(marker);
                 }});
 
-                // Adjust map bounds to fit all markers
                 if (allMarkers.length > 0) {{
                     var group = L.featureGroup(allMarkers);
-                    map.fitBounds(group.getBounds().pad(0.1)); // Add 10% padding
+                    map.fitBounds(group.getBounds().pad(0.1));
                 }} else {{
-                    // If no markers, set a default view (e.g., center on driver's initial location)
                     map.setView([driverLat, driverLon], 13);
                 }}
             </script>
@@ -1870,13 +1747,11 @@ class DriverApp(QWidget):
 
     def change_view(self, index):
         self.content_stack.setCurrentIndex(index)
-        # Reload data for all views on navigation to ensure freshness
         self.load_all_deliveries_from_db()
-        if index == 3: # Map view
+        if index == 2: # Map view (new index)
             self.update_driver_location_on_map()
-        elif index == 4: # Stats view
-            self.update_stats_display() # Ensure stats are updated when view is changed to stats
-
+        elif index == 3: # Help view (new index)
+            pass # No specific update needed for the simple help view
 
     def apply_modern_styles(self):
         self.setStyleSheet(f"""
@@ -1930,13 +1805,11 @@ class DriverApp(QWidget):
     def logout(self):
         reply = QMessageBox.question(self, 'Déconnexion',
                                      "Êtes-vous sûr de vouloir vous déconnecter ?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.Yes | QMessageBox.QMessageBox.StandardButton.No,
                                      QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             QMessageBox.information(self, 'Déconnexion', "Vous avez été déconnecté.")
-            # In a real app, you would close the current window and open the login window
             self.close()
-            # For this dummy app, we'll just exit
             QApplication.quit()
 
 class LoginScreen(QWidget):
@@ -1946,7 +1819,7 @@ class LoginScreen(QWidget):
     def __init__(self, db_manager_instance):
         super().__init__()
         self.db_manager = db_manager_instance
-        self.setWindowTitle("DeliveryPro - Connexion")
+        self.setWindowTitle("SAC DeliveryPro- Connexion")
         self.setGeometry(500, 300, 400, 350)
         self.init_ui()
         self.apply_login_styles()
@@ -1996,9 +1869,8 @@ class LoginScreen(QWidget):
         self.setStyleSheet(f"""
             QWidget {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                                    stop:0 #A7BFE8, stop:1 #6190E8);
+                                    stop:0 {COLOR_PRIMARY_LIGHT}, stop:1 {COLOR_PRIMARY});
                 border-radius: 20px;
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
             }}
             QLabel {{
                 color: white;
@@ -2020,11 +1892,9 @@ class LoginScreen(QWidget):
                 border-radius: 12px;
                 padding: 12px 20px;
                 font-weight: 600;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }}
             QPushButton:hover {{
-                background: {COLOR_HOVER_DARK};
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+                background: {COLOR_PRIMARY_DARK};
             }}
         """)
 
@@ -2035,15 +1905,14 @@ class LoginScreen(QWidget):
         self.login_loading_label.show()
         QApplication.processEvents()
 
-        # For demonstration, we assume a universal password 'password' for all registered drivers.
-        # In a real application, you would hash and compare passwords securely.
-        if entered_password == "password":
+        if entered_password == "password": # Universal password for dummy login
             try:
                 driver_info = None
-                # Try dummy drivers for login
-                driver_data = self.db_manager.drivers_info_dummy.get(entered_email)
-                if driver_data:
-                    driver_info = driver_data
+                # Try to fetch driver info from the dummy data using the entered email
+                driver_info = self.db_manager.fetch_one(
+                    "SELECT idconducteur, nom, prenom, telephone, email FROM Conducteur WHERE email = %s;",
+                    (entered_email,)
+                )
                 
                 if driver_info:
                     self.login_loading_label.hide()
@@ -2064,59 +1933,25 @@ class LoginScreen(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # 1. Database Selection Dialog
-    # In this version, both "online" and "offline" will use the dummy DBManager
-    # as psycopg2 is commented out. This is for demonstration purposes.
-    db_options = ["1. online (dummy)", "2. offline (dummy)"]
-    db_choice, ok = QInputDialog.getItem(
-        None, "Sélection de la base de données",
-        "Entrez le numéro de la BD que vous voulez utiliser :",
-        db_options, 1, False # Default to 'offline' (index 1)
-    )
-
-    db_config = None # Always None for this dummy version
-    db_type_selected = "dummy" # Indicate that we are always using dummy
-
-    if ok and db_choice:
-        choice_num = int(db_choice.split('.')[0])
-        if choice_num == 1:
-            print("You have chosen the online (dummy) database.")
-        elif choice_num == 2:
-            print("You have chosen the offline (dummy) database.")
-        else:
-            QMessageBox.critical(None, "Erreur", "Sélection de base de données non valide.")
-            sys.exit(1)
-    else:
-        QMessageBox.critical(None, "Annulé", "Sélection de base de données annulée. L'application va se fermer.")
-        sys.exit(0)
-
-    # 2. Initialize DBManager (always dummy in this version)
-    db_manager = DBManager(db_config) # db_config is None, which is fine for dummy DBManager
+    # Directly initialize the InternalDummyDBManager
+    db_manager = InternalDummyDBManager()
     
-    # Test connection is always true for dummy DBManager
-    if not db_manager.test_connection():
-        QMessageBox.critical(None, "Erreur de connexion à la BD", "Impossible de se connecter à la base de données. L'application va se fermer.")
-        sys.exit(1)
+    # No need for connection test or dialog as it's always dummy and always connected
+    print("Application démarrée en mode autonome (Dummy DB).")
 
-    # 3. Create and show Login Screen
-    main_window = QMainWindow() # Use QMainWindow as the top-level window
+    main_window = QMainWindow()
     login_screen = LoginScreen(db_manager)
     main_window.setCentralWidget(login_screen)
-    # Set initial size, but allow resizing
-    main_window.resize(400, 350) 
+    main_window.resize(400, 350)
     main_window.show()
 
-    # 4. Connect login signal to show main app
     def show_main_app(driver_info):
-        # Create DriverApp with the logged-in driver's info and db_manager
         driver_dashboard = DriverApp(driver_info, db_manager)
         main_window.setCentralWidget(driver_dashboard)
-        # Maximize the main window and allow resizing
         main_window.setWindowState(Qt.WindowState.WindowMaximized)
-        main_window.setMinimumSize(800, 600) # Set a minimum size for the main window
-        main_window.show() # Show the main app
+        main_window.setMinimumSize(800, 600)
+        main_window.show()
 
     login_screen.login_successful.connect(show_main_app)
 
-    # 5. Start the Qt event loop
     sys.exit(app.exec())
