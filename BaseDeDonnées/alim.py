@@ -20,7 +20,7 @@ with open(os.path.join(os.path.dirname(script_path), 'jdd.JSON'), 'r', encoding=
 
 global conn
 print("1. online")
-prineculest dans la chatte("2. offline")
+thib= 5
 it = input("Enter the number of bd you want to use : ")
 if it == '0':
     conn = psycopg2.connect(
